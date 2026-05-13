@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng nhập - MediScan AI</title>
+    <!-- Nhúng Bootstrap 5 qua CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+        .login-card { border-radius: 15px; border: none; }
+        .brand-text { color: #0d6efd; font-weight: bold; }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center vh-100">
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-lg login-card p-4">
+                <div class="text-center mb-4">
+                    <h2 class="brand-text">MediScan AI</h2>
+                    <p class="text-muted">Hệ thống chẩn đoán hình ảnh thông minh</p>
+                </div>
+
+                <!-- Thông báo lỗi/thành công -->
+                <div th:if="${param.error}" class="alert alert-danger" role="alert">
+                    Sai tài khoản hoặc mật khẩu!
+                </div>
+                <div th:if="${param.success}" class="alert alert-success" role="alert">
+                    Đăng ký thành công, vui lòng đăng nhập!
+                </div>
+                <div th:if="${param.logout}" class="alert alert-info" role="alert">
+                    Bạn đã đăng xuất an toàn.
+                </div>
+
+                <form th:action="@{/login}" method="post">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Tài khoản" required>
+                        <label for="username">Tên đăng nhập</label>
+                    </div>
+
+                    <div class="form-floating mb-4">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Mật khẩu" required>
+                        <label for="password">Mật khẩu</label>
+                    </div>
+
+                    <button class="btn btn-primary w-100 py-2 mb-3" type="submit">Đăng nhập</button>
+                </form>
+
+                <div class="text-center">
+                    <a th:href="@{/register}" class="text-decoration-none">Chưa có tài khoản? Đăng ký ngay</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
