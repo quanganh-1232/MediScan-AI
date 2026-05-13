@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - MediScan AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<!-- Thanh điều hướng Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">MediScan AI</a>
+        <div class="collapse navbar-collapse justify-content-end">
+            <ul class="navbar-nav align-items-center">
+                <li class="nav-item text-white me-3">
+                    Xin chào, <strong sec:authentication="name">User</strong>!
+                </li>
+                <li class="nav-item">
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-light">Đăng xuất</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Nội dung chính -->
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-5">
+                    <h2 class="mb-3 text-primary">Chào mừng bạn đến với Hệ thống</h2>
+                    <p class="lead text-muted">Hệ thống của bạn đang ghi nhận bạn có quyền:
+                        <span class="badge bg-warning text-dark fs-6" sec:authentication="principal.authorities">Roles</span>
+                    </p>
+                    <hr class="my-4">
+
+                    <!-- Khối này chỉ hiển thị cho ADMIN -->
+                    <div sec:authorize="hasRole('ADMIN')" class="alert alert-danger">
+                        <h4>Góc dành cho Quản trị viên (Admin)</h4>
+                        <p>Chức năng: Quản lý danh mục, Quản lý tài khoản (Khóa/Mở user), Xem Dashboard tổng quan.</p>
+                        <button class="btn btn-danger">Đi tới trang Admin</button>
+                    </div>
+
+                    <!-- Khối này chỉ hiển thị cho PATIENT -->
+                    <div sec:authorize="hasRole('PATIENT')" class="alert alert-success">
+                        <h4>Góc dành cho Bệnh nhân</h4>
+                        <p>Chức năng: Upload ca bệnh, Xem lịch sử khám, Chờ phân tích AI.</p>
+                        <button class="btn btn-success">Tạo ca bệnh mới</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
