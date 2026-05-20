@@ -1,15 +1,13 @@
 package com.example.mediscanauth.security;
 
-import com.example.mediscanauth.model.Role;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.repository.UserRepository;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.stream.Collectors;
+import java.util.Collections;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -21,17 +19,24 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
-            throw new UsernameNotFoundException("Không tìm thấy tài khoản!");
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tài khoản với email: " + email));
+
+        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+            throw new DisabledException("Tài khoản chưa được kích hoạt hoặc đã bị khóa.");
         }
 
-        Collection<GrantedAuthority> authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName()))
-                .collect(Collectors.toList());
+        String roleName = user.getRole().getRoleName();
+
+        if (!roleName.startsWith("ROLE_")) {
+            roleName = "ROLE_" + roleName;
+        }
 
         return new org.springframework.security.core.userdetails.User(
-                user.getUsername(), user.getPassword(), authorities);
+                user.getEmail(),
+                user.getPasswordHash(),
+                Collections.singletonList(new SimpleGrantedAuthority(roleName))
+        );
     }
 }

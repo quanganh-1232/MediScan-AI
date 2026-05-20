@@ -7,10 +7,7 @@ import com.example.mediscanauth.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-
-import java.util.Collections;
+import org.springframework.web.bind.annotation.*;
 
 @Controller
 public class AuthController {
@@ -19,10 +16,17 @@ public class AuthController {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public AuthController(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public AuthController(UserRepository userRepository,
+                          RoleRepository roleRepository,
+                          PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    @GetMapping("/")
+    public String index() {
+        return "redirect:/login";
     }
 
     @GetMapping("/login")
@@ -31,25 +35,43 @@ public class AuthController {
     }
 
     @GetMapping("/register")
-    public String showRegistrationForm(Model model) {
-        model.addAttribute("user", new User());
+    public String showRegistrationForm() {
         return "register";
     }
 
     @PostMapping("/register")
-    public String registerUser(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+    public String registerUser(@RequestParam String fullName,
+                               @RequestParam String email,
+                               @RequestParam(required = false) String phone,
+                               @RequestParam String password,
+                               @RequestParam String confirmPassword,
+                               Model model) {
 
-        // Mặc định gán quyền Bệnh nhân (ROLE_PATIENT) cho người đăng ký mới
-        Role userRole = roleRepository.findByName("ROLE_PATIENT");
-        if (userRole == null) {
-            userRole = new Role();
-            userRole.setName("ROLE_PATIENT");
-            roleRepository.save(userRole);
+        if (!password.equals(confirmPassword)) {
+            model.addAttribute("error", "Mật khẩu xác nhận không khớp.");
+            return "register";
         }
-        user.setRoles(Collections.singletonList(userRole));
+
+        if (userRepository.existsByEmail(email)) {
+            model.addAttribute("error", "Email đã tồn tại trong hệ thống.");
+            return "register";
+        }
+
+        Role patientRole = roleRepository.findByRoleName("PATIENT")
+                .orElseGet(() -> roleRepository.save(
+                        new Role("PATIENT", "Patient or external user")
+                ));
+
+        User user = new User();
+        user.setFullName(fullName);
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setStatus("ACTIVE");
+        user.setRole(patientRole);
 
         userRepository.save(user);
+
         return "redirect:/login?success";
     }
 
