@@ -1,44 +1,51 @@
 package com.example.mediscanauth.model;
 
 import jakarta.persistence.*;
-import java.util.List;
 
 @Entity
 @Table(name = "roles")
 public class Role {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "role_id")
+    private Long roleId;
 
-    @Column(nullable = false, unique = true)
-    private String name; // Ví dụ: "ROLE_ADMIN", "ROLE_DOCTOR"
+    @Column(name = "role_name", nullable = false, unique = true)
+    private String roleName;
 
-    @ManyToMany(mappedBy = "roles")
-    private List<User> users;
+    @Column(name = "description")
+    private String description;
 
-    // TODO: Tạo các Getter và Setter cho id, name, users
-
-    public Long getId() {
-        return id;
+    public Role() {
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public Role(String roleName, String description) {
+        this.roleName = roleName;
+        this.description = description;
     }
 
-    public String getName() {
-        return name;
+    public Long getRoleId() {
+        return roleId;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setRoleId(Long roleId) {
+        this.roleId = roleId;
     }
 
-    public List<User> getUsers() {
-        return users;
+    public String getRoleName() {
+        return roleName;
     }
 
-    public void setUsers(List<User> users) {
-        this.users = users;
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }
