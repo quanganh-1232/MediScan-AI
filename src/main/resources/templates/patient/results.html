@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Results - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+</head>
+<body>
+<div class="ms-shell">
+    <div th:replace="~{common/fragments/app-header :: header('Patient Portal', 'Bệnh nhân', 'ms-avatar-orange')}"></div>
+    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
+        <div class="row g-4 align-items-start">
+            <div class="col-12 col-xl-3" th:replace="~{common/fragments/app-sidebar :: sidebar('patient', 'Patient Portal', 'Bệnh nhân', 'ms-avatar-orange', 'results')}"></div>
+            <div class="col-12 col-xl-9">
+                <section class="ms-page-hero mb-4"><div><span class="ms-pill ms-pill-success mb-3">Patient results</span><h1 class="ms-display display-6 mb-2">Kết quả gần nhất</h1></div></section>
+                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
+                    <div th:if="${latestRecord != null}">
+                        <div class="ms-result-preview mb-3">
+                            <div class="ms-result-preview-mark">AI</div>
+                            <div>
+                                <div class="fw-bold" th:text="${latestRecord.recordCode}">XR-2026-0001</div>
+                                <div class="small text-muted" th:text="${'Độ tin cậy AI ' + (latestRecord.aiConfidence != null ? latestRecord.aiConfidence : 0) + '%'}">Độ tin cậy AI 0%</div>
+                            </div>
+                        </div>
+                        <ul class="ms-list">
+                            <li class="ms-activity-item"><div class="fw-semibold">Kết luận</div><div class="small text-muted" th:text="${latestRecord.doctorConclusion != null ? latestRecord.doctorConclusion : latestRecord.aiPrediction}">Chờ kết quả</div></li>
+                            <li class="ms-activity-item"><div class="fw-semibold">Khuyến nghị</div><div class="small text-muted" th:text="${latestRecord.recommendation != null ? latestRecord.recommendation : 'Chưa có khuyến nghị.'}">Chưa có khuyến nghị.</div></li>
+                        </ul>
+                    </div>
+                    <div th:if="${latestRecord == null}" class="text-muted">Chưa có kết quả nào.</div>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
