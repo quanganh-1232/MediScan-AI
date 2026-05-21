@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Thông báo - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <style>body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }</style>
+</head>
+<body>
+<div class="ms-shell">
+    <main class="ms-container container py-4 py-lg-5">
+        <section class="ms-page-hero mb-4">
+            <div>
+                <a th:href="@{/profile}" class="text-decoration-none fw-semibold">&lt; Quay lại hồ sơ</a>
+                <h1 class="ms-display display-6 mt-3 mb-2">Thông báo cá nhân</h1>
+                <p class="ms-subtle mb-0">Danh sách thông báo được lấy theo user đang đăng nhập.</p>
+            </div>
+            <div class="ms-readonly-note">
+                <div class="fw-bold" th:text="${unreadCount}">0</div>
+                <div class="small text-muted">Thông báo chưa đọc</div>
+            </div>
+        </section>
+
+        <section class="ms-card-solid rounded-5 p-4 p-lg-5">
+            <div th:if="${#lists.isEmpty(notifications)}" class="text-center text-muted py-4">
+                Chưa có thông báo cá nhân.
+            </div>
+            <ul class="ms-list" th:if="${!#lists.isEmpty(notifications)}">
+                <li class="ms-activity-item" th:each="n : ${notifications}">
+                    <div class="d-flex justify-content-between gap-3">
+                        <div>
+                            <div class="fw-bold" th:text="${n.title}">Tiêu đề</div>
+                            <div class="text-muted small" th:text="${n.message}">Nội dung</div>
+                        </div>
+                        <span class="ms-badge" th:classappend="${n.read} ? ' ms-badge-soft' : ' ms-badge-warning'" th:text="${n.read} ? 'Đã đọc' : 'Mới'">Mới</span>
+                    </div>
+                </li>
+            </ul>
+        </section>
+    </main>
+</div>
+</body>
+</html>

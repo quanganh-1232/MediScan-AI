@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Thông tin cá nhân - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <style>body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }</style>
+</head>
+<body>
+<div class="ms-shell">
+    <header class="ms-app-header">
+        <div class="ms-container container">
+            <div class="ms-topbar">
+                <a th:href="@{/home}" class="ms-brand text-decoration-none text-dark">
+                    <div class="ms-brand-mark ms-brand-mark-solid">M</div>
+                    <div><div class="fw-bold">MediScan AI</div><div class="small text-muted">User Account</div></div>
+                </a>
+                <div class="d-flex gap-2">
+                    <a th:href="@{/notifications}" class="btn ms-icon-btn text-decoration-none" aria-label="Thông báo">!</a>
+                    <form th:action="@{/logout}" method="post">
+                        <button type="submit" class="btn ms-btn ms-btn-primary text-white">Đăng xuất</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="ms-container container py-4 py-lg-5">
+        <section class="ms-page-hero mb-4">
+            <div>
+                <span class="ms-pill ms-pill-soft mb-3">User Profile</span>
+                <h1 class="ms-display display-6 mb-2">Thông tin cá nhân</h1>
+                <p class="ms-subtle mb-0">Thông tin tài khoản đang đăng nhập và vai trò hiện tại trong hệ thống.</p>
+            </div>
+            <div class="ms-readonly-note">
+                <div class="fw-bold" sec:authentication="name">user@mediscan.ai</div>
+                <div class="small text-muted" sec:authentication="principal.authorities">ROLE</div>
+            </div>
+        </section>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="ms-avatar ms-avatar-primary" th:text="${#strings.substring(user.fullName, 0, 1).toUpperCase()}">U</div>
+                        <div>
+                            <h2 class="h4 ms-section-title mb-1" th:text="${user.fullName}">User Name</h2>
+                            <div class="text-muted" th:text="${user.email}">user@mediscan.ai</div>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><div class="ms-activity-item"><div class="small text-muted">Số điện thoại</div><div class="fw-semibold" th:text="${user.phone != null && !user.phone.isBlank() ? user.phone : 'Chưa cập nhật'}">Chưa cập nhật</div></div></div>
+                        <div class="col-md-6"><div class="ms-activity-item"><div class="small text-muted">Vai trò</div><div class="fw-semibold" th:text="${user.role.roleName}">PATIENT</div></div></div>
+                        <div class="col-md-6"><div class="ms-activity-item"><div class="small text-muted">Trạng thái</div><div class="fw-semibold" th:text="${user.status}">ACTIVE</div></div></div>
+                        <div class="col-md-6"><div class="ms-activity-item"><div class="small text-muted">Đăng nhập bằng</div><div class="fw-semibold" th:text="${user.authProvider}">LOCAL</div></div></div>
+                    </div>
+                </section>
+            </div>
+            <div class="col-lg-4">
+                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
+                    <h2 class="h4 ms-section-title mb-3">Tác vụ tài khoản</h2>
+                    <div class="d-grid gap-2">
+                        <a th:href="@{/profile/edit}" class="btn ms-btn ms-btn-primary text-white">Chỉnh sửa thông tin</a>
+                        <a th:href="@{/change-password}" class="btn ms-btn ms-btn-ghost text-primary border-primary bg-white">Đổi mật khẩu</a>
+                        <a th:href="@{/notifications}" class="btn ms-btn ms-btn-ghost text-primary border-primary bg-white">Xem thông báo</a>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

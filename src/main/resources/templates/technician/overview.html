@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Technician Overview - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+</head>
+<body>
+<div class="ms-shell">
+    <div th:replace="~{common/fragments/app-header :: header('Technician Console', 'Kỹ thuật viên', 'ms-avatar-accent')}"></div>
+    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
+        <div class="row g-4 align-items-start">
+            <div class="col-12 col-xl-3" th:replace="~{common/fragments/app-sidebar :: sidebar('technician', 'Technician Console', 'Kỹ thuật viên', 'ms-avatar-accent', 'overview')}"></div>
+            <div class="col-12 col-xl-9">
+                <section class="ms-page-hero mb-4">
+                    <div>
+                        <span class="ms-pill ms-pill-warning mb-3">Technician overview</span>
+                        <h1 class="ms-display display-6 mb-2">Tổng quan ca làm việc</h1>
+                        <p class="ms-subtle mb-0">Từ đây bạn đi sang form đặt lịch, upload ảnh hoặc xem dữ liệu gần đây bằng route riêng.</p>
+                    </div>
+                    <div class="ms-readonly-note"><div class="fw-bold" th:text="${scheduledCount}">0</div><div class="small text-muted">Lịch chờ xử lý</div></div>
+                </section>
+                <div class="row g-3 g-lg-4">
+                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Appointments</div><div class="ms-metric-number" th:text="${scheduledCount}">0</div></div></div>
+                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Medical Records</div><div class="ms-metric-number" th:text="${uploadedRecordCount}">0</div></div></div>
+                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">X-Ray Images</div><div class="ms-metric-number" th:text="${uploadedImageCount}">0</div></div></div>
+                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">AI / Doctor</div><div class="ms-metric-number" th:text="${aiSuccessCount + '/' + approvedReviewCount}">0/0</div></div></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
