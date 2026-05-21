@@ -20,8 +20,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tài khoản với email: " + email));
+        String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
+
+        User user = userRepository.findByEmail(normalizedEmail)
+            .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tài khoản với email: " + normalizedEmail));
 
         if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
             throw new DisabledException("Tài khoản chưa được kích hoạt hoặc đã bị khóa.");
