@@ -28,6 +28,15 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @Column(name = "auth_provider", length = 30)
+    private String authProvider = "LOCAL";
+
+    @Column(name = "provider_id", length = 120)
+    private String providerId;
+
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Column(name = "status")
     private String status = "ACTIVE";
 
@@ -86,6 +95,30 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getAuthProvider() {
+        return authProvider;
+    }
+
+    public void setAuthProvider(String authProvider) {
+        this.authProvider = authProvider;
+    }
+
+    public String getProviderId() {
+        return providerId;
+    }
+
+    public void setProviderId(String providerId) {
+        this.providerId = providerId;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public String getStatus() {

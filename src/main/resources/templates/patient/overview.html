@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Overview - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+</head>
+<body>
+<div class="ms-shell">
+    <div th:replace="~{common/fragments/app-header :: header('Patient Portal', 'Bệnh nhân', 'ms-avatar-orange')}"></div>
+    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
+        <div class="row g-4 align-items-start">
+            <div class="col-12 col-xl-3" th:replace="~{common/fragments/app-sidebar :: sidebar('patient', 'Patient Portal', 'Bệnh nhân', 'ms-avatar-orange', 'overview')}"></div>
+            <div class="col-12 col-xl-9">
+                <section class="ms-page-hero mb-4">
+                    <div><span class="ms-pill ms-pill-success mb-3">Patient overview</span><h1 class="ms-display display-6 mb-2">Hồ sơ y tế của bạn</h1></div>
+                    <div class="ms-readonly-note"><div class="fw-bold">Quyền truy cập</div><div class="small text-muted">View only</div></div>
+                </section>
+                <div class="row g-3 g-lg-4 mb-4">
+                    <div class="col-md-4"><div class="ms-metric h-100"><div class="ms-metric-label">Lần cập nhật gần nhất</div><div class="ms-metric-number" style="font-size: 1.5rem;" th:text="${latestRecord != null ? #temporals.format(latestRecord.capturedAt, 'dd/MM/yyyy') : 'Chưa có'}">Chưa có</div></div></div>
+                    <div class="col-md-4"><div class="ms-metric h-100"><div class="ms-metric-label">Tổng hồ sơ ảnh</div><div class="ms-metric-number" th:text="${recordCount}">0</div></div></div>
+                    <div class="col-md-4"><div class="ms-metric h-100"><div class="ms-metric-label">Thông báo chưa đọc</div><div class="ms-metric-number" th:text="${unreadCount}">0</div></div></div>
+                </div>
+                <div class="d-grid gap-3">
+                    <a th:href="@{/patient/records}" class="btn ms-btn ms-btn-primary text-white">Mở hồ sơ</a>
+                    <a th:href="@{/patient/results}" class="btn ms-btn ms-btn-ghost text-dark border-secondary bg-white">Xem kết quả</a>
+                    <a th:href="@{/patient/support}" class="btn ms-btn ms-btn-ghost text-dark border-secondary bg-white">Hỗ trợ</a>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
