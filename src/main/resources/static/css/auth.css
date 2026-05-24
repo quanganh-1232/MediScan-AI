@@ -1,0 +1,114 @@
+body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #f0f4f8;
+}
+
+.ms-auth-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 2rem 0;
+}
+
+.ms-auth-hero {
+    background: linear-gradient(135deg, #0d3b66, #125b9a);
+    border-radius: 1.5rem;
+    padding: 3rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(13, 59, 102, 0.2);
+}
+
+.ms-auth-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -20%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.ms-auth-panel {
+    background: #ffffff;
+    border-radius: 1.5rem;
+    padding: 3rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.ms-brand-mark {
+    background: white;
+    color: #0d3b66;
+    border-radius: 10px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.ms-brand {
+    display: flex;
+    align-items: center;
+}
+
+.ms-btn-primary {
+    background: #0d3b66;
+    border: none;
+    padding: 0.8rem;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.ms-btn-primary:hover {
+    background: #125b9a;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(18, 91, 154, 0.3);
+}
+
+.ms-input {
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    transition: all 0.3s ease;
+}
+
+.ms-input:focus {
+    border-color: #125b9a;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(18, 91, 154, 0.1);
+}
+
+.ms-label {
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.5rem;
+}
+
+.ms-pill {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    display: inline-flex;
+    font-size: 0.875rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.ms-section-title {
+    color: #0d3b66;
+    font-weight: 700;
+}
+
+.ms-subtle {
+    color: #64748b;
+}
