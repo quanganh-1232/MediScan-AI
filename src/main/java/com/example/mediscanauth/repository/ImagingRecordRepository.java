@@ -24,4 +24,10 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
     List<ImagingRecord> findByStatusInOrderByCreatedAtDesc(List<String> statuses);
 
     List<ImagingRecord> findTop10ByOrderByCreatedAtDesc();
+
+    List<ImagingRecord> findByStatusInAndDoctorUserIdOrderByCreatedAtDesc(List<String> statuses, Long userId);
+
+    long countByStatusInAndDoctorUserId(List<String> statuses, Long userId);
+
+    List<ImagingRecord> findByDoctorUserIdAndStatusInOrderByCreatedAtDesc(Long userId, List<String> statuses);
 }

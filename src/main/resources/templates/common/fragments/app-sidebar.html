@@ -60,10 +60,10 @@
                 </span>
                 <span class="ms-badge ms-badge-soft">01</span>
             </a>
-            <a class="ms-nav-item" th:classappend="${activeSection == 'queue'} ? ' active' : ''" th:href="@{/doctor/queue}">
+            <a class="ms-nav-item" th:classappend="${activeSection == 'pending'} ? ' active' : ''" th:href="@{/doctor/records/pending}">
                 <span>
-                    <span class="d-block fw-semibold">Hàng đợi</span>
-                    <span class="d-block small text-muted">Ca ưu tiên cần xử lý</span>
+                    <span class="d-block fw-semibold">Chờ duyệt</span>
+                    <span class="d-block small text-muted">Danh sách hồ sơ cần đọc</span>
                 </span>
                 <span class="ms-badge ms-badge-soft">02</span>
             </a>

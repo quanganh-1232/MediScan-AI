@@ -16,6 +16,9 @@ public class Notification {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "record_id")
+    private Long recordId;
+
     @Column(name = "title", nullable = false, length = 150)
     private String title;
 
@@ -49,6 +52,14 @@ public class Notification {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public Long getRecordId() {
+        return recordId;
+    }
+
+    public void setRecordId(Long recordId) {
+        this.recordId = recordId;
     }
 
     public String getTitle() {
