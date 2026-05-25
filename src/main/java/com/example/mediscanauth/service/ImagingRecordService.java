@@ -123,7 +123,7 @@ public class ImagingRecordService {
     }
 
     public List<DashboardDTO.QueueItemDTO> getPendingDTOsForDoctor(Long doctorId) {
-        List<String> pendingStatuses = List.of("AI_ANALYZED", "DOCTOR_REVIEWING");
+        List<String> pendingStatuses = List.of("PENDING_DOCTOR");
 
         List<ImagingRecord> records = imagingRecordRepository
                 .findByDoctorUserIdAndStatusInOrderByCreatedAtDesc(doctorId, pendingStatuses);
@@ -134,9 +134,7 @@ public class ImagingRecordService {
                         .recordCode(record.getRecordCode())
                         .capturedAt(record.getCreatedAt())
                         .patient(DashboardDTO.PatientDTO.builder()
-                                .fullName(record.getPatient() != null ? record.getPatient().getFullName() : "N/A")
-                                // Không gán gender ở đây vì DTO bác hiện tại không có trường này
-                                .build())
+                                .fullName(record.getPatient() != null ? record.getPatient().getFullName() : "N/A").build())
                         .bodyPart(record.getBodyPart())
                         .aiPrediction(record.getAiPrediction())
                         .aiConfidence(record.getAiConfidence() != null ? Double.valueOf(record.getAiConfidence()) : 0.0)
