@@ -1,9 +1,15 @@
 package com.example.mediscanauth.model;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
 @Entity
 @Table(name = "ai_analysis_results")
 public class AiAnalysisResult {
@@ -34,36 +40,4 @@ public class AiAnalysisResult {
 
     @Column(name = "status", columnDefinition = "enum('SUCCESS','FAILED')")
     private String status;
-
-    public Long getAiResultId() {
-        return aiResultId;
-    }
-
-    public XrayImage getImage() {
-        return image;
-    }
-
-    public boolean isFractureDetected() {
-        return fractureDetected;
-    }
-
-    public BigDecimal getConfidenceScore() {
-        return confidenceScore;
-    }
-
-    public String getSeverityLevel() {
-        return severityLevel;
-    }
-
-    public String getAiDiagnosis() {
-        return aiDiagnosis;
-    }
-
-    public LocalDateTime getAnalyzedAt() {
-        return analyzedAt;
-    }
-
-    public String getStatus() {
-        return status;
-    }
 }

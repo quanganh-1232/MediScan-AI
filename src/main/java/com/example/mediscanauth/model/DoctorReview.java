@@ -1,8 +1,15 @@
 package com.example.mediscanauth.model;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
 @Entity
 @Table(name = "doctor_reviews")
 public class DoctorReview {
@@ -31,32 +38,4 @@ public class DoctorReview {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    public Long getReviewId() {
-        return reviewId;
-    }
-
-    public MedicalRecord getRecord() {
-        return record;
-    }
-
-    public User getDoctor() {
-        return doctor;
-    }
-
-    public String getDiagnosis() {
-        return diagnosis;
-    }
-
-    public String getConclusion() {
-        return conclusion;
-    }
-
-    public String getApprovalStatus() {
-        return approvalStatus;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
 }

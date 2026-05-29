@@ -1,8 +1,14 @@
 package com.example.mediscanauth.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import lombok.*;
 
+import java.time.LocalDateTime;
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
 @Entity
 @Table(name = "medical_records")
 public class MedicalRecord {
@@ -42,76 +48,4 @@ public class MedicalRecord {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    public Long getRecordId() {
-        return recordId;
-    }
-
-    public Patient getPatient() {
-        return patient;
-    }
-
-    public void setPatient(Patient patient) {
-        this.patient = patient;
-    }
-
-    public Appointment getAppointment() {
-        return appointment;
-    }
-
-    public void setAppointment(Appointment appointment) {
-        this.appointment = appointment;
-    }
-
-    public User getTechnician() {
-        return technician;
-    }
-
-    public void setTechnician(User technician) {
-        this.technician = technician;
-    }
-
-    public User getDoctor() {
-        return doctor;
-    }
-
-    public void setDoctor(User doctor) {
-        this.doctor = doctor;
-    }
-
-    public String getRecordCode() {
-        return recordCode;
-    }
-
-    public void setRecordCode(String recordCode) {
-        this.recordCode = recordCode;
-    }
-
-    public String getSymptomDescription() {
-        return symptomDescription;
-    }
-
-    public void setSymptomDescription(String symptomDescription) {
-        this.symptomDescription = symptomDescription;
-    }
-
-    public String getBodyPart() {
-        return bodyPart;
-    }
-
-    public void setBodyPart(String bodyPart) {
-        this.bodyPart = bodyPart;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
 }

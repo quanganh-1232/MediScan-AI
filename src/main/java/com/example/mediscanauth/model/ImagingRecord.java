@@ -1,9 +1,16 @@
 package com.example.mediscanauth.model;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
 @Entity
 @Table(name = "imaging_records")
 public class ImagingRecord {
@@ -63,109 +70,5 @@ public class ImagingRecord {
         if (capturedAt == null) {
             capturedAt = LocalDate.now();
         }
-    }
-
-    public Long getRecordId() {
-        return recordId;
-    }
-
-    public String getRecordCode() {
-        return recordCode;
-    }
-
-    public void setRecordCode(String recordCode) {
-        this.recordCode = recordCode;
-    }
-
-    public User getPatient() {
-        return patient;
-    }
-
-    public void setPatient(User patient) {
-        this.patient = patient;
-    }
-
-    public User getDoctor() {
-        return doctor;
-    }
-
-    public void setDoctor(User doctor) {
-        this.doctor = doctor;
-    }
-
-    public User getTechnician() {
-        return technician;
-    }
-
-    public void setTechnician(User technician) {
-        this.technician = technician;
-    }
-
-    public String getBodyPart() {
-        return bodyPart;
-    }
-
-    public void setBodyPart(String bodyPart) {
-        this.bodyPart = bodyPart;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
-
-    public String getAiPrediction() {
-        return aiPrediction;
-    }
-
-    public void setAiPrediction(String aiPrediction) {
-        this.aiPrediction = aiPrediction;
-    }
-
-    public Integer getAiConfidence() {
-        return aiConfidence;
-    }
-
-    public void setAiConfidence(Integer aiConfidence) {
-        this.aiConfidence = aiConfidence;
-    }
-
-    public String getDoctorConclusion() {
-        return doctorConclusion;
-    }
-
-    public void setDoctorConclusion(String doctorConclusion) {
-        this.doctorConclusion = doctorConclusion;
-    }
-
-    public String getRecommendation() {
-        return recommendation;
-    }
-
-    public void setRecommendation(String recommendation) {
-        this.recommendation = recommendation;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDate getCapturedAt() {
-        return capturedAt;
-    }
-
-    public void setCapturedAt(LocalDate capturedAt) {
-        this.capturedAt = capturedAt;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
     }
 }
