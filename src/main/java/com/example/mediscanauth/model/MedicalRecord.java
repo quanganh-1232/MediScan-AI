@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "medical_records")
 public class MedicalRecord {
+    private String aiPrediction;
+    private Double aiConfidence;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -113,5 +115,25 @@ public class MedicalRecord {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+    public String getAiPrediction() {
+        return aiPrediction;
+    }
+
+    public void setAiPrediction(String aiPrediction) {
+        this.aiPrediction = aiPrediction;
+    }
+
+    public Double getAiConfidence() {
+        return aiConfidence;
+    }
+
+    public void setAiConfidence(Double aiConfidence) {
+        this.aiConfidence = aiConfidence;
+    }
+    @OneToMany(mappedBy = "record")
+    private java.util.List<XrayImage> xrayImages = new java.util.ArrayList<>();
+    public java.util.List<XrayImage> getXrayImages() {
+        return xrayImages;
     }
 }

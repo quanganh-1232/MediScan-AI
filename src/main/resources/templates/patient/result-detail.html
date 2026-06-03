@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Chi tiết hồ sơ - MediScan AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-5">
+    <div class="mb-4">
+        <a th:href="@{/patient/records}" class="btn btn-outline-secondary rounded-pill px-4">&larr; Quay lại danh sách</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card rounded-4 border-0 shadow-sm p-4">
+                <h4 class="fw-bold mb-4">Hình ảnh X-Quang</h4>
+                <div class="text-center bg-dark rounded-3 overflow-hidden" style="min-height: 400px; display: flex; align-items: center; justify-content: center;">
+                    <img th:if="${xrayImage != null}" th:src="@{${xrayImage.originalImagePath}}" alt="X-Ray" class="img-fluid" style="max-height: 500px;">
+                    <span th:if="${xrayImage == null}" class="text-white">Không tìm thấy ảnh</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card rounded-4 border-0 shadow-sm p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0" th:text="${'Hồ sơ: ' + record.recordCode}">Hồ sơ: AI-2026</h4>
+                    <span class="badge bg-success fs-6" th:if="${record.status == 'AI_ANALYZED'}">Đã phân tích</span>
+                    <span class="badge bg-warning text-dark fs-6" th:if="${record.status == 'UPLOADED'}">Chờ AI</span>
+                </div>
+
+                <hr>
+
+                <div class="mb-4">
+                    <h6 class="text-secondary fw-bold">Thông tin ca chụp</h6>
+                    <p class="mb-1"><strong>Vùng chụp:</strong> <span th:text="${record.bodyPart}"></span></p>
+                    <p class="mb-1"><strong>Triệu chứng:</strong> <span th:text="${record.symptomDescription != null ? record.symptomDescription : 'Không có'}"></span></p>
+                </div>
+
+                <div th:if="${record.status == 'AI_ANALYZED'}" class="alert alert-success rounded-3">
+                    <h6 class="fw-bold text-success mb-2"><i class="bi bi-robot"></i> Kết quả phân tích từ Trí tuệ Nhân tạo</h6>
+                    <p class="mb-2 fs-5" th:text="${record.aiPrediction}"></p>
+                    <p class="mb-0 fw-bold" th:if="${record.aiConfidence != null}">Độ tin cậy (Confidence): <span th:text="${#numbers.formatDecimal(record.aiConfidence, 1, 2)} + '%'"></span></p>
+                </div>
+
+                <div th:if="${record.status == 'UPLOADED'}" class="alert alert-warning rounded-3">
+                    Hệ thống AI đang xếp hàng chờ xử lý ảnh của bạn. Vui lòng quay lại sau!
+                </div>
+
+                <div class="mt-auto pt-4">
+                    <div class="alert alert-secondary small rounded-3 mb-0">
+                        <strong>Tuyên bố miễn trừ trách nhiệm:</strong> Kết quả AI chỉ mang tính chất sàng lọc và tham khảo. Bệnh nhân cần mang kết quả này đến gặp bác sĩ chuyên khoa để được chẩn đoán chính xác nhất.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
