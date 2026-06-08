@@ -13,7 +13,7 @@
     <div th:replace="~{common/fragments/app-header :: header('Admin Center', 'Quản trị viên', 'ms-avatar-primary')}"></div>
     <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
         <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3" th:replace="~{common/fragments/app-sidebar :: sidebar('admin', 'Admin Center', 'Quản trị viên', 'ms-avatar-primary', 'users')}"></div>
+            <div class="col-12 col-xl-3"><div th:replace="~{common/fragments/app-sidebar :: sidebar('admin', 'Admin Center', 'Quản trị viên', 'ms-avatar-primary', 'users')}"></div></div>
             <div class="col-12 col-xl-9">
                 <section class="ms-page-hero mb-4">
                     <div>
@@ -24,15 +24,14 @@
                 <section class="ms-card-solid rounded-5 p-4 p-lg-5">
                     <div class="table-responsive">
                         <table class="ms-table">
-                            <thead><tr><th>Người dùng</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th></tr></thead>
+                            <thead><tr><th>Người dùng</th><th>Email</th><th>Vai trò</th></tr></thead>
                             <tbody>
                             <tr th:each="u : ${users}">
                                 <td><div class="fw-bold" th:text="${u.fullName}">User</div><div class="small text-muted" th:text="${u.phone != null ? u.phone : 'Chưa cập nhật SĐT'}"></div></td>
                                 <td th:text="${u.email}">email</td>
                                 <td><span class="ms-badge ms-badge-soft" th:text="${u.role.roleName}">PATIENT</span></td>
-                                <td><span class="ms-badge" th:classappend="${u.status == 'ACTIVE'} ? ' ms-badge-success' : ' ms-badge-danger'" th:text="${u.status}">ACTIVE</span></td>
                             </tr>
-                            <tr th:if="${#lists.isEmpty(users)}"><td colspan="4" class="text-center text-muted py-4">Chưa có user nào.</td></tr>
+                            <tr th:if="${#lists.isEmpty(users)}"><td colspan="3" class="text-center text-muted py-4">Chưa có user nào.</td></tr>
                             </tbody>
                         </table>
                     </div>

@@ -1,66 +1,91 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <title>Doctor Dashboard - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
-    <style>body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }</style>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        }
+    </style>
 </head>
+
 <body>
-<div class="ms-shell">
-    <div th:replace="~{common/fragments/app-header :: header('Diagnosis Center', 'Bác sĩ', 'ms-avatar-purple')}"></div>
-
-    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
-        <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3">
-                <div th:replace="~{common/fragments/app-sidebar :: sidebar('doctor', 'Diagnosis Center', 'Bác sĩ', 'ms-avatar-purple', 'overview')}"></div>
-            </div>
-
-            <div class="col-12 col-xl-9">
-                <section id="overview" class="ms-page-hero mb-4">
-                    <div>
-                        <span class="ms-pill ms-pill-soft mb-3">Doctor workspace</span>
-                        <h1 class="ms-display display-6 mb-2">Hàng đợi đọc kết quả</h1>
-                        <p class="ms-subtle mb-0">Sidebar bên trái đưa thẳng vào hàng đợi. Bác sĩ chỉ cần mở đúng phần cần đọc, không phải cuộn lại toàn trang.</p>
-                    </div>
-                    <div class="ms-readonly-note">
-                        <div class="fw-bold" th:text="${queueCount}">0</div>
-                        <div class="small text-muted">Ca đang chờ xử lý</div>
-                    </div>
-                </section>
-
-                <section id="queue" class="ms-card-solid rounded-5 p-4 p-lg-5">
-                    <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
-                        <div>
-                            <h2 class="ms-section-title h4 mb-1">Hồ sơ ưu tiên</h2>
-                            <p class="ms-subtle mb-0">Các trạng thái: PENDING_AI, AI_DONE, PENDING_DOCTOR.</p>
-                        </div>
-                        <span class="ms-badge ms-badge-warning" th:text="${queueCount + ' ca'}">0 ca</span>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="ms-table">
-                            <thead><tr><th>Mã hồ sơ</th><th>Bệnh nhân</th><th>Vùng chụp</th><th>Dự đoán AI</th><th>Tin cậy</th><th>Trạng thái</th></tr></thead>
-                            <tbody>
-                            <tr th:each="record : ${queueRecords}">
-                                <td><div class="fw-bold" th:text="${record.recordCode}">XR</div><div class="small text-muted" th:text="${#temporals.format(record.capturedAt, 'dd/MM/yyyy')}">date</div></td>
-                                <td th:text="${record.patient.fullName}">Patient</td>
-                                <td th:text="${record.bodyPart}">Body part</td>
-                                <td th:text="${record.aiPrediction}">Chờ AI phân tích</td>
-                                <td><div class="ms-progress-bar"><div class="ms-progress-fill" th:style="${'width:' + (record.aiConfidence != null ? record.aiConfidence : 0) + '%'}"></div></div><div class="small text-muted mt-1" th:text="${(record.aiConfidence != null ? record.aiConfidence : 0) + '%'}">0%</div></td>
-                                <td><span class="ms-badge ms-badge-soft" th:text="${record.status}">PENDING_AI</span></td>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(queueRecords)}"><td colspan="6" class="text-center text-muted py-4">Chưa có ca nào trong hàng đợi.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
+    <div class="ms-shell">
+        <div th:replace="~{common/fragments/app-header :: header('Diagnosis Center', 'Bác sĩ', 'ms-avatar-purple')}">
         </div>
-    </main>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+        <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
+            <div class="row g-4 align-items-start">
+                <div class="col-12 col-xl-3">
+                    <div
+                        th:replace="~{common/fragments/app-sidebar :: sidebar('doctor', 'Diagnosis Center', 'Bác sĩ', 'ms-avatar-purple', 'overview')}">
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-9">
+
+                    <section id="queue" class="ms-card-solid rounded-5 p-4 p-lg-5">
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+                            <div>
+                                <h2 class="ms-section-title h4 mb-1">Hồ sơ ưu tiên</h2>
+                                <p class="ms-subtle mb-0">Danh sách các ca cần bác sĩ chẩn đoán hoặc đang chờ AI phân
+                                    tích.</p>
+                            </div>
+                            <span class="ms-badge ms-badge-warning" th:text="${queueCount + ' ca'}">0 ca</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="ms-table">
+                                <thead>
+                                    <tr>
+                                        <th>Mã hồ sơ</th>
+                                        <th>Bệnh nhân</th>
+                                        <th>Vùng chụp</th>
+                                        <th>Dự đoán AI</th>
+                                        <th>Tin cậy</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="record : ${queueRecords}">
+                                        <td>
+                                            <div class="fw-bold" th:text="${record.recordCode}">XR</div>
+                                            <div class="small text-muted"
+                                                th:text="${#temporals.format(record.capturedAt, 'dd/MM/yyyy')}">date
+                                            </div>
+                                        </td>
+                                        <td th:text="${record.patient.fullName}">Patient</td>
+                                        <td th:text="${record.bodyPart}">Body part</td>
+                                        <td th:text="${record.aiPrediction}">Chờ AI phân tích</td>
+                                        <td>
+                                            <div class="ms-progress-bar">
+                                                <div class="ms-progress-fill"
+                                                    th:style="${'width:' + (record.aiConfidence != null ? record.aiConfidence : 0) + '%'}">
+                                                </div>
+                                            </div>
+                                            <div class="small text-muted mt-1"
+                                                th:text="${(record.aiConfidence != null ? record.aiConfidence : 0) + '%'}">
+                                                0%</div>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(queueRecords)}">
+                                        <td colspan="5" class="text-center text-muted py-4">Chưa có ca nào trong hàng
+                                            đợi.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

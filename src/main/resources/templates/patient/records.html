@@ -13,22 +13,21 @@
     <div th:replace="~{common/fragments/app-header :: header('Patient Portal', 'Bệnh nhân', 'ms-avatar-orange')}"></div>
     <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
         <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3" th:replace="~{common/fragments/app-sidebar :: sidebar('patient', 'Patient Portal', 'Bệnh nhân', 'ms-avatar-orange', 'records')}"></div>
+            <div class="col-12 col-xl-3"><div th:replace="~{common/fragments/app-sidebar :: sidebar('patient', 'Patient Portal', 'Bệnh nhân', 'ms-avatar-orange', 'records')}"></div></div>
             <div class="col-12 col-xl-9">
                 <section class="ms-page-hero mb-4"><div><span class="ms-pill ms-pill-success mb-3">Patient records</span><h1 class="ms-display display-6 mb-2">Hồ sơ chụp X-Quang</h1></div></section>
                 <section class="ms-card-solid rounded-5 p-4 p-lg-5">
                     <div class="table-responsive">
                         <table class="ms-table">
-                            <thead><tr><th>Mã hồ sơ</th><th>Ngày chụp</th><th>Vùng chụp</th><th>Trạng thái</th><th>Kết luận</th></tr></thead>
+                            <thead><tr><th>Mã hồ sơ</th><th>Ngày chụp</th><th>Vùng chụp</th><th>Kết luận</th></tr></thead>
                             <tbody>
                             <tr th:each="record : ${records}">
                                 <td><div class="fw-bold" th:text="${record.recordCode}">XR-2026-0001</div><div class="small text-muted" th:text="${record.doctor != null ? 'Bác sĩ: ' + record.doctor.fullName : 'Chưa phân bác sĩ'}">Chưa phân bác sĩ</div></td>
                                 <td th:text="${#temporals.format(record.capturedAt, 'dd/MM/yyyy')}">21/05/2026</td>
                                 <td th:text="${record.bodyPart}">Cẳng tay</td>
-                                <td><span class="ms-badge ms-badge-soft" th:text="${record.status}">PENDING_AI</span></td>
                                 <td th:text="${record.doctorConclusion != null ? record.doctorConclusion : record.aiPrediction}">Chờ AI phân tích</td>
                             </tr>
-                            <tr th:if="${#lists.isEmpty(records)}"><td colspan="5" class="text-center py-4 text-muted">Chưa có hồ sơ chụp nào trong database.</td></tr>
+                            <tr th:if="${#lists.isEmpty(records)}"><td colspan="4" class="text-center py-4 text-muted">Chưa có hồ sơ chụp nào trong database.</td></tr>
                             </tbody>
                         </table>
                     </div>
