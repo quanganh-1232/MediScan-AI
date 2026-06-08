@@ -1,41 +1,41 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<body>
-<header class="ms-app-header" th:fragment="header(portalName, roleLabel, roleClass)">
-    <div class="container-fluid px-3 px-lg-4">
-        <div class="ms-topbar">
-            <div class="ms-header-copy">
-                <div class="small text-uppercase text-muted fw-semibold">MediScan AI</div>
-                <div class="fw-bold" th:text="${portalName}">Portal</div>
-            </div>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
-            <div class="dropdown ms-account-dropdown">
-                <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span th:class="'ms-avatar ' + ${roleClass}" th:text="${#strings.substring(#authentication.name, 0, 1).toUpperCase()}">U</span>
-                    <span class="d-none d-md-block text-start">
-                        <span class="d-block fw-bold" sec:authentication="name">user@mediscan.ai</span>
-                        <span class="d-block small text-muted" th:text="${roleLabel}">Role</span>
-                    </span>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel">
-                    <div class="px-3 py-3 border-bottom">
-                        <div class="small text-muted">Đang đăng nhập</div>
-                        <div class="fw-semibold" sec:authentication="name">user@mediscan.ai</div>
-                        <div class="small text-muted" th:text="${roleLabel}">Role</div>
+<body>
+    <header class="ms-app-header" th:fragment="header(portalName, roleLabel, roleClass)">
+        <div class="container-fluid px-3 px-lg-4">
+            <div class="ms-topbar">
+                <a th:href="@{/home}" class="ms-brand text-decoration-none text-dark">
+                    <div class="ms-brand-mark ms-brand-mark-solid">M</div>
+                    <div>
+                        <div class="fw-bold">MediScan AI</div>
+                        <div class="small text-muted" th:text="${portalName}">Portal</div>
                     </div>
-                    <a class="dropdown-item py-2" th:href="@{/home}">Tổng quan</a>
-                    <a class="dropdown-item py-2" th:href="@{/profile}">Hồ sơ cá nhân</a>
-                    <a class="dropdown-item py-2" th:href="@{/profile/edit}">Chỉnh sửa thông tin</a>
-                    <a class="dropdown-item py-2" th:href="@{/notifications}">Thông báo</a>
-                    <a class="dropdown-item py-2" th:href="@{/change-password}">Đổi mật khẩu</a>
-                    <form th:action="@{/logout}" method="post" class="px-3 pt-2 pb-3">
-                        <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100">Đăng xuất</button>
-                    </form>
+                </a>
+
+                <div class="dropdown ms-account-dropdown">
+                    <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span th:class="'ms-avatar ' + ${roleClass}"
+                            th:text="${#strings.substring(#authentication.name, 0, 1).toUpperCase()}">U</span>
+                        <span class="d-none d-md-block text-start">
+                            <span class="d-block fw-bold" sec:authentication="name">user@mediscan.ai</span>
+                            <span class="d-block small text-muted" th:text="${roleLabel}">Role</span>
+                        </span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel">
+
+                        <a class="dropdown-item py-2" th:href="@{/profile}">Hồ sơ cá nhân</a>
+                        <a class="dropdown-item py-2" th:href="@{/profile/edit}">Chỉnh sửa thông tin</a>
+                        <a class="dropdown-item py-2" th:href="@{/notifications}">Thông báo</a>
+                        <a class="dropdown-item py-2" th:href="@{/change-password}">Đổi mật khẩu</a>
+                        <form th:action="@{/logout}" method="post" class="px-3 pt-2 pb-3">
+                            <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100">Đăng xuất</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</header>
+    </header>
 </body>
+
 </html>

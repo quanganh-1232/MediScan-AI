@@ -1,12 +1,15 @@
 package com.example.mediscanauth.controller.common;
 
+import com.example.mediscanauth.controller.common.dto.ProfileUpdateDTO;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.service.NotificationService;
 import com.example.mediscanauth.service.UserAccountService;
+import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -32,23 +35,28 @@ public class UserAccountController {
     @GetMapping("/profile/edit")
     public String editProfile(Authentication authentication, Model model) {
         User user = userAccountService.findByEmail(authentication.getName());
-        model.addAttribute("user", user);
+        ProfileUpdateDTO dto = new ProfileUpdateDTO();
+        dto.setFullName(user.getFullName());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        model.addAttribute("profileUpdateDTO", dto);
         return "common/edit-profile";
     }
 
     @PostMapping("/profile/edit")
     public String updateProfile(Authentication authentication,
-                                @RequestParam String fullName,
-                                @RequestParam String email,
-                                @RequestParam(required = false) String phone,
+                                @Valid @ModelAttribute("profileUpdateDTO") ProfileUpdateDTO dto,
+                                org.springframework.validation.BindingResult bindingResult,
                                 Model model) {
+        if (bindingResult.hasErrors()) {
+            return "common/edit-profile";
+        }
+
         try {
-            User updatedUser = userAccountService.updateProfile(authentication.getName(), fullName, email, phone);
-            model.addAttribute("user", updatedUser);
+            userAccountService.updateProfile(authentication.getName(), dto.getFullName(), dto.getEmail(), dto.getPhone());
             model.addAttribute("success", "Cập nhật thông tin thành công. Nếu đổi email, hãy đăng nhập lại để đồng bộ phiên.");
             return "common/edit-profile";
         } catch (IllegalArgumentException ex) {
-            model.addAttribute("user", userAccountService.findByEmail(authentication.getName()));
             model.addAttribute("error", ex.getMessage());
             return "common/edit-profile";
         }
