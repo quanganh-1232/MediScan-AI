@@ -3,16 +3,6 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <aside class="ms-card-solid ms-sidebar h-100" th:fragment="sidebar(portalKey, portalName, roleLabel, roleClass, activeSection)">
-    <div class="d-flex align-items-start justify-content-between gap-3 mb-4">
-        <a th:href="@{/home}" class="ms-brand text-decoration-none text-dark">
-            <div class="ms-brand-mark ms-brand-mark-solid">M</div>
-            <div>
-                <div class="fw-bold">MediScan AI</div>
-                <div class="small text-muted" th:text="${portalName}">Portal</div>
-            </div>
-        </a>
-        <span class="ms-avatar" th:classappend="' ' + ${roleClass}" th:text="${#strings.substring(#authentication.name, 0, 1).toUpperCase()}">U</span>
-    </div>
 
     <div class="ms-sidebar-meta mb-4">
         <div class="small text-uppercase text-muted fw-semibold">Không gian làm việc</div>
@@ -22,112 +12,84 @@
 
     <div th:switch="${portalKey}">
         <nav th:case="'admin'" class="ms-sidebar-nav">
-                <a class="ms-nav-item" th:classappend="${activeSection == 'overview'} ? ' active' : ''" th:href="@{/admin/overview}">
-                <span>
-                    <span class="d-block fw-semibold">Tổng quan</span>
-                    <span class="d-block small text-muted">Chỉ số và trạng thái hệ thống</span>
-                </span>
-                <span class="ms-badge ms-badge-soft">01</span>
-            </a>
                 <a class="ms-nav-item" th:classappend="${activeSection == 'metrics'} ? ' active' : ''" th:href="@{/admin/metrics}">
                 <span>
                     <span class="d-block fw-semibold">Metrics</span>
                     <span class="d-block small text-muted">Người dùng, hàng đợi, hồ sơ</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">02</span>
+                <span class="ms-badge ms-badge-soft">01</span>
             </a>
                 <a class="ms-nav-item" th:classappend="${activeSection == 'users'} ? ' active' : ''" th:href="@{/admin/users}">
                 <span>
                     <span class="d-block fw-semibold">Người dùng</span>
                     <span class="d-block small text-muted">Danh sách tài khoản đang hoạt động</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">03</span>
+                <span class="ms-badge ms-badge-soft">02</span>
             </a>
                 <a class="ms-nav-item" th:classappend="${activeSection == 'recent-records'} ? ' active' : ''" th:href="@{/admin/recent-records}">
                 <span>
                     <span class="d-block fw-semibold">Hồ sơ gần đây</span>
                     <span class="d-block small text-muted">Ca chụp mới nhất</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">04</span>
+                <span class="ms-badge ms-badge-soft">03</span>
             </a>
         </nav>
 
         <nav th:case="'doctor'" class="ms-sidebar-nav">
-            <a class="ms-nav-item" th:classappend="${activeSection == 'overview'} ? ' active' : ''" th:href="@{/doctor/overview}">
-                <span>
-                    <span class="d-block fw-semibold">Tổng quan</span>
-                    <span class="d-block small text-muted">Tóm tắt hàng đợi đọc</span>
-                </span>
-                <span class="ms-badge ms-badge-soft">01</span>
-            </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'queue'} ? ' active' : ''" th:href="@{/doctor/queue}">
                 <span>
                     <span class="d-block fw-semibold">Hàng đợi</span>
                     <span class="d-block small text-muted">Ca ưu tiên cần xử lý</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">02</span>
+                <span class="ms-badge ms-badge-soft">01</span>
             </a>
         </nav>
 
         <nav th:case="'technician'" class="ms-sidebar-nav">
-            <a class="ms-nav-item" th:classappend="${activeSection == 'overview'} ? ' active' : ''" th:href="@{/technician/overview}">
-                <span>
-                    <span class="d-block fw-semibold">Tổng quan</span>
-                    <span class="d-block small text-muted">Trạng thái ca làm việc</span>
-                </span>
-                <span class="ms-badge ms-badge-soft">01</span>
-            </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'appointment-form'} ? ' active' : ''" th:href="@{/technician/appointments}">
                 <span>
                     <span class="d-block fw-semibold">Tạo lịch chụp</span>
                     <span class="d-block small text-muted">Mở form đặt lịch</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">02</span>
+                <span class="ms-badge ms-badge-soft">01</span>
             </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'upload-form'} ? ' active' : ''" th:href="@{/technician/xray-upload}">
                 <span>
                     <span class="d-block fw-semibold">Upload ảnh</span>
                     <span class="d-block small text-muted">Tạo hồ sơ và ảnh X-Ray</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">03</span>
+                <span class="ms-badge ms-badge-soft">02</span>
             </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'recent-items'} ? ' active' : ''" th:href="@{/technician/recent}">
                 <span>
                     <span class="d-block fw-semibold">Danh sách gần đây</span>
                     <span class="d-block small text-muted">Lịch, records và ảnh đã lưu</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">04</span>
+                <span class="ms-badge ms-badge-soft">03</span>
             </a>
         </nav>
 
         <nav th:case="'patient'" class="ms-sidebar-nav">
-            <a class="ms-nav-item" th:classappend="${activeSection == 'overview'} ? ' active' : ''" th:href="@{/patient/overview}">
-                <span>
-                    <span class="d-block fw-semibold">Tổng quan</span>
-                    <span class="d-block small text-muted">Tình trạng mới nhất</span>
-                </span>
-                <span class="ms-badge ms-badge-soft">01</span>
-            </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'records'} ? ' active' : ''" th:href="@{/patient/records}">
                 <span>
                     <span class="d-block fw-semibold">Hồ sơ</span>
                     <span class="d-block small text-muted">Danh sách ca chụp</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">02</span>
+                <span class="ms-badge ms-badge-soft">01</span>
             </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'results'} ? ' active' : ''" th:href="@{/patient/results}">
                 <span>
                     <span class="d-block fw-semibold">Kết quả</span>
                     <span class="d-block small text-muted">Kết luận và khuyến nghị</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">03</span>
+                <span class="ms-badge ms-badge-soft">02</span>
             </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'support'} ? ' active' : ''" th:href="@{/patient/support}">
                 <span>
                     <span class="d-block fw-semibold">Hỗ trợ</span>
                     <span class="d-block small text-muted">Cập nhật hồ sơ, thông báo</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">04</span>
+                <span class="ms-badge ms-badge-soft">03</span>
             </a>
         </nav>
     </div>
