@@ -20,19 +20,24 @@
             </div>
             <div th:if="${error}" class="alert alert-danger rounded-4 border-0" th:text="${error}"></div>
             <div th:if="${success}" class="alert alert-success rounded-4 border-0" th:text="${success}"></div>
-            <form th:action="@{/profile/edit}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <form th:action="@{/profile/edit}" th:object="${profileUpdateDTO}" method="post">
                 <div class="mb-3">
                     <label for="fullName" class="ms-label">Họ và tên</label>
-                    <input id="fullName" name="fullName" class="form-control ms-input" th:value="${user.fullName}" required>
+                    <input id="fullName" class="form-control ms-input" th:field="*{fullName}" 
+                           th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''">
+                    <span class="invalid-feedback" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></span>
                 </div>
                 <div class="mb-3">
                     <label for="email" class="ms-label">Email</label>
-                    <input id="email" name="email" type="email" class="form-control ms-input" th:value="${user.email}" required>
+                    <input id="email" type="email" class="form-control ms-input" th:field="*{email}" 
+                           th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''">
+                    <span class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></span>
                 </div>
                 <div class="mb-4">
                     <label for="phone" class="ms-label">Số điện thoại</label>
-                    <input id="phone" name="phone" class="form-control ms-input" th:value="${user.phone}">
+                    <input id="phone" class="form-control ms-input" th:field="*{phone}" 
+                           th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid' : ''">
+                    <span class="invalid-feedback" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></span>
                 </div>
                 <button class="btn ms-btn ms-btn-primary text-white w-100" type="submit">Lưu thay đổi</button>
             </form>
