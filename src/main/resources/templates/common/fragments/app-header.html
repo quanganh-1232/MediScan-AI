@@ -23,11 +23,7 @@
                         </span>
                     </button>
                     <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel">
-                        <div class="px-3 py-3 border-bottom">
-                            <div class="small text-muted">Đang đăng nhập</div>
-                            <div class="fw-semibold" sec:authentication="name">user@mediscan.ai</div>
-                            <div class="small text-muted" th:text="${roleLabel}">Role</div>
-                        </div>
+
                         <a class="dropdown-item py-2" th:href="@{/profile}">Hồ sơ cá nhân</a>
                         <a class="dropdown-item py-2" th:href="@{/profile/edit}">Chỉnh sửa thông tin</a>
                         <a class="dropdown-item py-2" th:href="@{/notifications}">Thông báo</a>
