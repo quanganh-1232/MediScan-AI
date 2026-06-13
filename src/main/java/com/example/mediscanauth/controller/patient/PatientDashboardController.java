@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.data.domain.Page;
 
 @Controller
 public class PatientDashboardController {
@@ -34,52 +35,76 @@ public class PatientDashboardController {
         this.medicalRecordService = medicalRecordService;
     }
 
+    // =========================================================================
+    // TRANG CHỦ & ĐIỀU HƯỚNG
+    // =========================================================================
+
     @GetMapping("/patient/dashboard")
-    public String dashboard(Authentication authentication, Model model) {
-        addModel(authentication, model);
-        // Báo cho giao diện biết đang ở tab Tổng quan
+    public String dashboard(Authentication authentication,
+                            @RequestParam(required = false) String bodyPart,
+                            Model model) {
+
+        // BƯỚC NÀY CHỈ LÀM LỌC, CHƯA PHÂN TRANG (Truyền page = 0)
+        addModel(authentication, model, bodyPart, 0);
         model.addAttribute("activeMenu", "overview");
         return "patient/dashboard";
     }
 
     @GetMapping("/patient/overview")
     public String overview(Authentication authentication, Model model) {
-        addModel(authentication, model);
+        addModel(authentication, model, null, 0);
+        model.addAttribute("activeMenu", "overview");
         return "patient/dashboard";
     }
 
     @GetMapping("/patient/records")
     public String records(Authentication authentication, Model model) {
-        addModel(authentication, model);
-        // Báo cho giao diện biết đang ở tab Hồ sơ
+        addModel(authentication, model, null, 0);
         model.addAttribute("activeMenu", "records");
         return "patient/dashboard";
     }
 
     @GetMapping("/patient/results")
     public String results(Authentication authentication, Model model) {
-        addModel(authentication, model);
+        addModel(authentication, model, null, 0);
         return "patient/results";
     }
 
     @GetMapping("/patient/support")
     public String support(Authentication authentication, Model model) {
-        addModel(authentication, model);
+        addModel(authentication, model, null, 0);
         return "patient/support";
     }
 
     // =========================================================================
-    // LUỒNG 1: TẠO CA CHẨN ĐOÁN AI (CREATE SELF-CHECK CASE)
+    // HÀM DÙNG CHUNG (ĐÃ SỬA LỖI GHI ĐÈ)
     // =========================================================================
 
-    // 1. Hiển thị form tải ảnh
+    private void addModel(Authentication authentication, Model model, String bodyPart, int page) {
+        User patient = userAccountService.findByEmail(authentication.getName());
+        model.addAttribute("currentUser", patient);
+
+        // Tạm thời lấy size = 100 để hiển thị hết trên 1 trang (Commit sau sẽ làm phân trang)
+        Page<MedicalRecord> recordPage = medicalRecordService.findPatientRecords(patient, bodyPart, page, 100);
+
+        model.addAttribute("records", recordPage.getContent());
+        model.addAttribute("bodyPart", bodyPart); // Giữ lại giá trị vùng chụp đang lọc
+
+        model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(patient));
+        model.addAttribute("recordCount", imagingRecordService.countForPatient(patient));
+        model.addAttribute("unreadCount", notificationService.countUnread(patient));
+    }
+
+    // =========================================================================
+    // LUỒNG 1: TẠO CA CHẨN ĐOÁN AI
+    // =========================================================================
+
     @GetMapping("/patient/upload")
     public String showUploadForm(Authentication authentication, Model model) {
-        addModel(authentication, model);
+        addModel(authentication, model, null, 0);
         return "patient/upload";
     }
 
-    // 2. Tiếp nhận ảnh, Validate và Gửi yêu cầu
     @PostMapping("/patient/upload")
     public String handleSelfCheckUpload(@RequestParam("file") MultipartFile file,
                                         @RequestParam("bodyPart") String bodyPart,
@@ -87,7 +112,6 @@ public class PatientDashboardController {
                                         Authentication authentication,
                                         RedirectAttributes redirectAttributes) {
 
-        // Khối: Xác thực dữ liệu đầu vào (Validate)
         if (file == null || file.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Vui lòng chọn ảnh X-Quang để AI phân tích.");
             return "redirect:/patient/upload";
@@ -98,46 +122,29 @@ public class PatientDashboardController {
         }
 
         try {
-            // Lấy thông tin user hiện tại
             User currentUser = userAccountService.findByEmail(authentication.getName());
-
-            // Gọi Service để lưu ảnh và tạo Database record
             medicalRecordService.createPatientSelfCheck(currentUser, bodyPart, symptoms, file);
-
-            // Thành công: Quay về trang lịch sử
             redirectAttributes.addFlashAttribute("successMessage", "Đã gửi hồ sơ thành công! Vui lòng chờ hệ thống AI xử lý.");
             return "redirect:/patient/records";
-
         } catch (Exception e) {
-            // Khối: Hiển thị lỗi xác thực/lỗi hệ thống
             redirectAttributes.addFlashAttribute("errorMessage", "Lỗi hệ thống: " + e.getMessage());
             return "redirect:/patient/upload";
         }
     }
 
-    private void addModel(Authentication authentication, Model model) {
-        User patient = userAccountService.findByEmail(authentication.getName());
-        model.addAttribute("currentUser", patient);
-        model.addAttribute("records", medicalRecordService.findPatientRecords(patient));
-        model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(patient));
-        model.addAttribute("recordCount", imagingRecordService.countForPatient(patient));
-        model.addAttribute("unreadCount", notificationService.countUnread(patient));
-    }
     // =========================================================================
     // LUỒNG 2: XEM CHI TIẾT, XÓA, VÀ GIẢ LẬP AI
     // =========================================================================
 
-    // 1. Xem chi tiết kết quả
     @GetMapping("/patient/results/{id}")
     public String viewResultDetail(@PathVariable("id") Long id, Authentication authentication, Model model) {
         try {
             User currentUser = userAccountService.findByEmail(authentication.getName());
             MedicalRecord record = medicalRecordService.getRecordDetail(id, currentUser);
 
-            // Lấy ảnh Xray (giả sử ca bệnh có 1 ảnh đầu tiên)
             model.addAttribute("record", record);
             model.addAttribute("xrayImage", record.getXrayImages().isEmpty() ? null : record.getXrayImages().get(0));
-            addModel(authentication, model);
+            addModel(authentication, model, null, 0);
             model.addAttribute("activeMenu", "records");
             return "patient/result-detail";
         } catch (Exception e) {
@@ -145,7 +152,6 @@ public class PatientDashboardController {
         }
     }
 
-    // 2. Xóa hồ sơ
     @PostMapping("/patient/records/{id}/delete")
     public String deleteRecord(@PathVariable("id") Long id, Authentication authentication, RedirectAttributes redirectAttributes) {
         try {
@@ -158,7 +164,6 @@ public class PatientDashboardController {
         return "redirect:/patient/records";
     }
 
-    // 3. Giả lập AI chạy (dành cho demo)
     @PostMapping("/patient/records/{id}/mock-ai")
     public String runMockAi(@PathVariable("id") Long id, Authentication authentication, RedirectAttributes redirectAttributes) {
         try {

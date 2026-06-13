@@ -11,6 +11,10 @@ import com.example.mediscanauth.service.MedicalRecordService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -78,14 +82,16 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         return "/" + CLOUD_STORAGE_DIR + fileName;
     }
 
+    // Thêm hàm cũ này vào class ServiceImpl
     @Override
-    public java.util.List<MedicalRecord> findPatientRecords(User currentUser) {
+    public Page<MedicalRecord> findPatientRecords(User currentUser, String bodyPart, int page, int size) {
         Patient patient = patientRepository.findByUser(currentUser).orElse(null);
-        if (patient != null) {
-            // Cập nhật lại tên hàm ở đây
-            return medicalRecordRepository.findByPatientOrderByCreatedAtDesc(patient);
-        }
-        return java.util.Collections.emptyList();
+        if (patient == null) return Page.empty();
+
+        // Nếu bodyPart là chuỗi rỗng "", chuyển thành null để Query chạy đúng
+        String filterBodyPart = (bodyPart == null || bodyPart.isEmpty()) ? null : bodyPart;
+
+        return medicalRecordRepository.findByPatientAndFilter(patient, filterBodyPart, PageRequest.of(page, size));
     }
 
     @Override
