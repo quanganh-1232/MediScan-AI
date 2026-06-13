@@ -29,7 +29,7 @@
                             <tr th:each="u : ${users}">
                                 <td><div class="fw-bold" th:text="${u.fullName}">User</div><div class="small text-muted" th:text="${u.phone != null ? u.phone : 'Chưa cập nhật SĐT'}"></div></td>
                                 <td th:text="${u.email}">email</td>
-                                <td><span class="ms-badge ms-badge-soft" th:text="${u.role.roleName}">PATIENT</span></td>
+                    <td><span class="ms-badge ms-badge-soft" th:text="${u.role.displayName}">Bệnh nhân</span></td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(users)}"><td colspan="3" class="text-center text-muted py-4">Chưa có user nào.</td></tr>
                             </tbody>
