@@ -15,15 +15,13 @@ public class DoctorDashboardController {
     }
 
     @GetMapping("/doctor/dashboard")
-    public String dashboard(Model model) {
-        addModel(model);
-        return "doctor/dashboard";
+    public String dashboard() {
+        return "redirect:/home";
     }
 
     @GetMapping("/doctor/overview")
-    public String overview(Model model) {
-        addModel(model);
-        return "doctor/dashboard";
+    public String overview() {
+        return "redirect:/home";
     }
 
     @GetMapping("/doctor/queue")

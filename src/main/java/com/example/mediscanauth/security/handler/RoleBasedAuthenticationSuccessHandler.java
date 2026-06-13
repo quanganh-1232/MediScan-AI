@@ -17,27 +17,8 @@ public class RoleBasedAuthenticationSuccessHandler implements AuthenticationSucc
     public void onAuthenticationSuccess(HttpServletRequest request,
                                         HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
+        // Redirect all roles to the unified dashboard
         String targetUrl = "/home";
-
-        for (GrantedAuthority authority : authentication.getAuthorities()) {
-            String role = authority.getAuthority();
-            if ("ROLE_ADMIN".equals(role)) {
-                targetUrl = "/admin/dashboard";
-                break;
-            }
-            if ("ROLE_DOCTOR".equals(role)) {
-                targetUrl = "/doctor/dashboard";
-                break;
-            }
-            if ("ROLE_TECHNICIAN".equals(role)) {
-                targetUrl = "/technician/dashboard";
-                break;
-            }
-            if ("ROLE_PATIENT".equals(role)) {
-                targetUrl = "/patient/dashboard";
-                break;
-            }
-        }
 
         response.sendRedirect(targetUrl);
     }
