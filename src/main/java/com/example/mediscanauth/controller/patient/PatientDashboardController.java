@@ -41,11 +41,11 @@ public class PatientDashboardController {
 
     @GetMapping("/patient/dashboard")
     public String dashboard(Authentication authentication,
+                            @RequestParam(defaultValue = "0") int page, // MỞ KHÓA: Đón tham số page từ URL
                             @RequestParam(required = false) String bodyPart,
                             Model model) {
 
-        // BƯỚC NÀY CHỈ LÀM LỌC, CHƯA PHÂN TRANG (Truyền page = 0)
-        addModel(authentication, model, bodyPart, 0);
+        addModel(authentication, model, bodyPart, page);
         model.addAttribute("activeMenu", "overview");
         return "patient/dashboard";
     }
@@ -84,10 +84,11 @@ public class PatientDashboardController {
         User patient = userAccountService.findByEmail(authentication.getName());
         model.addAttribute("currentUser", patient);
 
-        // Tạm thời lấy size = 100 để hiển thị hết trên 1 trang (Commit sau sẽ làm phân trang)
-        Page<MedicalRecord> recordPage = medicalRecordService.findPatientRecords(patient, bodyPart, page, 100);
+        Page<MedicalRecord> recordPage = medicalRecordService.findPatientRecords(patient, bodyPart, page, 5);
 
         model.addAttribute("records", recordPage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", recordPage.getTotalPages());
         model.addAttribute("bodyPart", bodyPart); // Giữ lại giá trị vùng chụp đang lọc
 
         model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(patient));
