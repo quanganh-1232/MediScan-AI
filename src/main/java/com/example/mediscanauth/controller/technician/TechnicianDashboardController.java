@@ -20,15 +20,13 @@ public class TechnicianDashboardController {
     }
 
     @GetMapping("/technician/dashboard")
-    public String dashboard(Model model) {
-        addDashboardData(model);
-        return "technician/dashboard";
+    public String dashboard() {
+        return "redirect:/home";
     }
 
     @GetMapping("/technician/overview")
-    public String overview(Model model) {
-        addDashboardData(model);
-        return "technician/dashboard";
+    public String overview() {
+        return "redirect:/home";
     }
 
     @GetMapping("/technician/appointments")
@@ -68,11 +66,11 @@ public class TechnicianDashboardController {
                     location,
                     note
             );
-            return "redirect:/technician/dashboard?appointmentCreated";
+            return "redirect:/home";
         } catch (RuntimeException ex) {
             model.addAttribute("error", ex.getMessage());
             addDashboardData(model);
-            return "technician/dashboard";
+            return "technician/appointments";
         }
     }
 
@@ -97,7 +95,7 @@ public class TechnicianDashboardController {
                     originalImagePath,
                     viewPosition
             );
-            return "redirect:/technician/dashboard?imageUploaded";
+            return "redirect:/home";
         } catch (RuntimeException ex) {
             model.addAttribute("error", ex.getMessage());
             addDashboardData(model);

@@ -19,15 +19,13 @@ public class AdminDashboardController {
     }
 
     @GetMapping("/admin/dashboard")
-    public String dashboard(Model model) {
-        addSharedModel(model);
-        return "admin/dashboard";
+    public String dashboard() {
+        return "redirect:/home";
     }
 
     @GetMapping("/admin/overview")
-    public String overview(Model model) {
-        addSharedModel(model);
-        return "admin/dashboard";
+    public String overview() {
+        return "redirect:/home";
     }
 
     @GetMapping("/admin/metrics")

@@ -23,6 +23,11 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    public List<Notification> findRecentForUser(User user) {
+        return notificationRepository.findTop5ByUserOrderByCreatedAtDesc(user);
+    }
+
+    @Override
     public long countUnread(User user) {
         return notificationRepository.countByUserAndReadFalse(user);
     }

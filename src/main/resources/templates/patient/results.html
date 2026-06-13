@@ -25,6 +25,9 @@
                                 <div class="small text-muted" th:text="${'Độ tin cậy AI ' + (latestRecord.aiConfidence != null ? latestRecord.aiConfidence : 0) + '%'}">Độ tin cậy AI 0%</div>
                             </div>
                         </div>
+                        <div class="mb-4 text-center" th:if="${latestRecord.fileName != null}">
+                            <img th:src="@{'/uploads/' + ${latestRecord.fileName}}" class="img-fluid rounded border" alt="Annotated X-Ray Image" style="max-height: 400px; width: auto;"/>
+                        </div>
                         <ul class="ms-list">
                             <li class="ms-activity-item"><div class="fw-semibold">Kết luận</div><div class="small text-muted" th:text="${latestRecord.doctorConclusion != null ? latestRecord.doctorConclusion : latestRecord.aiPrediction}">Chờ kết quả</div></li>
                             <li class="ms-activity-item"><div class="fw-semibold">Khuyến nghị</div><div class="small text-muted" th:text="${latestRecord.recommendation != null ? latestRecord.recommendation : 'Chưa có khuyến nghị.'}">Chưa có khuyến nghị.</div></li>
