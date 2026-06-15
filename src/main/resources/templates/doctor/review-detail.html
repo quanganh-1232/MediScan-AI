@@ -1,100 +1,100 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <title>Chi tiết duyệt hồ sơ - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        .xray-container { background: #000; border-radius: 12px; position: relative; overflow: hidden; }
-        .xray-image { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+        .ms-xray-dark-panel { background: #0b0f19; border: 1px solid #1e293b; position: sticky; top: 24px; }
+        .ms-xray-viewport { max-width: 100%; height: auto; display: block; margin: 0 auto; filter: contrast(1.1); }
     </style>
 </head>
-<body class="bg-light">
-<div th:replace="~{common/fragments/app-header :: header('Review Detail', 'Bác sĩ', 'ms-avatar-purple')}"></div>
+<body>
+<div class="ms-shell">
+    <div th:replace="~{common/fragments/app-header :: header('Review Workspace', 'Bác sĩ', 'ms-avatar-purple')}"></div>
 
-<div class="container-fluid py-4">
-    <div class="row g-4">
-        <div class="col-lg-7">
-            <div class="card shadow-sm border-0 xray-container">
-                <div class="card-header bg-dark text-white border-0 py-3">
-                    <h6 class="mb-0"><i class="bi bi-eye"></i> Hình ảnh X-quang gốc</h6>
-                </div>
-                <div class="card-body p-0">
-                    <img th:src="@{'/uploads/' + ${record.fileName}}" class="xray-image" alt="X-ray">
-                </div>
-            </div>
-        </div>
+    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
+        <div class="row g-4">
 
-        <div class="col-lg-5">
-            <div class="card shadow-sm border-0 rounded-4 mb-4">
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-4">
-                            <h5 class="fw-bold mb-0">Thông tin chi tiết bệnh nhân</h5>
-                            <span class="badge bg-primary px-3" th:text="${record.recordCode}">XR-123</span>
-                        </div>
-
-                        <div class="row g-4">
-                            <div class="col-md-12">
-                                <small class="text-muted d-block text-uppercase">Họ và tên</small>
-                                <h4 class="fw-bold text-primary mb-0" th:text="${record.patient != null ? record.patient.fullName : 'N/A'}"></h4>
-                            </div>
-
-                            <div class="col-6">
-                                <small class="text-muted d-block text-uppercase">Giới tính</small>
-                                <strong th:text="${profile != null ? profile.gender : 'N/A'}"></strong>
-                            </div>
-
-                            <div class="col-6">
-                                <small class="text-muted d-block text-uppercase">Ngày sinh</small>
-                                <strong th:text="${profile != null && profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}"></strong>
-                            </div>
-
-                            <div class="col-6">
-                                <small class="text-muted d-block text-uppercase">Số điện thoại</small>
-                                <span th:text="${profile != null ? profile.phone : 'N/A'}"></span>
-                            </div>
-
-                            <div class="col-12">
-                                <small class="text-muted d-block text-uppercase">Địa chỉ liên lạc</small>
-                                <p class="mb-0 small" th:text="${profile != null ? profile.address : 'Chưa có địa chỉ'}"></p>
-                            </div>
-                        </div>
+            <div class="col-12 col-xl-7">
+                <div class="ms-card-solid ms-xray-dark-panel rounded-5 p-3 p-lg-4 text-center">
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+                        <span class="ms-pill style='background: rgba(255,255,255,0.1); color: #fff;'"><i class="bi bi-cpu me-1 text-info"></i> DICOM Engine Active</span>
+                        <span class="small text-white-50" th:text="${record.recordCode}">XR-CODE</span>
+                    </div>
+                    <div class="rounded-4 overflow-hidden bg-black p-2">
+                        <img th:src="@{'/uploads/' + ${record.fileName}}" class="ms-xray-viewport rounded-3" alt="X-ray DICOM Frame">
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0 rounded-4 mb-4 border-start border-4 border-warning">
-                <div class="card-body">
-                    <h5 class="fw-bold text-warning mb-3">Dự đoán của AI</h5>
-                    <div class="p-3 bg-light rounded-3">
-                        <h4 class="text-danger mb-2" th:text="${record.aiPrediction}">Phát hiện dấu hiệu bất thường</h4>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-danger"
-                                 th:style="'width: ' + ${record.aiConfidence} + '%'"></div>
+            <div class="col-12 col-xl-5">
+                <div class="ms-card-solid rounded-5 p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="ms-section-title h5 mb-0">Thông tin bệnh nhân</h2>
+                        <span class="ms-badge ms-badge-soft" th:text="'Mã ca: ' + ${record.recordCode}">XR-123</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <span class="small text-muted text-uppercase fw-semibold d-block">Họ và tên bệnh nhân</span>
+                            <h4 class="fw-bold text-dark mb-0 mt-1" th:text="${record.patient != null ? record.patient.fullName : 'N/A'}">Nguyễn Văn A</h4>
                         </div>
-                        <small class="text-muted mt-1 d-block">Độ tin cậy: <span th:text="${record.aiConfidence + '%'}"></span></small>
+                        <div class="col-6">
+                            <span class="small text-muted text-uppercase fw-semibold d-block">Giới tính</span>
+                            <span class="fw-semibold text-dark" th:text="${profile != null ? profile.gender : 'N/A'}">N/A</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="small text-muted text-uppercase fw-semibold d-block">Ngày sinh</span>
+                            <span class="fw-semibold text-dark" th:text="${profile != null && profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
+                        </div>
+                        <div class="col-12">
+                            <span class="small text-muted text-uppercase fw-semibold d-block">Địa chỉ</span>
+                            <p class="mb-0 small ms-subtle" th:text="${profile != null ? profile.address : 'Chưa có thông tin'}"></p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <form th:action="@{'/doctor/records/' + ${record.recordId} + '/conclusion'}" method="POST">
-                <div class="card shadow-sm border-0 rounded-4">
-                    <div class="card-body">
-                        <h5 class="fw-bold mb-3">Kết luận bác sĩ</h5>
-                        <textarea name="conclusion" class="form-control border-0 bg-light rounded-3 mb-3"
-                                  rows="6" placeholder="Nhập chẩn đoán chuyên môn..."></textarea>
+                <div class="ms-card-solid rounded-5 p-4 mb-4 border-start border-4 border-warning">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h2 class="ms-section-title h5 mb-0 text-warning">MediScan AI Prediction</h2>
+                        <span class="ms-pill ms-pill-warning" th:text="${record.bodyPart}">Chest</span>
+                    </div>
+                    <div class="p-3 bg-light rounded-4 mt-2">
+                        <h4 class="text-danger fw-bold mb-2" th:text="${record.aiPrediction}">Phát hiện bất thường</h4>
+                        <div class="ms-progress-bar mb-2">
+                            <div class="ms-progress-fill bg-danger" th:style="'width: ' + ${record.aiConfidence} + '%'"></div>
+                        </div>
+                        <span class="small text-muted" th:text="'Hệ số tin cậy thuật toán: ' + ${record.aiConfidence} + '%'">0%</span>
+                    </div>
+                </div>
+
+                <form th:action="@{'/doctor/records/' + ${record.recordId} + '/conclusion'}" method="POST">
+                    <div class="ms-card-solid rounded-5 p-4">
+                        <h2 class="ms-section-title h5 mb-3">Kết luận & Chẩn đoán lâm sàng</h2>
+                        <textarea name="conclusion" class="form-control border-0 bg-light rounded-4 p-3 mb-4 ms-subtle"
+                                  rows="5" placeholder="Nhập nhận định chuyên môn, kê đơn hoặc khuyến nghị hướng điều trị tại đây..."></textarea>
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary rounded-pill py-2">Hoàn tất & Ký số</button>
-                            <a th:href="@{/doctor/records/pending}" class="btn btn-link text-muted">Quay lại danh sách</a>
+                            <button type="submit" class="btn ms-btn ms-btn-primary text-white py-2fw-bold">
+                                <i class="bi bi-file-earmark-check-fill me-1"></i> Hoàn tất & Ký số kết quả
+                            </button>
+                            <a th:href="@{/doctor/records/pending}" class="btn ms-btn ms-btn-ghost border-secondary bg-white py-2">
+                                Hủy bỏ và Quay lại
+                            </a>
                         </div>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
+
         </div>
-    </div>
+    </main>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -74,6 +74,25 @@ public class DoctorDashboardController {
         return "doctor/review-detail";
     }
 
+    @GetMapping("/doctor/patients")
+    public String listPatients(Model model) {
+        List<Patient> patients = imagingRecordService.getAllPatients();
+        model.addAttribute("patients", patients);
+        return "doctor/patient-list";
+    }
+
+    @GetMapping("/doctor/patients/{id}")
+    public String patientDetail(@PathVariable Long id, Model model) {
+        Patient patient = imagingRecordService.getPatientById(id);
+
+        List<ImagingRecord> records = imagingRecordService.findForPatient(patient.getUser());
+
+        model.addAttribute("profile", patient);
+        model.addAttribute("records", records);
+
+        return "doctor/patient-profile-detail";
+    }
+
     private void addModel(Model model) {
         model.addAttribute("queueRecords", imagingRecordService.findQueue());
         model.addAttribute("queueCount", imagingRecordService.countQueue());
