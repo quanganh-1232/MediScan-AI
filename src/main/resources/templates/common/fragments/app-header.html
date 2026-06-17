@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <body>
     <header class="ms-app-header" th:fragment="header(portalName, roleLabel, roleClass)">
@@ -16,11 +15,11 @@
                 <div class="ms-header-actions">
                     <div class="dropdown">
                         <button class="btn ms-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                            aria-label="Thông báo">
+                            aria-label="Thông báo" title="Thông báo cá nhân">
                             <span class="ms-bell-mark">!</span>
                             <span class="ms-notification-count" id="header-unread-count"
                                 th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
-                                th:text="${headerUnreadCount}">0</span>
+                                th:text="${headerUnreadCount}" title="Có thông báo mới">0</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel ms-notification-panel">
                             <div class="px-3 py-3 border-bottom">
@@ -42,8 +41,7 @@
                                     <div class="d-flex justify-content-between gap-3">
                                         <div class="min-w-0">
                                             <div class="fw-semibold text-truncate" th:text="${n.title}">Tiêu đề</div>
-                                            <div class="small text-muted ms-notification-message" th:text="${n.message}">
-                                                Nội dung</div>
+                                            <div class="small text-muted ms-notification-message" th:text="${n.message}">Nội dung</div>
                                             <div class="small text-muted mt-1"
                                                 th:text="${n.createdAt != null ? #temporals.format(n.createdAt, 'HH:mm dd/MM/yyyy') : 'Vừa cập nhật'}">
                                                 08:30 12/06/2026</div>
@@ -68,7 +66,13 @@
                             </span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel">
-
+                            <div class="px-3 py-3 border-bottom">
+                                <div class="small text-muted">Đang đăng nhập</div>
+                                <div class="fw-semibold" sec:authentication="name">user@mediscan.ai</div>
+                                <div class="small text-muted" th:text="${roleLabel}">Role</div>
+                            </div>
+                            
+                            <a class="dropdown-item py-2" th:href="@{/home}">Tổng quan</a>
                             <a class="dropdown-item py-2" th:href="@{/profile}">Hồ sơ cá nhân</a>
                             <a class="dropdown-item py-2" th:href="@{/profile/edit}">Chỉnh sửa thông tin</a>
                             <a class="dropdown-item py-2" th:href="@{/notifications}">Thông báo</a>
@@ -80,6 +84,14 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </header>
+</body>
+</html>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </header>
     <script>
@@ -149,5 +161,9 @@
         });
     </script>
 </body>
+<<<<<<< HEAD
+</html>
+=======
 
 </html>
+>>>>>>> 9f8935cf28ec2fe31dd1f78a5d126d7f3e318809
