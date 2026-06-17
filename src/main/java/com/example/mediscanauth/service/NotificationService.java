@@ -8,6 +8,8 @@ public interface NotificationService {
 
     List<Notification> findForUser(User user);
 
+    List<Notification> findRecentForUser(User user);
+
     long countUnread(User user);
 
     Notification markAsRead(Long notificationId);

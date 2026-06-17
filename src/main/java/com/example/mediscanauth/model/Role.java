@@ -48,4 +48,18 @@ public class Role {
     public void setDescription(String description) {
         this.description = description;
     }
+
+    public String getDisplayName() {
+        if (roleName == null) {
+            return "Người dùng";
+        }
+
+        return switch (roleName) {
+            case "ADMIN", "ROLE_ADMIN" -> "Quản trị viên";
+            case "DOCTOR", "ROLE_DOCTOR" -> "Bác sĩ";
+            case "TECHNICIAN", "ROLE_TECHNICIAN" -> "Kỹ thuật viên";
+            case "PATIENT", "ROLE_PATIENT" -> "Bệnh nhân";
+            default -> "Người dùng";
+        };
+    }
 }

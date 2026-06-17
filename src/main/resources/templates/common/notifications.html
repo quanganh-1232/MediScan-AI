@@ -16,7 +16,7 @@
             <div>
                 <a th:href="@{/profile}" class="text-decoration-none fw-semibold">&lt; Quay lại hồ sơ</a>
                 <h1 class="ms-display display-6 mt-3 mb-2">Thông báo cá nhân</h1>
-                <p class="ms-subtle mb-0">Danh sách thông báo được lấy theo user đang đăng nhập.</p>
+                <p class="ms-subtle mb-0">Các cập nhật chuyên môn và trạng thái hồ sơ được sắp xếp theo thời gian mới nhất.</p>
             </div>
             <div class="ms-readonly-note">
                 <div class="fw-bold" th:text="${unreadCount}">0</div>
@@ -29,6 +29,7 @@
                 Chưa có thông báo cá nhân.
             </div>
             <ul class="ms-list" th:if="${!#lists.isEmpty(notifications)}">
+<<<<<<< HEAD
                 <li class="ms-activity-item p-0" th:each="n : ${notifications}">
                     <a th:href="@{/notifications/click(id=${n.notificationId})}" class="text-decoration-none d-block p-3">
                         <div class="d-flex justify-content-between gap-3">
@@ -39,6 +40,14 @@
                             <span class="ms-badge"
                                   th:classappend="${n.read} ? ' ms-badge-soft' : ' ms-badge-warning'"
                                   th:text="${n.read} ? 'Đã đọc' : 'Mới'">Mới</span>
+=======
+                <li class="ms-activity-item" th:each="n : ${notifications}">
+                    <div class="d-flex justify-content-between gap-3">
+                        <div>
+                            <div class="fw-bold" th:text="${n.title}">Tiêu đề</div>
+                            <div class="text-muted small" th:text="${n.message}">Nội dung</div>
+                            <div class="small text-muted mt-1" th:text="${n.createdAt != null ? #temporals.format(n.createdAt, 'HH:mm dd/MM/yyyy') : 'Vừa cập nhật'}">08:30 12/06/2026</div>
+>>>>>>> 9f8935cf28ec2fe31dd1f78a5d126d7f3e318809
                         </div>
                     </a>
                 </li>

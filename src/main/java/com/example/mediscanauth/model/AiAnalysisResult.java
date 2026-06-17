@@ -39,31 +39,63 @@ public class AiAnalysisResult {
         return aiResultId;
     }
 
+    public void setAiResultId(Long aiResultId) {
+        this.aiResultId = aiResultId;
+    }
+
     public XrayImage getImage() {
         return image;
+    }
+
+    public void setImage(XrayImage image) {
+        this.image = image;
     }
 
     public boolean isFractureDetected() {
         return fractureDetected;
     }
 
+    public void setFractureDetected(boolean fractureDetected) {
+        this.fractureDetected = fractureDetected;
+    }
+
     public BigDecimal getConfidenceScore() {
         return confidenceScore;
+    }
+
+    public void setConfidenceScore(BigDecimal confidenceScore) {
+        this.confidenceScore = confidenceScore;
     }
 
     public String getSeverityLevel() {
         return severityLevel;
     }
 
+    public void setSeverityLevel(String severityLevel) {
+        this.severityLevel = severityLevel;
+    }
+
     public String getAiDiagnosis() {
         return aiDiagnosis;
+    }
+
+    public void setAiDiagnosis(String aiDiagnosis) {
+        this.aiDiagnosis = aiDiagnosis;
     }
 
     public LocalDateTime getAnalyzedAt() {
         return analyzedAt;
     }
 
+    public void setAnalyzedAt(LocalDateTime analyzedAt) {
+        this.analyzedAt = analyzedAt;
+    }
+
     public String getStatus() {
         return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }
