@@ -1,63 +1,4 @@
-<!DOCTYPE html>
-<<<<<<< HEAD
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-</head>
-<body>
-<header class="ms-app-header" th:fragment="header(portalName, roleLabel, roleClass)">
-    <div class="container-fluid px-3 px-lg-4">
-        <div class="ms-topbar d-flex justify-content-between align-items-center">
-            <div class="ms-header-copy">
-                <div class="small text-uppercase text-muted fw-semibold">MediScan AI</div>
-                <div class="fw-bold" th:text="${portalName}">Portal</div>
-            </div>
-
-            <div class="d-flex align-items-center gap-3">
-
-                <a th:href="@{/notifications}" class="d-flex align-items-center justify-content-center position-relative"
-                   style="width: 32px; height: 32px; color: #000000; text-decoration: none; transition: transform 0.2s ease, opacity 0.2s ease;"
-                   onmouseover="this.style.opacity='0.6'; this.style.transform='scale(1.05)';"
-                   onmouseout="this.style.opacity='1'; this.style.transform='scale(1)';"
-                   title="Thông báo cá nhân">
-
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" class="bi bi-bell" viewBox="0 0 16 16" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.079-.002A3.5 3.5 0 0 0 4.5 5.378V9c0 1.636-.576 3.018-1.5 4h10c-.924-.982-1.5-2.364-1.5-4V5.378a3.5 3.5 0 0 0-3.421-3.46l-.079.002z"/>
-                    </svg>
-
-                    <span th:if="${unreadCount != null && unreadCount > 0}"
-                          class="position-absolute rounded-circle bg-danger"
-                          style="width: 8px; height: 8px; top: 2px; right: 2px; z-index: 3;"
-                          title="Có thông báo mới"></span>
-                </a>
-
-                <div class="vr bg-secondary opacity-25" style="height: 24px;"></div>
-
-                <div class="dropdown ms-account-dropdown">
-                    <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span th:class="'ms-avatar ' + ${roleClass}" th:text="${#strings.substring(#authentication.name, 0, 1).toUpperCase()}">U</span>
-                        <span class="d-none d-md-block text-start">
-                            <span class="d-block fw-bold" sec:authentication="name">user@mediscan.ai</span>
-                            <span class="d-block small text-muted" th:text="${roleLabel}">Role</span>
-                        </span>
-                    </button>
-                    <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel">
-                        <div class="px-3 py-3 border-bottom">
-                            <div class="small text-muted">Đang đăng nhập</div>
-                            <div class="fw-semibold" sec:authentication="name">user@mediscan.ai</div>
-                            <div class="small text-muted" th:text="${roleLabel}">Role</div>
-                        </div>
-                        <a class="dropdown-item py-2" th:href="@{/home}">Tổng quan</a>
-                        <a class="dropdown-item py-2" th:href="@{/profile}">Hồ sơ cá nhân</a>
-                        <a class="dropdown-item py-2" th:href="@{/profile/edit}">Chỉnh sửa thông tin</a>
-                        <a class="dropdown-item py-2" th:href="@{/notifications}">Thông báo</a>
-                        <a class="dropdown-item py-2" th:href="@{/change-password}">Đổi mật khẩu</a>
-                        <form th:action="@{/logout}" method="post" class="px-3 pt-2 pb-3">
-                            <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100">Đăng xuất</button>
-                        </form>
-=======
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <body>
     <header class="ms-app-header" th:fragment="header(portalName, roleLabel, roleClass)">
@@ -74,11 +15,11 @@
                 <div class="ms-header-actions">
                     <div class="dropdown">
                         <button class="btn ms-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                            aria-label="Thông báo">
+                            aria-label="Thông báo" title="Thông báo cá nhân">
                             <span class="ms-bell-mark">!</span>
                             <span class="ms-notification-count" id="header-unread-count"
                                 th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
-                                th:text="${headerUnreadCount}">0</span>
+                                th:text="${headerUnreadCount}" title="Có thông báo mới">0</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel ms-notification-panel">
                             <div class="px-3 py-3 border-bottom">
@@ -100,8 +41,7 @@
                                     <div class="d-flex justify-content-between gap-3">
                                         <div class="min-w-0">
                                             <div class="fw-semibold text-truncate" th:text="${n.title}">Tiêu đề</div>
-                                            <div class="small text-muted ms-notification-message" th:text="${n.message}">
-                                                Nội dung</div>
+                                            <div class="small text-muted ms-notification-message" th:text="${n.message}">Nội dung</div>
                                             <div class="small text-muted mt-1"
                                                 th:text="${n.createdAt != null ? #temporals.format(n.createdAt, 'HH:mm dd/MM/yyyy') : 'Vừa cập nhật'}">
                                                 08:30 12/06/2026</div>
@@ -126,7 +66,13 @@
                             </span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel">
-
+                            <div class="px-3 py-3 border-bottom">
+                                <div class="small text-muted">Đang đăng nhập</div>
+                                <div class="fw-semibold" sec:authentication="name">user@mediscan.ai</div>
+                                <div class="small text-muted" th:text="${roleLabel}">Role</div>
+                            </div>
+                            
+                            <a class="dropdown-item py-2" th:href="@{/home}">Tổng quan</a>
                             <a class="dropdown-item py-2" th:href="@{/profile}">Hồ sơ cá nhân</a>
                             <a class="dropdown-item py-2" th:href="@{/profile/edit}">Chỉnh sửa thông tin</a>
                             <a class="dropdown-item py-2" th:href="@{/notifications}">Thông báo</a>
@@ -135,7 +81,13 @@
                                 <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100">Đăng xuất</button>
                             </form>
                         </div>
->>>>>>> 9f8935cf28ec2fe31dd1f78a5d126d7f3e318809
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+</body>
+</html>
                     </div>
                 </div>
             </div>

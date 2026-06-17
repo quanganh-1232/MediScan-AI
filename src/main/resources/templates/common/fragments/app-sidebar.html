@@ -12,7 +12,6 @@
 
     <div th:switch="${portalKey}">
         <nav th:case="'admin'" class="ms-sidebar-nav">
-<<<<<<< HEAD
             <a class="ms-nav-item" th:classappend="${activeSection == 'overview'} ? ' active' : ''" th:href="@{/admin/overview}">
                 <span>
                     <span class="d-block fw-semibold">Tổng quan</span>
@@ -21,9 +20,6 @@
                 <span class="ms-badge ms-badge-soft">01</span>
             </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'metrics'} ? ' active' : ''" th:href="@{/admin/metrics}">
-=======
-                <a class="ms-nav-item" th:classappend="${activeSection == 'metrics'} ? ' active' : ''" th:href="@{/admin/metrics}">
->>>>>>> 9f8935cf28ec2fe31dd1f78a5d126d7f3e318809
                 <span>
                     <span class="d-block fw-semibold">Metrics</span>
                     <span class="d-block small text-muted">Người dùng, hàng đợi, hồ sơ</span>
@@ -47,7 +43,6 @@
         </nav>
 
         <nav th:case="'doctor'" class="ms-sidebar-nav">
-<<<<<<< HEAD
             <a class="ms-nav-item" th:classappend="${activeSection == 'overview'} ? ' active' : ''" th:href="@{/doctor/overview}">
                 <span>
                     <span class="d-block fw-semibold">Tổng quan</span>
@@ -56,9 +51,6 @@
                 <span class="ms-badge ms-badge-soft">01</span>
             </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'pending'} ? ' active' : ''" th:href="@{/doctor/records/pending}">
-=======
-            <a class="ms-nav-item" th:classappend="${activeSection == 'queue'} ? ' active' : ''" th:href="@{/doctor/queue}">
->>>>>>> 9f8935cf28ec2fe31dd1f78a5d126d7f3e318809
                 <span>
                     <span class="d-block fw-semibold">Chờ duyệt</span>
                     <span class="d-block small text-muted">Danh sách hồ sơ cần đọc</span>

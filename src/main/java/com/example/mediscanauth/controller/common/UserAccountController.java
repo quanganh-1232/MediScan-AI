@@ -1,10 +1,8 @@
 package com.example.mediscanauth.controller.common;
 
-<<<<<<< HEAD
+
 import com.example.mediscanauth.model.Notification;
-=======
 import com.example.mediscanauth.controller.common.dto.ProfileUpdateDTO;
->>>>>>> 9f8935cf28ec2fe31dd1f78a5d126d7f3e318809
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.service.NotificationService;
 import com.example.mediscanauth.service.UserAccountService;

@@ -22,19 +22,8 @@ public class DoctorDashboardController {
     }
 
     @GetMapping("/doctor/dashboard")
-<<<<<<< HEAD
-    public String dashboard(Model model, Principal principal) {
-        Long doctorId = imagingRecordService.getDoctorIdByEmail(principal.getName());
-
-        DashboardDTO stats = imagingRecordService.getDoctorDashboardStats(doctorId);
-
-        model.addAttribute("queueRecords", stats.getQueueRecords());
-        model.addAttribute("queueCount", stats.getQueueCount());
-        return "doctor/dashboard";
-=======
     public String dashboard() {
         return "redirect:/home";
->>>>>>> 9f8935cf28ec2fe31dd1f78a5d126d7f3e318809
     }
 
     @GetMapping("/doctor/overview")

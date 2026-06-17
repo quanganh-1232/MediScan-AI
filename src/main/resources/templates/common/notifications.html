@@ -29,7 +29,6 @@
                 Chưa có thông báo cá nhân.
             </div>
             <ul class="ms-list" th:if="${!#lists.isEmpty(notifications)}">
-<<<<<<< HEAD
                 <li class="ms-activity-item p-0" th:each="n : ${notifications}">
                     <a th:href="@{/notifications/click(id=${n.notificationId})}" class="text-decoration-none d-block p-3">
                         <div class="d-flex justify-content-between gap-3">
@@ -40,14 +39,6 @@
                             <span class="ms-badge"
                                   th:classappend="${n.read} ? ' ms-badge-soft' : ' ms-badge-warning'"
                                   th:text="${n.read} ? 'Đã đọc' : 'Mới'">Mới</span>
-=======
-                <li class="ms-activity-item" th:each="n : ${notifications}">
-                    <div class="d-flex justify-content-between gap-3">
-                        <div>
-                            <div class="fw-bold" th:text="${n.title}">Tiêu đề</div>
-                            <div class="text-muted small" th:text="${n.message}">Nội dung</div>
-                            <div class="small text-muted mt-1" th:text="${n.createdAt != null ? #temporals.format(n.createdAt, 'HH:mm dd/MM/yyyy') : 'Vừa cập nhật'}">08:30 12/06/2026</div>
->>>>>>> 9f8935cf28ec2fe31dd1f78a5d126d7f3e318809
                         </div>
                     </a>
                 </li>
