@@ -34,16 +34,16 @@ public class ImagingRecord {
     @Column(name = "file_name", length = 180)
     private String fileName;
 
-    @Column(name = "ai_prediction", length = 180)
+    @Column(name = "ai_prediction", columnDefinition = "text")
     private String aiPrediction;
 
     @Column(name = "ai_confidence")
     private Integer aiConfidence;
 
-    @Column(name = "doctor_conclusion", length = 500)
+    @Column(name = "doctor_conclusion", columnDefinition = "text")
     private String doctorConclusion;
 
-    @Column(name = "recommendation", length = 500)
+    @Column(name = "recommendation", columnDefinition = "text")
     private String recommendation;
 
     @Column(name = "status", nullable = false, length = 40)

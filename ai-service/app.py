@@ -3,17 +3,20 @@ import shutil
 import os
 import tempfile
 import base64
-import json
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import Dict, List, Optional
 
 # Import the YOLO / Fractal logic
 import yolo_core
+from anfis.features import build_diagnosis_features
+from anfis.service import AnfisDiagnosisService
 
 app = FastAPI(title="MediScan AI Service")
 
-# Path to YOLO model if available
-YOLO_MODEL_PATH = "YOLO/FDetectModel_YOLO11_080626.pt"
+anfis_service = AnfisDiagnosisService()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+YOLO_MODEL_PATH = os.path.join(BASE_DIR, "YOLO", "FDetectModel_YOLO11_080626.pt")
 
 class BoundingBox(BaseModel):
     x: int
@@ -27,9 +30,21 @@ class FractureRegionInfo(BaseModel):
     confidence: float
     bbox: BoundingBox
 
+class PredictionSummary(BaseModel):
+    fracture_score: float
+    risk_level: str
+    clinical_confidence: Optional[float] = None
+    impression: Optional[str] = None
+    summary: str
+    evidence: List[str] = Field(default_factory=list)
+    recommendations: List[str] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)
+    inputs: Dict[str, float]
+
 class PredictResponse(BaseModel):
     status: str
     fractures: List[FractureRegionInfo]
+    diagnosis: PredictionSummary
     annotated_image_base64: Optional[str] = None
     fracture_detected: bool
     highest_confidence: float
@@ -59,13 +74,19 @@ async def predict_fracture(file: UploadFile = File(...)):
             verbose=False
         )
 
-        # 3. Read output image as base64
+        # 3. Build ANFIS diagnosis support
+        img, _ = yolo_core.load_image(temp_input_path)
+        enhanced = yolo_core.preprocess(img)
+        diagnosis_inputs = build_diagnosis_features(img, enhanced, regions)
+        diagnosis = anfis_service.predict(diagnosis_inputs)
+
+        # 4. Read output image as base64
         encoded_image = None
         if os.path.exists(temp_output_path):
             with open(temp_output_path, "rb") as image_file:
                 encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
 
-        # 4. Format response
+        # 5. Format response
         fractures = []
         max_conf = 0.0
         for r in regions:
@@ -82,6 +103,7 @@ async def predict_fracture(file: UploadFile = File(...)):
         response = PredictResponse(
             status="success",
             fractures=fractures,
+            diagnosis=PredictionSummary(**diagnosis),
             annotated_image_base64=encoded_image,
             fracture_detected=len(fractures) > 0,
             highest_confidence=max_conf
