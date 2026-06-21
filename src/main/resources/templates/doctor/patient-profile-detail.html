@@ -9,7 +9,18 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }</style>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+        
+        /* Bổ sung các class CSS phụ trợ tối giản để phục vụ thanh lọc và phân trang */
+        .search-mini-group { position: relative; max-width: 320px; }
+        .search-mini-group i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        .search-mini-group .form-control { padding-left: 36px; border-radius: 8px; font-size: 0.9rem; }
+        .filter-mini-select { border-radius: 8px; font-size: 0.9rem; width: 160px; }
+        .pagination-container { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; }
+        .pagination .page-item .page-link { color: #64748b; padding: 6px 12px; border-radius: 6px; margin: 0 2px; font-weight: 600; }
+        .pagination .page-item.active .page-link { background-color: #3b82f6; border-color: #3b82f6; color: #fff; }
+    </style>
 </head>
 <body>
 <div class="ms-shell">
@@ -61,53 +72,87 @@
                     </div>
 
                     <div class="col-12 col-lg-8">
-                        <div class="ms-card-solid rounded-5 p-4 p-lg-5 h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h2 class="ms-section-title h4 mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Lịch sử chụp X-quang</h2>
-                                <span class="ms-badge ms-badge-soft" th:text="${records != null ? records.size() + ' ca' : '0 ca'}">0 ca</span>
+                        <div class="ms-card-solid rounded-5 p-4 p-lg-5 h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h2 class="ms-section-title h4 mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Lịch sử chụp X-quang</h2>
+                                    <span class="ms-badge ms-badge-soft" id="totalRecordsCount" th:text="${records != null ? records.size() + ' ca' : '0 ca'}">0 ca</span>
+                                </div>
+
+                                <div th:if="${!#lists.isEmpty(records)}" class="d-flex flex-wrap gap-2 mb-3 bg-light p-2 rounded-4">
+                                    <div class="search-mini-group flex-grow-1">
+                                        <i class="bi bi-search"></i>
+                                        <input type="text" id="recordSearchInput" class="form-control border-light shadow-2sm" 
+                                               placeholder="Tìm mã ca hoặc vị trí chụp..." onkeyup="filterRecordsTable()">
+                                    </div>
+                                    <div>
+                                        <select id="statusFilter" class="form-select filter-mini-select text-secondary fw-semibold border-light shadow-2sm" onchange="filterRecordsTable()">
+                                            <option value="">Tất cả trạng thái</option>
+                                            <option value="DONE">DONE</option>
+                                            <option value="DIAGNOSED">DIAGNOSED</option>
+                                            <option value="PENDING">PENDING</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div th:if="${#lists.isEmpty(records)}" class="text-center py-5 text-muted">
+                                    <i class="bi bi-folder-x display-5 d-block mb-2 opacity-25"></i>
+                                    <p class="small mb-0">Bệnh nhân chưa có lịch sử ca chụp nào trên hệ thống.</p>
+                                </div>
+
+                                <div id="recordsEmptyState" class="text-center py-5 text-muted d-none">
+                                    <i class="bi bi-search display-5 d-block mb-2 opacity-25"></i>
+                                    <p class="small mb-0">Không tìm thấy ca chụp nào khớp với điều kiện lọc.</p>
+                                </div>
+
+                                <div th:if="${!#lists.isEmpty(records)}" class="table-responsive" id="tableWrapper">
+                                    <table class="ms-table">
+                                        <thead>
+                                        <tr>
+                                            <th>Mã ca</th>
+                                            <th>Vị trí chụp</th>
+                                            <th>Dự đoán AI</th>
+                                            <th>Trạng thái</th>
+                                            <th class="text-end">Hành động</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="recordsTableBody">
+                                        <tr th:each="r : ${records}">
+                                            <td><span class="fw-bold text-dark" th:text="${r.recordCode}">XR-001</span></td>
+                                            <td class="fw-semibold text-secondary" th:text="${r.bodyPart}">Lồng ngực</td>
+                                            <td>
+                                                <div class="fw-bold text-danger mb-1" th:text="${r.aiPrediction}">Bất thường</div>
+                                                <div class="ms-progress-bar" style="max-width: 100px;">
+                                                    <div class="ms-progress-fill bg-danger" th:style="${'width:' + (r.aiConfidence != null ? r.aiConfidence : 0) + '%'}"></div>
+                                                </div>
+                                                <div class="small text-muted mt-1" style="font-size: 0.7rem;" th:text="'Tin cậy: ' + ${r.aiConfidence} + '%'">0%</div>
+                                            </td>
+                                            <td>
+                                                <span class="ms-badge"
+                                                      th:classappend="${r.status == 'DONE' ? 'ms-badge-soft' : 'ms-badge-warning'}"
+                                                      th:text="${r.status}">PENDING</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <a th:href="@{'/doctor/records/' + ${r.recordId} + '/review'}" class="btn ms-btn ms-btn-ghost border-secondary bg-white btn-sm px-2">
+                                                    <i class="bi bi-eye-fill"></i> Đọc ca
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
 
-                            <div th:if="${#lists.isEmpty(records)}" class="text-center py-5 text-muted">
-                                <i class="bi bi-folder-x display-5 d-block mb-2 opacity-25"></i>
-                                <p class="small mb-0">Bệnh nhân chưa có lịch sử ca chụp nào trên hệ thống.</p>
+                            <div th:if="${!#lists.isEmpty(records)}" class="pagination-container border-top mt-4" id="recordsPaginationWrapper">
+                                <div class="small text-muted fw-medium">
+                                    Hiển thị <span id="recStartRange" class="fw-bold">0</span> - <span id="recEndRange" class="fw-bold">0</span> ca
+                                </div>
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination pagination-sm mb-0" id="recordsPaginationContainer">
+                                    </ul>
+                                </nav>
                             </div>
 
-                            <div th:if="${!#lists.isEmpty(records)}" class="table-responsive">
-                                <table class="ms-table">
-                                    <thead>
-                                    <tr>
-                                        <th>Mã ca</th>
-                                        <th>Vị trí chụp</th>
-                                        <th>Dự đoán AI</th>
-                                        <th>Trạng thái</th>
-                                        <th class="text-end">Hành động</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr th:each="r : ${records}">
-                                        <td><span class="fw-bold text-dark" th:text="${r.recordCode}">XR-001</span></td>
-                                        <td class="fw-semibold text-secondary" th:text="${r.bodyPart}">Lồng ngực</td>
-                                        <td>
-                                            <div class="fw-bold text-danger mb-1" th:text="${r.aiPrediction}">Bất thường</div>
-                                            <div class="ms-progress-bar" style="max-width: 100px;">
-                                                <div class="ms-progress-fill bg-danger" th:style="${'width:' + (r.aiConfidence != null ? r.aiConfidence : 0) + '%'}"></div>
-                                            </div>
-                                            <div class="small text-muted mt-1" style="font-size: 0.7rem;" th:text="'Tin cậy: ' + ${r.aiConfidence} + '%'">0%</div>
-                                        </td>
-                                        <td>
-                                            <span class="ms-badge"
-                                                  th:classappend="${r.status == 'DONE' ? 'ms-badge-soft' : 'ms-badge-warning'}"
-                                                  th:text="${r.status}">PENDING</span>
-                                        </td>
-                                        <td class="text-end">
-                                            <a th:href="@{'/doctor/records/' + ${r.recordId} + '/review'}" class="btn ms-btn ms-btn-ghost border-secondary bg-white btn-sm px-2">
-                                                <i class="bi bi-eye-fill"></i> Đọc ca
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -116,5 +161,154 @@
     </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const recordsPerPage = 5;
+    let currentRecPage = 1;
+    let filteredRecordsRows = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+        initRecordsTableEngine();
+    });
+
+    function initRecordsTableEngine() {
+        const tbody = document.getElementById("recordsTableBody");
+        if (!tbody) return;
+
+        filteredRecordsRows = Array.from(tbody.querySelectorAll("tr"));
+        setupRecordsPagination(filteredRecordsRows.length);
+        renderRecordsPage(currentRecPage);
+    }
+
+    function filterRecordsTable() {
+        const searchVal = document.getElementById("recordSearchInput").value.toLowerCase().trim();
+        const statusVal = document.getElementById("statusFilter").value;
+
+        const tbody = document.getElementById("recordsTableBody");
+        if (!tbody) return;
+        const allRows = Array.from(tbody.getElementsByTagName("tr"));
+
+        filteredRecordsRows = allRows.filter(row => {
+            const cells = row.getElementsByTagName("td");
+            if (cells.length < 4) return false;
+
+            const codeText = cells[0].textContent.toLowerCase();
+            const partText = cells[1].textContent.toLowerCase();
+            const statusText = cells[3].textContent.trim();
+
+            const matchSearch = codeText.includes(searchVal) || partText.includes(searchVal);
+            const matchStatus = (statusVal === "") || (statusText === statusVal);
+
+            return matchSearch && matchStatus;
+        });
+
+        const emptyState = document.getElementById("recordsEmptyState");
+        const tableWrapper = document.getElementById("tableWrapper");
+        const paginationWrapper = document.getElementById("recordsPaginationWrapper");
+
+        if (filteredRecordsRows.length === 0) {
+            if (emptyState) emptyState.classList.remove("d-none");
+            if (tableWrapper) tableWrapper.classList.add("d-none");
+            if (paginationWrapper) paginationWrapper.classList.add("d-none");
+        } else {
+            if (emptyState) emptyState.classList.add("d-none");
+            if (tableWrapper) tableWrapper.classList.remove("d-none");
+            if (paginationWrapper) paginationWrapper.classList.remove("d-none");
+        }
+
+        currentRecPage = 1;
+        setupRecordsPagination(filteredRecordsRows.length);
+        renderRecordsPage(currentRecPage);
+    }
+
+    function setupRecordsPagination(totalItems) {
+        const pageCount = Math.ceil(totalItems / recordsPerPage);
+        const container = document.getElementById("recordsPaginationContainer");
+        if (!container) return;
+        container.innerHTML = "";
+
+        if (pageCount <= 1) {
+            updateRecordsPaginationInfo(totalItems);
+            return;
+        }
+
+        createPageBtn(container, "«", () => {
+            if (currentRecPage > 1) {
+                currentRecPage--;
+                renderRecordsPage(currentRecPage);
+            }
+        }, currentRecPage === 1);
+
+        for (let i = 1; i <= pageCount; i++) {
+            createPageBtn(container, i, () => {
+                currentRecPage = i;
+                renderRecordsPage(currentRecPage);
+            }, false, i === currentRecPage);
+        }
+
+        createPageBtn(container, "»", () => {
+            if (currentRecPage < pageCount) {
+                currentRecPage++;
+                renderRecordsPage(currentRecPage);
+            }
+        }, currentRecPage === pageCount);
+
+        updateRecordsPaginationInfo(totalItems);
+    }
+
+    function createPageBtn(parent, text, action, isDisabled = false, isActive = false) {
+        const li = document.createElement("li");
+        li.className = `page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+
+        const a = document.createElement("a");
+        a.className = "page-link";
+        a.href = "javascript:void(0);";
+        a.textContent = text;
+        a.addEventListener("click", action);
+
+        li.appendChild(a);
+        parent.appendChild(li);
+    }
+
+    function renderRecordsPage(page) {
+        const tbody = document.getElementById("recordsTableBody");
+        if (!tbody) return;
+        const allRows = Array.from(tbody.querySelectorAll("tr"));
+
+        allRows.forEach(row => row.style.display = "none");
+
+        const start = (page - 1) * recordsPerPage;
+        const end = Math.min(start + recordsPerPage, filteredRecordsRows.length);
+
+        for (let i = start; i < end; i++) {
+            if (filteredRecordsRows[i]) {
+                filteredRecordsRows[i].style.display = "";
+            }
+        }
+
+        updateRecordsPaginationInfo(filteredRecordsRows.length);
+
+        const items = document.querySelectorAll("#recordsPaginationContainer .page-item");
+        items.forEach(item => {
+            const pageNum = parseInt(item.textContent);
+            if (pageNum === page) {
+                item.classList.add("active");
+            } else if (item.textContent !== "«" && item.textContent !== "»") {
+                item.classList.remove("active");
+            }
+        });
+    }
+
+    function updateRecordsPaginationInfo(totalItems) {
+        const start = totalItems === 0 ? 0 : (currentRecPage - 1) * recordsPerPage + 1;
+        const end = Math.min(currentRecPage * recordsPerPage, totalItems);
+
+        const startLabel = document.getElementById("recStartRange");
+        const endLabel = document.getElementById("recEndRange");
+
+        if (startLabel) startLabel.textContent = start;
+        if (endLabel) endLabel.textContent = end;
+    }
+</script>
 </body>
 </html>

@@ -1,4 +1,5 @@
-<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <body>
     <header class="ms-app-header" th:fragment="header(portalName, roleLabel, roleClass)">
@@ -16,7 +17,7 @@
                     <div class="dropdown">
                         <button class="btn ms-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
                             aria-label="Thông báo" title="Thông báo cá nhân">
-                            <span class="ms-bell-mark">!</span>
+                            <i class="bi bi-bell fs-5 align-middle"></i>
                             <span class="ms-notification-count" id="header-unread-count"
                                 th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
                                 th:text="${headerUnreadCount}" title="Có thông báo mới">0</span>
@@ -86,14 +87,7 @@
             </div>
         </div>
     </header>
-</body>
-</html>
-                    </div>
-                </div>
-            </div>
 
-        </div>
-    </header>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             function pollNotifications() {
@@ -118,9 +112,6 @@
                                 btn.appendChild(span);
                             }
                             if (badgeEl) badgeEl.textContent = data.unreadCount + ' mới';
-                            else {
-                                // Add badge if it was missing
-                            }
                         } else {
                             if (countEl) countEl.remove();
                             if (badgeEl) badgeEl.remove();
@@ -161,9 +152,4 @@
         });
     </script>
 </body>
-<<<<<<< HEAD
 </html>
-=======
-
-</html>
->>>>>>> 9f8935cf28ec2fe31dd1f78a5d126d7f3e318809

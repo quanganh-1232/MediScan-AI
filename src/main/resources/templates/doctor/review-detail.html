@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
     <meta charset="UTF-8">
     <title>Chi tiết duyệt hồ sơ - MediScan AI</title>
@@ -10,91 +10,439 @@
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
-        .ms-xray-dark-panel { background: #0b0f19; border: 1px solid #1e293b; position: sticky; top: 24px; }
-        .ms-xray-viewport { max-width: 100%; height: auto; display: block; margin: 0 auto; filter: contrast(1.1); }
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        }
+
+        .ms-xray-dark-panel {
+            background: #0b0f19;
+            border: 1px solid #1e293b;
+            position: sticky;
+            top: 24px;
+        }
+
+        /* Đầu Header của Panel Ảnh */
+        .panel-header {
+            display: flex;
+            justify-content: flex-end; /* Đẩy khu vực công cụ sát hoàn toàn về góc phải */
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+            min-height: 45px;
+        }
+
+        /* Container kiểm soát vị trí tuyệt đối cho menu ngang */
+        .toolkit-wrapper {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Nút mở menu công cụ vuông vắn, gọn gàng ở góc phải */
+        .toolkit-dropdown-btn {
+            background: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #334155;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 102;
+        }
+        .toolkit-dropdown-btn:hover, .toolkit-dropdown-btn.active {
+            background: #334155;
+            color: #fff;
+            border-color: #475569;
+        }
+
+        /* MENU CHIỀU NGANG - Neo cố định bên trái của nút bấm và không bao giờ lệch khung */
+        .toolkit-menu-horizontal {
+            position: absolute;
+            right: 46px; /* Cách nút bấm đúng 1 khoảng vừa vặn */
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 6px 14px;
+            display: none; 
+            align-items: center;
+            gap: 14px;
+            box-shadow: -5px 5px 15px rgba(0,0,0,0.4);
+            z-index: 101;
+            animate: slideInLeft 0.2s ease;
+        }
+
+        /* Khi kích hoạt hiển thị */
+        .toolkit-menu-horizontal.show {
+            display: flex;
+        }
+
+        .tool-item-horizontal {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #cbd5e1;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .tool-item-horizontal input[type="range"] {
+            width: 75px;
+            accent-color: #3b82f6;
+            height: 4px;
+        }
+
+        /* Vách ngăn phân tách */
+        .tool-divider {
+            width: 1px;
+            height: 18px;
+            background: #334155;
+        }
+
+        /* Kiểm soát diện tích vùng chứa ảnh không bị quá to */
+        .xray-viewport-box {
+            background: #000;
+            border-radius: 16px;
+            padding: 12px;
+            max-height: 500px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .ms-xray-viewport {
+            max-height: 480px;
+            width: auto;
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .ms-xray-wrapper {
+            position: relative;
+            display: inline-block;
+            overflow: hidden;
+            border-radius: 8px;
+            cursor: grab;
+        }
+        
+        .ms-xray-wrapper:active {
+            cursor: grabbing;
+        }
+
+        .pan-zoom-container {
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+            display: inline-block;
+            position: relative;
+        }
+
+        .ms-xray-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .ai-box {
+            position: absolute;
+            border: 2px solid #ef4444;
+            background-color: transparent !important;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+            border-radius: 4px;
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translate(10px, -50%); }
+            to { opacity: 1; transform: translate(0, -50%); }
+        }
     </style>
 </head>
+
 <body>
-<div class="ms-shell">
-    <div th:replace="~{common/fragments/app-header :: header('Review Workspace', 'Bác sĩ', 'ms-avatar-purple')}"></div>
+    <div class="ms-shell">
+        <div th:replace="~{common/fragments/app-header :: header('Review Workspace', 'Bác sĩ', 'ms-avatar-purple')}"></div>
 
-    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
-        <div class="row g-4">
+        <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
+            <div class="row g-4">
 
-            <div class="col-12 col-xl-7">
-                <div class="ms-card-solid ms-xray-dark-panel rounded-5 p-3 p-lg-4 text-center">
-                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom border-secondary border-opacity-25 pb-3">
-                        <span class="ms-pill style='background: rgba(255,255,255,0.1); color: #fff;'"><i class="bi bi-cpu me-1 text-info"></i> DICOM Engine Active</span>
-                        <span class="small text-white-50" th:text="${record.recordCode}">XR-CODE</span>
-                    </div>
-                    <div class="rounded-4 overflow-hidden bg-black p-2">
-                        <img th:src="@{'/uploads/' + ${record.fileName}}" class="ms-xray-viewport rounded-3" alt="X-ray DICOM Frame">
+                <div class="col-12 col-xl-6">
+                    <div class="ms-card-solid ms-xray-dark-panel rounded-5 p-3 p-lg-4 text-center">
+                        
+                        <div class="panel-header">
+                            <div class="toolkit-wrapper">
+                                
+                                <div class="toolkit-menu-horizontal" id="toolkitMenu">
+                                    <div class="tool-item-horizontal">
+                                        <span><i class="bi bi-brightness-high-fill text-warning"></i></span>
+                                        <input type="range" id="brightSlider" min="50" max="200" value="100" oninput="applyImageFilters()">
+                                    </div>
+                                    <div class="tool-item-horizontal">
+                                        <span><i class="bi bi-circle-half text-info"></i></span>
+                                        <input type="range" id="contrastSlider" min="50" max="200" value="110" oninput="applyImageFilters()">
+                                    </div>
+                                    <div class="tool-item-horizontal">
+                                        <div class="form-check form-switch m-0 d-flex align-items-center gap-1">
+                                            <input class="form-check-input style-sm" type="checkbox" id="invertSwitch" onchange="toggleInvert()" style="cursor: pointer;">
+                                            <label class="form-check-label" for="invertSwitch" style="font-size: 11px; color:#cbd5e1;">Âm bản</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tool-divider"></div>
+
+                                    <div class="tool-item-horizontal">
+                                        <select id="colorPicker" class="form-select form-select-sm bg-dark text-white border-secondary py-0" style="width: 85px; font-size: 11px; height: 22px;" onchange="changeBoxColor(this.value)">
+                                            <option value="#ef4444" selected>Viền Đỏ</option>
+                                            <option value="#3b82f6">Xanh</option>
+                                            <option value="#eab308">Vàng</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="tool-item-horizontal">
+                                        <div class="btn-group btn-group-sm" style="height: 22px;">
+                                            <button class="btn btn-secondary py-0 px-2 text-white" onclick="zoomImage(0.2)" style="font-size:10px;">+</button>
+                                            <button class="btn btn-secondary py-0 px-2 text-white" onclick="zoomImage(-0.2)" style="font-size:10px;">-</button>
+                                        </div>
+                                        <span id="zoomLabel" style="font-size: 11px; min-width: 30px;">100%</span>
+                                    </div>
+
+                                    <div class="tool-divider"></div>
+
+                                    <button id="toggleAiBtn" class="btn btn-sm btn-info text-dark fw-semibold py-0 px-2" style="font-size: 11px; height: 22px;" onclick="toggleAiOverlay()">
+                                        Ẩn AI
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size: 11px; height: 22px;" onclick="resetAllControls()" title="Khôi phục mặc định">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                </div>
+
+                                <button class="toolkit-dropdown-btn" id="toolkitBtn" onclick="toggleToolkitMenu()">
+                                    <i class="bi bi-tools"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="xray-viewport-box">
+                            <div class="ms-xray-wrapper" id="xrayWrapper">
+                                <div class="pan-zoom-container" id="panZoomContainer">
+                                    <img th:src="@{'/uploads/xray/' + ${record.fileName}}" id="xrayImage" class="ms-xray-viewport rounded-3" alt="X-ray DICOM">
+                                    
+                                    <div class="ms-xray-overlay" id="overlayContainer">
+                                        <div th:each="region : ${aiRegions}" 
+                                             class="ai-box"
+                                             th:data-x="${region.xCoordinate}"
+                                             th:data-y="${region.yCoordinate}"
+                                             th:data-w="${region.width}"
+                                             th:data-h="${region.height}">
+                                        </div>
+                                        <div th:if="${#lists.isEmpty(aiRegions)}" class="ai-box" data-x="100" data-y="120" data-w="80" data-h="70"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
+
+                <div class="col-12 col-xl-6">
+                    <div class="ms-card-solid rounded-5 p-4 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2 class="ms-section-title h5 mb-0">Thông tin bệnh nhân</h2>
+                            <span class="ms-badge ms-badge-soft" th:text="'Mã ca: ' + ${record.recordCode}">XR-123</span>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <span class="small text-muted text-uppercase fw-semibold d-block">Họ và tên bệnh nhân</span>
+                                <h4 class="fw-bold text-dark mb-0 mt-1" th:text="${record.patient != null ? record.patient.fullName : 'N/A'}">Nguyễn Văn A</h4>
+                            </div>
+                            <div class="col-6">
+                                <span class="small text-muted text-uppercase fw-semibold d-block">Giới tính</span>
+                                <span class="fw-semibold text-dark" th:text="${profile != null ? profile.gender : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="small text-muted text-uppercase fw-semibold d-block">Ngày sinh</span>
+                                <span class="fw-semibold text-dark" th:text="${profile != null && profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
+                            </div>
+                            <div class="col-12">
+                                <span class="small text-muted text-uppercase fw-semibold d-block">Địa chỉ</span>
+                                <p class="mb-0 small ms-subtle" th:text="${profile != null ? profile.address : 'Chưa có thông tin'}"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ms-card-solid rounded-5 p-4 mb-4 border-start border-4 border-warning">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h2 class="ms-section-title h5 mb-0 text-warning">MediScan AI Prediction</h2>
+                            <span class="ms-pill ms-pill-warning" th:text="${record.bodyPart}">Chest</span>
+                        </div>
+                        <div class="p-3 bg-light rounded-4 mt-2">
+                            <h4 class="text-danger fw-bold mb-2" th:text="${record.aiPrediction}">Phát hiện bất thường</h4>
+                            <div class="ms-progress-bar mb-2">
+                                <div class="ms-progress-fill bg-danger" th:style="'width: ' + ${record.aiConfidence} + '%'"></div>
+                            </div>
+                            <span class="small text-muted" th:text="'Hệ số tin cậy thuật toán: ' + ${record.aiConfidence} + '%'">0%</span>
+                        </div>
+                    </div>
+
+                    <form th:action="@{'/doctor/records/' + ${record.recordId} + '/conclusion'}" method="POST">
+                        <div class="ms-card-solid rounded-5 p-4">
+                            <h2 class="ms-section-title h5 mb-3">Kết luận & Chẩn đoán lâm sàng</h2>
+                            <textarea name="conclusion" class="form-control border-0 bg-light rounded-4 p-3 mb-4 ms-subtle" rows="5" placeholder="Nhập nhận định chuyên môn tại đây..."></textarea>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn ms-btn ms-btn-primary text-white py-2 fw-bold">
+                                    <i class="bi bi-file-earmark-check-fill me-1"></i> Hoàn tất & Ký số kết quả
+                                </button>
+                                <a th:href="@{/doctor/records/pending}" class="btn ms-btn ms-btn-ghost border-secondary bg-white py-2">Hủy bỏ và Quay lại</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
             </div>
+        </main>
+    </div>
 
-            <div class="col-12 col-xl-5">
-                <div class="ms-card-solid rounded-5 p-4 mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 class="ms-section-title h5 mb-0">Thông tin bệnh nhân</h2>
-                        <span class="ms-badge ms-badge-soft" th:text="'Mã ca: ' + ${record.recordCode}">XR-123</span>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Họ và tên bệnh nhân</span>
-                            <h4 class="fw-bold text-dark mb-0 mt-1" th:text="${record.patient != null ? record.patient.fullName : 'N/A'}">Nguyễn Văn A</h4>
-                        </div>
-                        <div class="col-6">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Giới tính</span>
-                            <span class="fw-semibold text-dark" th:text="${profile != null ? profile.gender : 'N/A'}">N/A</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Ngày sinh</span>
-                            <span class="fw-semibold text-dark" th:text="${profile != null && profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
-                        </div>
-                        <div class="col-12">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Địa chỉ</span>
-                            <p class="mb-0 small ms-subtle" th:text="${profile != null ? profile.address : 'Chưa có thông tin'}"></p>
-                        </div>
-                    </div>
-                </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-                <div class="ms-card-solid rounded-5 p-4 mb-4 border-start border-4 border-warning">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h2 class="ms-section-title h5 mb-0 text-warning">MediScan AI Prediction</h2>
-                        <span class="ms-pill ms-pill-warning" th:text="${record.bodyPart}">Chest</span>
-                    </div>
-                    <div class="p-3 bg-light rounded-4 mt-2">
-                        <h4 class="text-danger fw-bold mb-2" th:text="${record.aiPrediction}">Phát hiện bất thường</h4>
-                        <div class="ms-progress-bar mb-2">
-                            <div class="ms-progress-fill bg-danger" th:style="'width: ' + ${record.aiConfidence} + '%'"></div>
-                        </div>
-                        <span class="small text-muted" th:text="'Hệ số tin cậy thuật toán: ' + ${record.aiConfidence} + '%'">0%</span>
-                    </div>
-                </div>
+    <script>
+        let scale = 1.0;
+        let isInverted = false;
+        let isAiVisible = true;
+        
+        let isDragging = false;
+        let startX, startY, translateX = 0, translateY = 0;
 
-                <form th:action="@{'/doctor/records/' + ${record.recordId} + '/conclusion'}" method="POST">
-                    <div class="ms-card-solid rounded-5 p-4">
-                        <h2 class="ms-section-title h5 mb-3">Kết luận & Chẩn đoán lâm sàng</h2>
-                        <textarea name="conclusion" class="form-control border-0 bg-light rounded-4 p-3 mb-4 ms-subtle"
-                                  rows="5" placeholder="Nhập nhận định chuyên môn, kê đơn hoặc khuyến nghị hướng điều trị tại đây..."></textarea>
+        function toggleToolkitMenu() {
+            const menu = document.getElementById('toolkitMenu');
+            const btn = document.getElementById('toolkitBtn');
+            
+            menu.classList.toggle('show');
+            btn.classList.toggle('active');
+        }
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn ms-btn ms-btn-primary text-white py-2fw-bold">
-                                <i class="bi bi-file-earmark-check-fill me-1"></i> Hoàn tất & Ký số kết quả
-                            </button>
-                            <a th:href="@{/doctor/records/pending}" class="btn ms-btn ms-btn-ghost border-secondary bg-white py-2">
-                                Hủy bỏ và Quay lại
-                            </a>
-                        </div>
-                    </div>
-                </form>
-            </div>
+        function renderAIBoundingBoxes() {
+            const img = document.getElementById('xrayImage');
+            const boxes = document.querySelectorAll('.ai-box');
+            if (!img || boxes.length === 0) return false;
 
-        </div>
-    </main>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            const naturalW = img.naturalWidth || 1000;
+            const naturalH = img.naturalHeight || 1000;
+
+            boxes.forEach(box => {
+                box.style.left = (parseInt(box.getAttribute('data-x')) / naturalW) * 100 + '%';
+                box.style.top = (parseInt(box.getAttribute('data-y')) / naturalH) * 100 + '%';
+                box.style.width = (parseInt(box.getAttribute('data-w')) / naturalW) * 100 + '%';
+                box.style.height = (parseInt(box.getAttribute('data-h')) / naturalH) * 100 + '%';
+            });
+            return true;
+        }
+
+        function applyImageFilters() {
+            const img = document.getElementById('xrayImage');
+            const bValue = document.getElementById('brightSlider').value;
+            const cValue = document.getElementById('contrastSlider').value;
+            const invertValue = isInverted ? 1 : 0;
+
+            img.style.filter = `brightness(${bValue}%) contrast(${cValue}%) invert(${invertValue})`;
+        }
+
+        function toggleInvert() {
+            isInverted = document.getElementById('invertSwitch').checked;
+            applyImageFilters();
+        }
+
+        function zoomImage(amount) {
+            scale += amount;
+            if (scale < 0.5) scale = 0.5;
+            if (scale > 4.0) scale = 4.0;
+            document.getElementById('zoomLabel').innerText = Math.round(scale * 100) + "%";
+            updateTransform();
+        }
+
+        function toggleAiOverlay() {
+            const overlay = document.getElementById('overlayContainer');
+            const btn = document.getElementById('toggleAiBtn');
+            isAiVisible = !isAiVisible;
+            
+            if (isAiVisible) {
+                overlay.style.display = 'block';
+                btn.innerText = 'Ẩn AI';
+                btn.className = 'btn btn-sm btn-info text-dark fw-semibold py-0 px-2';
+            } else {
+                overlay.style.display = 'none';
+                btn.innerText = 'Hiện AI';
+                btn.className = 'btn btn-sm btn-outline-secondary text-white py-0 px-2';
+            }
+        }
+
+        function changeBoxColor(hexColor) {
+            document.querySelectorAll('.ai-box').forEach(box => {
+                box.style.borderColor = hexColor;
+                box.style.boxShadow = `0 0 8px ${hexColor}66`;
+            });
+        }
+
+        const wrapper = document.getElementById('xrayWrapper');
+        const container = document.getElementById('panZoomContainer');
+
+        wrapper.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => isDragging = false);
+
+        function updateTransform() {
+            container.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        }
+
+        function resetAllControls() {
+            scale = 1.0; translateX = 0; translateY = 0; isInverted = false;
+            document.getElementById('brightSlider').value = 100;
+            document.getElementById('contrastSlider').value = 110;
+            document.getElementById('zoomLabel').innerText = "100%";
+            document.getElementById('colorPicker').value = "#ef4444";
+            document.getElementById('invertSwitch').checked = false;
+            
+            isAiVisible = false; toggleAiOverlay();
+            changeBoxColor("#ef4444");
+            applyImageFilters();
+            updateTransform();
+        }
+
+        const boxScheduler = setInterval(() => {
+            const img = document.getElementById('xrayImage');
+            if (img && img.clientWidth > 0) {
+                renderAIBoundingBoxes();
+                clearInterval(boxScheduler);
+            }
+        }, 100);
+
+        window.addEventListener('load', renderAIBoundingBoxes);
+        window.addEventListener('resize', renderAIBoundingBoxes);
+    </script>
 </body>
+
 </html>

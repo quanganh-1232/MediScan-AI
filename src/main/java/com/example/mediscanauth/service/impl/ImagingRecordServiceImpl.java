@@ -18,7 +18,8 @@ import java.util.List;
 @Service
 public class ImagingRecordServiceImpl implements ImagingRecordService {
 
-    private static final List<String> ACTIVE_QUEUE_STATUSES = List.of("AI_ANALYZED", "DOCTOR_REVIEWING", "PENDING_DOCTOR");
+    private static final List<String> ACTIVE_QUEUE_STATUSES = List.of("AI_ANALYZED", "DOCTOR_REVIEWING",
+            "PENDING_DOCTOR");
 
     private final ImagingRecordRepository imagingRecordRepository;
     private final UserAccountService userAccountService;
@@ -26,9 +27,9 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private final UserRepository userRepository;
 
     public ImagingRecordServiceImpl(ImagingRecordRepository imagingRecordRepository,
-                                    UserAccountService userAccountService,
-                                    PatientRepository patientRepository,
-                                    UserRepository userRepository) {
+            UserAccountService userAccountService,
+            PatientRepository patientRepository,
+            UserRepository userRepository) {
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.patientRepository = patientRepository;
@@ -78,9 +79,9 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     @Override
     @Transactional
     public ImagingRecord createFromTechnician(String technicianEmail,
-                                              String patientEmail,
-                                              String bodyPart,
-                                              String fileName) {
+            String patientEmail,
+            String bodyPart,
+            String fileName) {
         User technician = userAccountService.findByEmail(technicianEmail);
         User patient = userAccountService.findByEmail(patientEmail);
 
@@ -178,4 +179,32 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         return patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bệnh nhân ID: " + patientId));
     }
+
+    @Override
+    public List<com.example.mediscanauth.model.dto.AiRegionProjection> getAiRegionsByRecordId(Long recordId) {
+        return imagingRecordRepository.findAiRegionsByRecordId(recordId);
+    }
+
+    @Override
+public List<DashboardDTO.QueueItemDTO> getCompletedDTOsForDoctor(Long doctorId) {
+    List<String> completedStatuses = List.of("COMPLETED");
+
+    List<ImagingRecord> records = imagingRecordRepository
+            .findByDoctorUserIdAndStatusInOrderByCreatedAtDesc(doctorId, completedStatuses);
+
+    return records.stream()
+            .map(record -> DashboardDTO.QueueItemDTO.builder()
+                    .recordId(record.getRecordId())
+                    .recordCode(record.getRecordCode())
+                    .capturedAt(record.getCreatedAt())
+                    .patient(DashboardDTO.PatientDTO.builder()
+                            .fullName(record.getPatient() != null ? record.getPatient().getFullName() : "N/A")
+                            .build())
+                    .bodyPart(record.getBodyPart())
+                    .aiPrediction(record.getAiPrediction())
+                    .aiConfidence(record.getAiConfidence() != null ? Double.valueOf(record.getAiConfidence()) : 0.0)
+                    .status(record.getStatus())
+                    .build())
+            .toList();
+}
 }

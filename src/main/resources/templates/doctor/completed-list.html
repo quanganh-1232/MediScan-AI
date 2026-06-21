@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Lịch sử lưu trữ hồ sơ - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+        }
+
+        /* Thống kê vùng chụp */
+        .category-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card:hover,
+        .category-card.active {
+            border-color: #10b981;
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .category-card.active {
+            background-color: #f0fdf4;
+        }
+
+        .category-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        /* Danh sách bản ghi bên dưới */
+        .record-item-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px 20px;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .record-item-card:hover {
+            border-color: #cbd5e1;
+            background-color: #f8fafc;
+            transform: translateX(4px);
+        }
+
+        .search-input-group {
+            position: relative;
+        }
+
+        .search-input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        .search-input-group .form-control {
+            padding-left: 40px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="ms-shell">
+    <div th:replace="~{common/fragments/app-header :: header('Diagnosis Center', 'Bác sĩ', 'ms-avatar-purple')}"></div>
+
+    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
+        <div class="row g-4 align-items-start">
+            
+            <div class="col-12 col-xl-3">
+                <div th:replace="~{common/fragments/app-sidebar :: sidebar('doctor', 'Diagnosis Center', 'Bác sĩ', 'ms-avatar-purple', 'completed')}"></div>
+            </div>
+
+            <div class="col-12 col-xl-9">
+                
+                <section class="ms-page-hero mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3 p-4 rounded-5 bg-white border border-light shadow-sm">
+                    <div>
+                        <span class="badge bg-success-subtle text-success mb-2 px-3 py-1.5 fw-bold rounded-pill">Archive Repository</span>
+                        <h1 class="ms-display h3 fw-extrabold text-slate-900 mb-1">Kho hồ sơ theo vùng chụp</h1>
+                        <p class="ms-subtle text-secondary mb-0 small">Chọn một vùng chụp dưới đây để xem danh sách chi tiết các ca đã hoàn thành kết luận.</p>
+                    </div>
+                    <div class="ms-readonly-note text-center bg-success bg-opacity-10 p-3 rounded-4 border border-success border-opacity-25" style="min-width: 140px;">
+                        <div class="fw-extrabold h4 text-success mb-0" id="totalCountLabel" th:text="${completedCount != null ? completedCount : 0}">0</div>
+                        <div class="small fw-bold text-success mt-1">Tổng hồ sơ duyệt</div>
+                    </div>
+                </section>
+
+                <div class="row g-3 mb-4" th:if="${completedRecords != null && !#lists.isEmpty(completedRecords)}">
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <div class="category-card active" data-region="" onclick="selectRegion(this)">
+                            <div class="category-icon bg-primary bg-opacity-10 text-primary">
+                                <i class="bi bi-grid-1x2-fill"></i>
+                            </div>
+                            <div class="fw-bold text-dark small">Tất cả</div>
+                            <div class="text-muted text-xs mt-1" id="badge-all">0 ca</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <div class="category-card" data-region="Chest" onclick="selectRegion(this)">
+                            <div class="category-icon bg-danger bg-opacity-10 text-danger">
+                                <i class="bi bi-heart-pulse-fill"></i>
+                            </div>
+                            <div class="fw-bold text-dark small">Lồng ngực</div>
+                            <div class="text-muted text-xs mt-1" id="badge-chest">0 ca</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <div class="category-card" data-region="Brain" onclick="selectRegion(this)">
+                            <div class="category-icon bg-warning bg-opacity-10 text-warning">
+                                <i class="bi bi-activity"></i>
+                            </div>
+                            <div class="fw-bold text-dark small">Sọ não</div>
+                            <div class="text-muted text-xs mt-1" id="badge-brain">0 ca</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <div class="category-card" data-region="Spine" onclick="selectRegion(this)">
+                            <div class="category-icon bg-info bg-opacity-10 text-info">
+                                <i class="bi bi-reception-4"></i>
+                            </div>
+                            <div class="fw-bold text-dark small">Cột sống</div>
+                            <div class="text-muted text-xs mt-1" id="badge-spine">0 ca</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <div class="category-card" data-region="Knee" onclick="selectRegion(this)">
+                            <div class="category-icon bg-success bg-opacity-10 text-success">
+                                <i class="bi bi-capsule-cutoff"></i>
+                            </div>
+                            <div class="fw-bold text-dark small">Khớp gối</div>
+                            <div class="text-muted text-xs mt-1" id="badge-knee">0 ca</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <div class="category-card" data-region="Other" onclick="selectRegion(this)">
+                            <div class="category-icon bg-secondary bg-opacity-10 text-secondary">
+                                <i class="bi bi-plus-square-fill"></i>
+                            </div>
+                            <div class="fw-bold text-dark small">Khác</div>
+                            <div class="text-muted text-xs mt-1" id="badge-other">0 ca</div>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="search-input-group mb-4" th:if="${completedRecords != null && !#lists.isEmpty(completedRecords)}">
+                    <i class="bi bi-search fs-5"></i>
+                    <input type="text" id="searchInput" class="form-control form-control-lg shadow-sm" placeholder="Tìm kiếm nhanh tên bệnh nhân hoặc mã hồ sơ trong danh mục này..." onkeyup="filterRecords()">
+                </section>
+
+                <section class="d-flex flex-column gap-3" id="recordsContainer">
+                    <div th:if="${completedRecords == null || #lists.isEmpty(completedRecords)}" class="text-center text-muted py-5 bg-white rounded-5 border">
+                        <i class="bi bi-folder-symlink display-3 d-block mb-3 text-secondary opacity-55"></i>
+                        <p class="fw-bold fs-5 text-dark mb-1">Kho lưu trữ trống.</p>
+                        <p class="small text-muted mb-0">Bạn chưa thực hiện kết luận lâm sàng cho ca bệnh nào.</p>
+                    </div>
+
+                    <div id="emptyState" class="text-center text-muted py-5 bg-white rounded-5 border d-none">
+                        <i class="bi bi-folder-x display-3 d-block mb-3 text-secondary opacity-55"></i>
+                        <p class="fw-bold fs-5 text-dark mb-1">Không tìm thấy dữ liệu.</p>
+                        <p class="small text-muted mb-0">Không có hồ sơ nào khớp với từ khóa tìm kiếm trong vùng chụp này.</p>
+                    </div>
+
+                    <div th:each="record : ${completedRecords}" class="raw-record-wrapper" th:data-code="${#strings.toLowerCase(record.recordCode)}" th:data-patient="${#strings.toLowerCase(record.patient != null ? record.patient.fullName : '')}" th:data-bodypart="${record.bodyPart}">
+                        <a th:href="@{'/doctor/records/' + ${record.recordId} + '/review'}" class="record-item-card shadow-sm">
+                            <div class="row align-items-center g-3">
+                                <div class="col-12 col-md-3">
+                                    <span class="badge bg-light text-dark border px-2 py-1 mb-1 small" th:text="${record.bodyPart}">Chest</span>
+                                    <div class="fw-extrabold text-teal fs-5 th-code" th:text="${record.recordCode}">XR-0001</div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <div class="text-muted small">Bệnh nhân</div>
+                                    <div class="fw-bold text-slate-800 fs-6 th-name" th:text="${record.patient != null ? record.patient.fullName : 'N/A'}">Nguyễn Văn A</div>
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <div class="text-muted small mb-1">Kết quả AI</div>
+                                    <span class="badge px-2.5 py-1.5 rounded-3 fw-bold" th:classappend="${record.aiPrediction != null && (#strings.contains(record.aiPrediction,'Bất thường') || #strings.contains(record.aiPrediction,'dấu hiệu')) ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}" th:text="${record.aiPrediction != null ? record.aiPrediction : 'Chưa xác định'}">Bình thường</span>
+                                </div>
+                                <div class="col-12 col-md-2 text-md-end">
+                                    <div class="text-muted small mb-1" th:text="${record.capturedAt != null ? #temporals.format(record.capturedAt, 'dd/MM/yyyy') : '--/--/----'}">Ngày duyệt</div>
+                                    <span class="text-primary small fw-bold">Xem lại ca bệnh <i class="bi bi-chevron-right"></i></span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </section>
+
+                <div th:if="${completedRecords != null && !#lists.isEmpty(completedRecords)}" class="pagination-container p-3 bg-white border rounded-4 mt-4 shadow-sm" id="paginationWrapper">
+                    <div class="small text-muted fw-semibold">
+                        Đang xem <span id="startRange" class="text-dark">0</span> - <span id="endRange" class="text-dark">0</span> trên tổng số <span id="totalRecords" class="text-dark">0</span> hồ sơ thuộc nhóm
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
+                    </nav>
+                </div>
+
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
+<script>
+    const rowsPerPage = 5;
+    let currentPage = 1;
+    let selectedRegionVal = ""; 
+    let currentFilteredList = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+        calculateCategoryBadges();
+        filterRecords();
+    });
+
+    function calculateCategoryBadges() {
+        const items = Array.from(document.querySelectorAll(".raw-record-wrapper"));
+        let counts = { all: items.length, chest: 0, brain: 0, spine: 0, knee: 0, other: 0 };
+
+        items.forEach(item => {
+            const bp = item.getAttribute("data-bodypart");
+            if (bp === "Chest") counts.chest++;
+            else if (bp === "Brain") counts.brain++;
+            else if (bp === "Spine") counts.spine++;
+            else if (bp === "Knee") counts.knee++;
+            else counts.other++;
+        });
+
+        if (document.getElementById("badge-all")) document.getElementById("badge-all").textContent = counts.all + " ca";
+        if (document.getElementById("badge-chest")) document.getElementById("badge-chest").textContent = counts.chest + " ca";
+        if (document.getElementById("badge-brain")) document.getElementById("badge-brain").textContent = counts.brain + " ca";
+        if (document.getElementById("badge-spine")) document.getElementById("badge-spine").textContent = counts.spine + " ca";
+        if (document.getElementById("badge-knee")) document.getElementById("badge-knee").textContent = counts.knee + " ca";
+        if (document.getElementById("badge-other")) document.getElementById("badge-other").textContent = counts.other + " ca";
+    }
+
+    function selectRegion(element) {
+        document.querySelectorAll(".category-card").forEach(card => card.classList.remove("active"));
+        element.classList.add("active");
+
+        selectedRegionVal = element.getAttribute("data-region");
+        currentPage = 1; 
+        filterRecords();
+    }
+
+    function filterRecords() {
+        const searchVal = document.getElementById("searchInput") ? document.getElementById("searchInput").value.toLowerCase().trim() : "";
+        const allWrappers = Array.from(document.querySelectorAll(".raw-record-wrapper"));
+
+        currentFilteredList = allWrappers.filter(wrapper => {
+            const code = wrapper.getAttribute("data-code") || "";
+            const patient = wrapper.getAttribute("data-patient") || "";
+            const bodyPart = wrapper.getAttribute("data-bodypart") || "";
+
+            let matchRegion = false;
+            if (selectedRegionVal === "") {
+                matchRegion = true;
+            } else if (selectedRegionVal === "Other") {
+                matchRegion = !["Chest", "Brain", "Spine", "Knee"].includes(bodyPart);
+            } else {
+                matchRegion = (bodyPart === selectedRegionVal);
+            }
+
+            const matchSearch = code.includes(searchVal) || patient.includes(searchVal);
+            return matchRegion && matchSearch;
+        });
+
+        const emptyState = document.getElementById("emptyState");
+        const paginationWrapper = document.getElementById("paginationWrapper");
+
+        allWrappers.forEach(el => el.style.display = "none");
+
+        if (currentFilteredList.length === 0) {
+            if (emptyState) emptyState.classList.remove("d-none");
+            if (paginationWrapper) paginationWrapper.style.setProperty("display", "none", "important");
+        } else {
+            if (emptyState) emptyState.classList.add("d-none");
+            if (paginationWrapper) paginationWrapper.style.setProperty("display", "flex", "important");
+        }
+
+        setupPagination(currentFilteredList.length);
+        renderPage(currentPage);
+    }
+
+    function setupPagination(totalItems) {
+        const pageCount = Math.ceil(totalItems / rowsPerPage);
+        const container = document.getElementById("paginationContainer");
+        if (!container) return;
+        container.innerHTML = "";
+
+        if (pageCount <= 1) {
+            updatePaginationText(totalItems);
+            return;
+        }
+
+        createPageBtn(container, "«", () => {
+            if (currentPage > 1) { currentPage--; renderPage(currentPage); }
+        }, currentPage === 1);
+
+        for (let i = 1; i <= pageCount; i++) {
+            createPageBtn(container, i, () => {
+                currentPage = i;
+                renderPage(currentPage);
+            }, false, i === currentPage);
+        }
+
+        createPageBtn(container, "»", () => {
+            if (currentPage < pageCount) { currentPage++; renderPage(currentPage); }
+        }, currentPage === pageCount);
+
+        updatePaginationText(totalItems);
+    }
+
+    function createPageBtn(parent, text, action, isDisabled, isActive = false) {
+        const li = document.createElement("li");
+        li.className = `page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+        const a = document.createElement("a");
+        a.className = "page-link";
+        a.href = "javascript:void(0);";
+        a.textContent = text;
+        a.addEventListener("click", action);
+        li.appendChild(a);
+        parent.appendChild(li);
+    }
+
+    function renderPage(page) {
+        const start = (page - 1) * rowsPerPage;
+        const end = Math.min(start + rowsPerPage, currentFilteredList.length);
+
+        currentFilteredList.forEach(el => el.style.display = "none");
+
+        for (let i = start; i < end; i++) {
+            if (currentFilteredList[i]) {
+                currentFilteredList[i].style.display = "block";
+            }
+        }
+
+        updatePaginationText(currentFilteredList.length);
+    }
+
+    function updatePaginationText(totalItems) {
+        const start = totalItems === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+        const end = Math.min(currentPage * rowsPerPage, totalItems);
+
+        if (document.getElementById("startRange")) document.getElementById("startRange").textContent = start;
+        if (document.getElementById("endRange")) document.getElementById("endRange").textContent = end;
+        if (document.getElementById("totalRecords")) document.getElementById("totalRecords").textContent = totalItems;
+    }
+</script>
+</body>
+</html>

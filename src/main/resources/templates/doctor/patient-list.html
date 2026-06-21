@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
     <meta charset="UTF-8">
     <title>Danh sách bệnh nhân - MediScan AI</title>
@@ -9,8 +9,130 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }</style>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+        }
+
+        /* Tối ưu chống vỡ Layout & Tràn chữ tiếng Việt */
+        .ms-table th, .ms-table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 16px 20px;
+            vertical-align: middle;
+        }
+
+        .text-wrap-vietnamese {
+            white-space: normal !important;
+            word-break: break-word;
+            min-width: 180px;
+            max-width: 260px;
+        }
+
+        /* Card bộ lọc nâng cao */
+        .filter-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .search-input-group {
+            position: relative;
+        }
+
+        .search-input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        .search-input-group .form-control {
+            padding-left: 40px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .search-input-group .form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .filter-select {
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+        }
+
+        /* Thẩm mỹ bảng biểu */
+        .table-responsive {
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+        }
+
+        .ms-table {
+            width: 100%;
+            margin-bottom: 0;
+            border-collapse: separate;
+        }
+
+        .ms-table thead th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+            text-uppercase: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .ms-table tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        .ms-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Phân trang tinh tế */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .pagination .page-item .page-link {
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin: 0 3px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+            color: #fff;
+        }
+
+        .pagination .page-item .page-link:hover:not(.active) {
+            background-color: #e2e8f0;
+            color: #334155;
+        }
+    </style>
 </head>
+
 <body>
 <div class="ms-shell">
     <div th:replace="~{common/fragments/app-header :: header('Patient Hub', 'Bác sĩ', 'ms-avatar-purple')}"></div>
@@ -22,68 +144,269 @@
             </div>
 
             <div class="col-12 col-xl-9">
-                <section class="ms-page-hero mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <section class="ms-page-hero mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3 p-4 rounded-5 bg-white border border-light shadow-sm">
                     <div>
-                        <span class="ms-pill ms-pill-soft mb-3">Clinical Records</span>
-                        <h1 class="ms-display display-6 mb-2">Quản lý bệnh nhân</h1>
-                        <p class="ms-subtle mb-0">Danh sách toàn bộ bệnh nhân đăng ký trên hệ thống MediScan AI.</p>
+                        <span class="ms-pill ms-pill-soft mb-2 bg-primary-subtle text-primary px-3 py-1 fw-bold rounded-pill d-inline-block">Clinical Records</span>
+                        <h1 class="ms-display h3 fw-extrabold text-slate-900 mb-1">Quản lý bệnh nhân</h1>
+                        <p class="ms-subtle text-secondary mb-0 small">Hồ sơ hành chính và lịch sử dữ liệu hình ảnh toàn hệ thống MediScan AI.</p>
                     </div>
-                    <div class="ms-readonly-note">
-                        <div class="fw-bold" th:text="${patients != null ? patients.size() : 0}">0</div>
-                        <div class="small text-muted">Bệnh nhân hệ thống</div>
+                    <div class="ms-readonly-note text-center bg-light p-3 rounded-4 border" style="min-width: 140px;">
+                        <div class="fw-extrabold h4 text-primary mb-0" id="totalCountLabel" th:text="${patients != null ? patients.size() : 0}">0</div>
+                        <div class="small fw-bold text-muted mt-1">Bệnh nhân</div>
                     </div>
                 </section>
 
-                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
-                    <div th:if="${#lists.isEmpty(patients)}" class="text-center text-muted py-5">
-                        <i class="bi bi-people-fill display-4 d-block mb-3 opacity-25"></i>
-                        <p class="mb-0">Chưa có dữ liệu bệnh nhân nào trong hệ thống.</p>
+                <section class="filter-card p-3 mb-4">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-5 col-lg-6">
+                            <div class="search-input-group">
+                                <i class="bi bi-search fs-5"></i>
+                                <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="Tìm kiếm theo Tên, Mã số, Số điện thoại..." onkeyup="filterPatientsTable()">
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-lg-3">
+                            <select id="genderFilter" class="form-select form-select-lg filter-select text-secondary fw-semibold" onchange="filterPatientsTable()">
+                                <option value="">Tất cả giới tính</option>
+                                <option value="MALE">Nam</option>
+                                <option value="FEMALE">Nữ</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <select id="addressFilter" class="form-select form-select-lg filter-select text-secondary fw-semibold" onchange="filterPatientsTable()">
+                                <option value="">Tất cả khu vực</option>
+                                <option value="Hà Nội">Hà Nội</option>
+                                <option value="Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                                <option value="Đà Nẵng">Đà Nẵng</option>
+                                <option value="Khác">Tỉnh thành khác</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-5 shadow-sm overflow-hidden p-1">
+                    <div th:if="${#lists.isEmpty(patients)}" id="emptyState" class="text-center text-muted py-5">
+                        <i class="bi bi-people-fill display-3 d-block mb-3 opacity-25 text-primary"></i>
+                        <p class="mb-0 fw-bold fs-5 text-secondary">Chưa có dữ liệu bệnh nhân nào trong hệ thống.</p>
                     </div>
 
                     <div th:if="${!#lists.isEmpty(patients)}" class="table-responsive">
-                        <table class="ms-table">
+                        <table class="ms-table table align-middle mb-0" id="patientsTable">
                             <thead>
                             <tr>
-                                <th>Mã BN</th>
-                                <th>Họ và tên</th>
-                                <th>Giới tính</th>
-                                <th>Ngày sinh</th>
-                                <th>Số điện thoại</th>
-                                <th>Địa chỉ</th>
-                                <th class="text-end">Hành động</th>
+                                <th style="width: 10%">Mã BN</th>
+                                <th style="width: 22%">Họ và tên</th>
+                                <th style="width: 12%">Giới tính</th>
+                                <th style="width: 14%">Ngày sinh</th>
+                                <th style="width: 14%">Số điện thoại</th>
+                                <th style="width: 18%">Địa chỉ cư trú</th>
+                                <th style="width: 10%" class="text-end">Hành động</th>
                             </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tableBody">
                             <tr th:each="p : ${patients}">
                                 <td>
-                                    <span class="fw-bold text-primary" th:text="'BN-' + ${p.patientId}">BN-001</span>
+                                    <span class="badge bg-primary-subtle text-primary fw-bold px-2.5 py-1.5 rounded-3" th:text="'BN-' + ${p.patientId}">BN-001</span>
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-dark" th:text="${p.user != null ? p.user.fullName : p.fullName}">Nguyễn Văn A</div>
+                                    <div class="fw-bold text-dark fs-6" th:text="${p.user != null ? p.user.fullName : p.fullName}">Nguyễn Văn A</div>
                                 </td>
                                 <td>
-                                    <span class="ms-badge ms-badge-soft" th:text="${p.gender != null ? p.gender : 'N/A'}">Nam</span>
+                                    <span class="ms-badge px-2.5 py-1 fw-semibold rounded-3"
+                                          th:classappend="${p.gender == 'Nam' ? 'bg-info-subtle text-info' : (p.gender == 'Nữ' ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary')}"
+                                          th:text="${p.gender != null ? p.gender : 'N/A'}">Nam</span>
                                 </td>
-                                <td th:text="${p.dateOfBirth != null ? #temporals.format(p.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">01/01/1990</td>
-                                <td class="fw-semibold text-secondary" th:text="${p.phone != null ? p.phone : 'N/A'}">0987654321</td>
+                                <td class="fw-medium text-slate-600" th:text="${p.dateOfBirth != null ? #temporals.format(p.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">01/01/1990</td>
+                                <td class="fw-bold text-secondary" th:text="${p.phone != null ? p.phone : 'N/A'}">0987654321</td>
                                 <td>
-                                    <span class="text-truncate d-inline-block ms-subtle" style="max-width: 180px;"
-                                          th:text="${p.address != null ? p.address : 'Chưa cập nhật'}">Hà Nội</span>
+                                    <div class="text-wrap-vietnamese text-secondary small fw-medium" th:text="${p.address != null ? p.address : 'Chưa cập nhật'}">Hà Nội</div>
                                 </td>
                                 <td class="text-end">
-                                    <a th:href="@{'/doctor/patients/' + ${p.patientId}}" class="btn ms-btn ms-btn-ghost border-secondary bg-white btn-sm px-3">
-                                        <i class="bi bi-folder2-open me-1"></i> Xem bệnh án
+                                    <a th:href="@{'/doctor/patients/' + ${p.patientId}}" class="btn btn-sm btn-outline-primary fw-bold px-3 py-1.5 rounded-3 shadow-2sm transition-all">
+                                        <i class="bi bi-folder2-open me-1"></i> Bệnh án
                                     </a>
                                 </td>
                             </tr>
                             </tbody>
                         </table>
                     </div>
+
+                    <div class="pagination-container p-3 bg-light border-top" id="paginationWrapper">
+                        <div class="small text-muted fw-semibold" id="paginationInfo">
+                            Đang hiển thị từ <span id="startRange">0</span> đến <span id="endRange">0</span> của <span id="totalRecords">0</span> bệnh nhân
+                        </div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-sm mb-0" id="paginationContainer">
+                                </ul>
+                        </nav>
+                    </div>
                 </section>
             </div>
         </div>
     </main>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const rowsPerPage = 7; // Số lượng bản ghi tối đa hiển thị trên một trang
+    let currentPage = 1;
+    let filteredRows = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+        initTableEngine();
+    });
+
+    function initTableEngine() {
+        const tableBody = document.getElementById("tableBody");
+        if (!tableBody) return;
+        
+        // Lấy danh sách gốc của toàn bộ hàng
+        filteredRows = Array.from(tableBody.querySelectorAll("tr"));
+        setupPagination(filteredRows.length);
+        renderPage(currentPage);
+    }
+
+    function filterPatientsTable() {
+        const searchVal = document.getElementById("searchInput").value.toLowerCase().trim();
+        const genderVal = document.getElementById("genderFilter").value;
+        const addressVal = document.getElementById("addressFilter").value;
+        
+        const tableBody = document.getElementById("tableBody");
+        const allRows = Array.from(tableBody.getElementsByTagName("tr"));
+        
+        filteredRows = allRows.filter(row => {
+            const cells = row.getElementsByTagName("td");
+            if (cells.length < 6) return false;
+
+            const idText = cells[0].textContent.toLowerCase();
+            const nameText = cells[1].textContent.toLowerCase();
+            const genderText = cells[2].textContent.trim();
+            const phoneText = cells[4].textContent.toLowerCase();
+            const addressText = cells[5].textContent.toLowerCase();
+
+            // Khớp điều kiện Tìm kiếm tổng hợp
+            const matchSearch = idText.includes(searchVal) || nameText.includes(searchVal) || phoneText.includes(searchVal);
+            
+            // Khớp điều kiện bộ lọc Giới tính
+            const matchGender = (genderVal === "") || (genderText === genderVal);
+            
+            // Khớp điều kiện bộ lọc Khu vực địa lý
+            let matchAddress = false;
+            if (addressVal === "") {
+                matchAddress = true;
+            } else if (addressVal === "Khác") {
+                matchAddress = !addressText.includes("hà nội") && !addressText.includes("hồ chí minh") && !addressText.includes("đà nẵng");
+            } else {
+                matchAddress = addressText.includes(addressVal.toLowerCase());
+            }
+
+            return matchSearch && matchGender && matchAddress;
+        });
+
+        // Ẩn/Hiện thông báo nếu không tìm thấy dữ liệu thích hợp
+        const emptyState = document.getElementById("emptyState");
+        if (filteredRows.length === 0) {
+            if(emptyState) emptyState.classList.remove("d-none");
+            document.getElementById("paginationWrapper").style.setProperty("display", "none", "important");
+        } else {
+            if(emptyState) emptyState.classList.add("d-none");
+            document.getElementById("paginationWrapper").style.setProperty("display", "flex", "important");
+        }
+
+        currentPage = 1; // Reset về trang đầu tiên sau khi lọc dữ liệu
+        setupPagination(filteredRows.length);
+        renderPage(currentPage);
+    }
+
+    function setupPagination(totalItems) {
+        const pageCount = Math.ceil(totalItems / rowsPerPage);
+        const container = document.getElementById("paginationContainer");
+        container.innerHTML = "";
+
+        if (pageCount <= 1) {
+            container.innerHTML = "";
+            updatePaginationInfo(totalItems);
+            return;
+        }
+
+        // Nút lùi trang (Previous)
+        createPageButton(container, "«", () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPage(currentPage);
+            }
+        }, currentPage === 1);
+
+        // Các nút số trang cụ thể
+        for (let i = 1; i <= pageCount; i++) {
+            createPageButton(container, i, () => {
+                currentPage = i;
+                renderPage(currentPage);
+            }, false, i === currentPage);
+        }
+
+        // Nút tiến trang (Next)
+        createPageButton(container, "»", () => {
+            if (currentPage < pageCount) {
+                currentPage++;
+                renderPage(currentPage);
+            }
+        }, currentPage === pageCount);
+
+        updatePaginationInfo(totalItems);
+    }
+
+    function createPageButton(parentContainer, text, onClickAction, isDisabled = false, isActive = false) {
+        const li = document.createElement("li");
+        li.className = `page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+        
+        const a = document.createElement("a");
+        a.className = "page-link";
+        a.href = "javascript:void(0);";
+        a.textContent = text;
+        a.addEventListener("click", onClickAction);
+        
+        li.appendChild(a);
+        parentContainer.appendChild(li);
+    }
+
+    function renderPage(page) {
+        const allRows = Array.from(document.getElementById("tableBody").querySelectorAll("tr"));
+        
+        // Ẩn toàn bộ dòng trước khi render trang chỉ định
+        allRows.forEach(row => row.style.display = "none");
+
+        const start = (page - 1) * rowsPerPage;
+        const end = Math.min(start + rowsPerPage, filteredRows.length);
+
+        // Chỉ hiển thị các dòng thuộc cấu hình trang hiện hành
+        for (let i = start; i < end; i++) {
+            filteredRows[i].style.display = "";
+        }
+
+        updatePaginationInfo(filteredRows.length);
+        
+        // Cập nhật trạng thái Active trên cụm nút phân trang
+        const paginationItems = document.querySelectorAll("#paginationContainer .page-item");
+        paginationItems.forEach(item => {
+            if(parseInt(item.textContent) === page) {
+                item.classList.add("active");
+            } else if (item.textContent !== "«" && item.textContent !== "»") {
+                item.classList.remove("active");
+            }
+        });
+    }
+
+    function updatePaginationInfo(totalItems) {
+        const start = totalItems === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+        const end = Math.min(currentPage * rowsPerPage, totalItems);
+
+        document.getElementById("startRange").textContent = start;
+        document.getElementById("endRange").textContent = end;
+        document.getElementById("totalRecords").textContent = totalItems;
+        document.getElementById("totalCountLabel").textContent = totalItems;
+    }
+</script>
 </body>
+
 </html>

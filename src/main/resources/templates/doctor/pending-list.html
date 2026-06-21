@@ -1,16 +1,120 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
     <meta charset="UTF-8">
-    <title>Pending Review - MediScan AI</title>
+    <title>Hồ sơ chờ duyệt - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }</style>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+        }
+
+        /* Tối ưu chống tràn chữ tiếng Việt */
+        .ms-table th, .ms-table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 16px 20px;
+            vertical-align: middle;
+        }
+
+        /* Thẻ bộ lọc nâng cao */
+        .filter-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .search-input-group {
+            position: relative;
+        }
+
+        .search-input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        .search-input-group .form-control {
+            padding-left: 40px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .filter-select {
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+        }
+
+        /* Thẩm mỹ bảng biểu và tiến trình */
+        .table-responsive {
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+        }
+
+        .ms-table thead th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+            text-uppercase: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .ms-progress-container {
+            background-color: #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            height: 6px;
+            width: 100px;
+            display: inline-block;
+        }
+        
+        .ms-progress-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.4s ease;
+        }
+
+        /* Phân trang tinh tế */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .pagination .page-item .page-link {
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin: 0 3px;
+            font-weight: 600;
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: #ef4444; /* Đỏ chủ đạo cho danh sách khẩn cấp */
+            border-color: #ef4444;
+            color: #fff;
+        }
+    </style>
 </head>
+
 <body>
 <div class="ms-shell">
     <div th:replace="~{common/fragments/app-header :: header('Diagnosis Center', 'Bác sĩ', 'ms-avatar-purple')}"></div>
@@ -22,72 +126,260 @@
             </div>
 
             <div class="col-12 col-xl-9">
-                <section class="ms-page-hero mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <section class="ms-page-hero mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3 p-4 rounded-5 bg-white border border-light shadow-sm">
                     <div>
-                        <span class="ms-pill ms-pill-danger mb-3">Priority Backlog</span>
-                        <h1 class="ms-display display-6 mb-2">Hồ sơ chờ bác sĩ duyệt</h1>
-                        <p class="ms-subtle mb-0">Danh sách các ca đã được AI phân phân tích sâu và đang đợi kết luận chuyên môn cuối cùng.</p>
+                        <span class="badge bg-danger-subtle text-danger mb-2 px-3 py-1.5 fw-bold rounded-pill">Priority Backlog</span>
+                        <h1 class="ms-display h3 fw-extrabold text-slate-900 mb-1">Hồ sơ chờ bác sĩ duyệt</h1>
+                        <p class="ms-subtle text-secondary mb-0 small">Danh sách các ca đã được AI phân tích sâu, đang đợi kết luận chuyên môn cuối cùng.</p>
                     </div>
-                    <div class="ms-readonly-note">
-                        <div class="fw-bold" th:text="${pendingRecords != null ? pendingRecords.size() : 0}">0</div>
-                        <div class="small text-muted">Hồ sơ tồn đọng</div>
+                    <div class="ms-readonly-note text-center bg-danger bg-opacity-10 p-3 rounded-4 border border-danger border-opacity-25" style="min-width: 140px;">
+                        <div class="fw-extrabold h4 text-danger mb-0" id="totalCountLabel" th:text="${pendingRecords != null ? pendingRecords.size() : 0}">0</div>
+                        <div class="small fw-bold text-danger mt-1">Ca tồn đọng</div>
                     </div>
                 </section>
 
-                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
-                    <div class="table-responsive">
-                        <table class="ms-table">
+                <section class="filter-card p-3 mb-4">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-7 col-lg-8">
+                            <div class="search-input-group">
+                                <i class="bi bi-search fs-5"></i>
+                                <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="Tìm kiếm theo Mã hồ sơ, Tên bệnh nhân..." onkeyup="filterPendingTable()">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-5 col-lg-4">
+                            <select id="bodyPartFilter" class="form-select form-select-lg filter-select text-secondary fw-semibold" onchange="filterPendingTable()">
+                                <option value="">Tất cả vùng chụp</option>
+                                <option value="Chest">Chest (Lồng ngực)</option>
+                                <option value="Brain">Brain (Sọ não)</option>
+                                <option value="Spine">Spine (Cột sống)</option>
+                                <option value="Knee">Knee (Khớp gối)</option>
+                                <option value="Shoulder">Shoulder (Khớp vai)</option>
+                                <option value="Extremities">Extremities (Xương tứ chi)</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-5 shadow-sm overflow-hidden p-1">
+                    
+                    <div id="emptyState" class="text-center text-muted py-5 d-none">
+                        <i class="bi bi-shield-check-fill display-3 d-block mb-3 text-success opacity-75"></i>
+                        <p class="fw-bold fs-5 text-dark mb-1">Tuyệt vời! Sạch hàng đợi.</p>
+                        <p class="small text-muted mb-0">Không tìm thấy ca bệnh nào khớp với bộ lọc hiện tại.</p>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(pendingRecords)}" class="text-center text-muted py-5">
+                        <i class="bi bi-shield-check-fill display-3 d-block mb-3 text-success opacity-75"></i>
+                        <p class="fw-bold fs-5 text-dark mb-1">Tuyệt vời! Sạch hàng đợi.</p>
+                        <p class="small text-muted mb-0">Hiện tại không còn hồ sơ nào cần duyệt lâm sàng.</p>
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(pendingRecords)}" class="table-responsive">
+                        <table class="ms-table table align-middle mb-0" id="pendingTable">
                             <thead>
                             <tr>
-                                <th>Mã hồ sơ</th>
-                                <th>Bệnh nhân</th>
-                                <th>Vùng chụp</th>
-                                <th>Dự đoán AI</th>
-                                <th>Mức độ tin cậy</th>
-                                <th class="text-end">Hành động</th>
+                                <th style="width: 15%">Mã hồ sơ</th>
+                                <th style="width: 30%">Bệnh nhân</th>
+                                <th style="width: 20%">Vùng chụp</th>
+                                <th style="width: 20%">Dự đoán AI</th>
+                                <th style="width: 15%">Mức độ tin cậy</th>
+                                <th style="width: 10%" class="text-end">Hành động</th>
                             </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tableBody">
                             <tr th:each="record : ${pendingRecords}">
                                 <td>
-                                    <div class="fw-bold text-dark" th:text="${record.recordCode}">XR-0001</div>
-                                    <div class="small text-muted mt-1" style="font-size: 0.75rem;" th:text="${#temporals.format(record.capturedAt, 'dd/MM/yyyy HH:mm')}">Time</div>
+                                    <div class="fw-bold text-dark fs-6" th:text="${record.recordCode}">XR-0001</div>
+                                    <div class="text-muted small mt-0.5" style="font-size: 0.75rem;" 
+                                         th:text="${record.capturedAt != null ? #temporals.format(record.capturedAt, 'dd/MM/yyyy HH:mm') : 'N/A'}">Time</div>
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-dark" th:text="${record.patient.fullName}">Patient Name</div>
+                                    <div class="fw-bold text-slate-800" th:text="${record.patient != null ? record.patient.fullName : 'N/A'}">Patient Name</div>
                                 </td>
                                 <td class="fw-semibold text-secondary" th:text="${record.bodyPart}">Chest</td>
                                 <td>
-                                    <span class="ms-badge ms-badge-warning" th:text="${record.aiPrediction}">Phát hiện dấu hiệu</span>
+                                    <span class="badge px-2.5 py-1.5 rounded-3 fw-bold" 
+                                          th:classappend="${#strings.contains(record.aiPrediction,'Bất thường') || #strings.contains(record.aiPrediction,'dấu hiệu') ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}"
+                                          th:text="${record.aiPrediction}">Phát hiện dấu hiệu</span>
                                 </td>
                                 <td>
-                                    <div class="ms-progress-bar">
-                                        <div class="ms-progress-fill" th:style="${'width:' + (record.aiConfidence != null ? record.aiConfidence : 0) + '%'}"></div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="ms-progress-container">
+                                            <div class="ms-progress-bar-fill"
+                                                 th:classappend="${record.aiConfidence != null && record.aiConfidence >= 80 ? 'bg-danger' : 'bg-warning'}"
+                                                 th:style="'width:' + (${record.aiConfidence != null ? record.aiConfidence : 0}) + '%'"></div>
+                                        </div>
+                                        <span class="small text-dark fw-bold" th:text="${record.aiConfidence != null ? record.aiConfidence + '%' : '0%'}">90%</span>
                                     </div>
-                                    <div class="small text-muted mt-1" th:text="${record.aiConfidence + '%'}">90%</div>
                                 </td>
                                 <td class="text-end">
-                                    <a th:href="@{'/doctor/records/' + ${record.recordId} + '/review'}"
-                                       class="btn ms-btn ms-btn-primary btn-sm text-white px-3">
+                                    <a th:href="@{'/doctor/records/' + ${record.recordId} + '/review'}" class="btn btn-sm btn-danger fw-bold px-3 py-1.5 rounded-3 shadow-2sm">
                                         Chẩn đoán ca
                                     </a>
                                 </td>
                             </tr>
-                            <tr th:if="${#lists.isEmpty(pendingRecords)}">
-                                <td colspan="6" class="text-center text-muted py-5">
-                                    <i class="bi bi-shield-check-fill display-4 d-block mb-3 text-success opacity-50"></i>
-                                    <p class="fw-semibold text-dark mb-1">Tuyệt vời! Sạch hàng đợi.</p>
-                                    <p class="small ms-subtle mb-0">Hiện tại không còn hồ sơ nào cần duyệt lâm sàng.</p>
-                                </td>
-                            </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(pendingRecords)}" class="pagination-container p-3 bg-light border-top" id="paginationWrapper">
+                        <div class="small text-muted fw-semibold" id="paginationInfo">
+                            Đang hiển thị từ <span id="startRange">0</span> đến <span id="endRange">0</span> của <span id="totalRecords">0</span> ca chờ duyệt
+                        </div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-sm mb-0" id="paginationContainer">
+                            </ul>
+                        </nav>
                     </div>
                 </section>
             </div>
         </div>
     </main>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const rowsPerPage = 6; 
+    let currentPage = 1;
+    let filteredRows = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+        initTableEngine();
+    });
+
+    function initTableEngine() {
+        const tableBody = document.getElementById("tableBody");
+        if (!tableBody) return;
+        
+        filteredRows = Array.from(tableBody.querySelectorAll("tr"));
+        setupPagination(filteredRows.length);
+        renderPage(currentPage);
+    }
+
+    function filterPendingTable() {
+        const searchVal = document.getElementById("searchInput").value.toLowerCase().trim();
+        const bodyPartVal = document.getElementById("bodyPartFilter").value.toLowerCase();
+        
+        const tableBody = document.getElementById("tableBody");
+        if(!tableBody) return;
+        const allRows = Array.from(tableBody.getElementsByTagName("tr"));
+        
+        filteredRows = allRows.filter(row => {
+            const cells = row.getElementsByTagName("td");
+            if (cells.length < 4) return false;
+
+            const codeText = cells[0].querySelector(".fw-bold").textContent.toLowerCase();
+            const nameText = cells[1].textContent.toLowerCase();
+            const bodyPartText = cells[2].textContent.toLowerCase();
+
+            const matchSearch = codeText.includes(searchVal) || nameText.includes(searchVal);
+            const matchBodyPart = (bodyPartVal === "") || bodyPartText.includes(bodyPartVal);
+
+            return matchSearch && matchBodyPart;
+        });
+
+        // Xử lý ẩn hiện trạng thái trống
+        const emptyState = document.getElementById("emptyState");
+        const tableWrapper = document.querySelector(".table-responsive");
+        const paginationWrapper = document.getElementById("paginationWrapper");
+
+        if (filteredRows.length === 0) {
+            if(emptyState) emptyState.classList.remove("d-none");
+            if(tableWrapper) tableWrapper.style.display = "none";
+            if(paginationWrapper) paginationWrapper.style.setProperty("display", "none", "important");
+        } else {
+            if(emptyState) emptyState.classList.add("d-none");
+            if(tableWrapper) tableWrapper.style.display = "block";
+            if(paginationWrapper) paginationWrapper.style.setProperty("display", "flex", "important");
+        }
+
+        currentPage = 1;
+        setupPagination(filteredRows.length);
+        renderPage(currentPage);
+    }
+
+    function setupPagination(totalItems) {
+        const pageCount = Math.ceil(totalItems / rowsPerPage);
+        const container = document.getElementById("paginationContainer");
+        if(!container) return;
+        container.innerHTML = "";
+
+        if (pageCount <= 1) {
+            updatePaginationInfo(totalItems);
+            return;
+        }
+
+        // Previous
+        createPageButton(container, "«", () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPage(currentPage);
+            }
+        }, currentPage === 1);
+
+        // Số trang
+        for (let i = 1; i <= pageCount; i++) {
+            createPageButton(container, i, () => {
+                currentPage = i;
+                renderPage(currentPage);
+            }, false, i === currentPage);
+        }
+
+        // Next
+        createPageButton(container, "»", () => {
+            if (currentPage < pageCount) {
+                currentPage++;
+                renderPage(currentPage);
+            }
+        }, currentPage === pageCount);
+
+        updatePaginationInfo(totalItems);
+    }
+
+    function createPageButton(parentContainer, text, onClickAction, isDisabled = false, isActive = false) {
+        const li = document.createElement("li");
+        li.className = `page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+        
+        const a = document.createElement("a");
+        a.className = "page-link";
+        a.href = "javascript:void(0);";
+        a.textContent = text;
+        a.addEventListener("click", onClickAction);
+        
+        li.appendChild(a);
+        parentContainer.appendChild(li);
+    }
+
+    function renderPage(page) {
+        const tbody = document.getElementById("tableBody");
+        if(!tbody) return;
+        const allRows = Array.from(tbody.querySelectorAll("tr"));
+        
+        allRows.forEach(row => row.style.display = "none");
+
+        const start = (page - 1) * rowsPerPage;
+        const end = Math.min(start + rowsPerPage, filteredRows.length);
+
+        for (let i = start; i < end; i++) {
+            if (filteredRows[i]) {
+                filteredRows[i].style.display = "";
+            }
+        }
+
+        updatePaginationInfo(filteredRows.length);
+    }
+
+    function updatePaginationInfo(totalItems) {
+        const start = totalItems === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+        const end = Math.min(currentPage * rowsPerPage, totalItems);
+
+        if(document.getElementById("startRange")) document.getElementById("startRange").textContent = start;
+        if(document.getElementById("endRange")) document.getElementById("endRange").textContent = end;
+        if(document.getElementById("totalRecords")) document.getElementById("totalRecords").textContent = totalItems;
+        if(document.getElementById("totalCountLabel")) document.getElementById("totalCountLabel").textContent = totalItems;
+    }
+</script>
 </body>
+
 </html>

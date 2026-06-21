@@ -58,11 +58,15 @@ public class DoctorDashboardController {
     @GetMapping("/doctor/records/{id}/review")
     public String reviewDetail(@PathVariable Long id, Model model) {
         ImagingRecord record = imagingRecordService.getRecordDetail(id);
-
         Patient patientProfile = imagingRecordService.getPatientProfile(record.getPatient());
 
+        // LẤY DỮ LIỆU TOẠ ĐỘ AI TỪ DATABASE
+        List<com.example.mediscanauth.model.dto.AiRegionProjection> aiRegions = imagingRecordService
+                .getAiRegionsByRecordId(id);
+
         model.addAttribute("record", record);
-        model.addAttribute("profile", patientProfile); // Gửi thêm đối tượng profile
+        model.addAttribute("profile", patientProfile);
+        model.addAttribute("aiRegions", aiRegions); // Đẩy sang giao diện Thymeleaf
 
         return "doctor/review-detail";
     }
@@ -84,6 +88,19 @@ public class DoctorDashboardController {
         model.addAttribute("records", records);
 
         return "doctor/patient-profile-detail";
+    }
+
+    @GetMapping("/doctor/records/completed")
+    public String completedRecords(Model model, Principal principal) {
+        String email = principal.getName();
+        Long doctorId = imagingRecordService.getDoctorIdByEmail(email);
+
+        List<DashboardDTO.QueueItemDTO> completedList = imagingRecordService.getCompletedDTOsForDoctor(doctorId);
+
+        model.addAttribute("completedRecords", completedList);
+        model.addAttribute("completedCount", completedList.size());
+
+        return "doctor/completed-list";
     }
 
     private void addModel(Model model) {

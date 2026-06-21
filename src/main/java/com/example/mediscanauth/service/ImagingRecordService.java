@@ -40,4 +40,8 @@ public interface ImagingRecordService {
     List<Patient> getAllPatients();
 
     Patient getPatientById(Long patientId);
+
+    List<com.example.mediscanauth.model.dto.AiRegionProjection> getAiRegionsByRecordId(Long recordId);
+
+    List<DashboardDTO.QueueItemDTO> getCompletedDTOsForDoctor(Long doctorId);
 }
