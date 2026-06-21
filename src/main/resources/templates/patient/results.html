@@ -28,10 +28,30 @@
                         <div class="mb-4 text-center" th:if="${latestRecord.fileName != null}">
                             <img th:src="@{'/uploads/' + ${latestRecord.fileName}}" class="img-fluid rounded border" alt="Annotated X-Ray Image" style="max-height: 400px; width: auto;"/>
                         </div>
-                        <ul class="ms-list">
-                            <li class="ms-activity-item"><div class="fw-semibold">Kết luận</div><div class="small text-muted" th:text="${latestRecord.doctorConclusion != null ? latestRecord.doctorConclusion : latestRecord.aiPrediction}">Chờ kết quả</div></li>
-                            <li class="ms-activity-item"><div class="fw-semibold">Khuyến nghị</div><div class="small text-muted" th:text="${latestRecord.recommendation != null ? latestRecord.recommendation : 'Chưa có khuyến nghị.'}">Chưa có khuyến nghị.</div></li>
-                        </ul>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="card shadow-sm rounded-4 border-0">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h2 class="h5 mb-1">Tóm tắt chẩn đoán AI</h2>
+                                                <p class="text-muted mb-0">AI phân tích ban đầu dựa trên ảnh chụp và mô hình ANFIS.</p>
+                                            </div>
+                                            <span class="badge bg-success">Độ tin cậy: <span th:text="${latestRecord.aiConfidence != null ? latestRecord.aiConfidence : 0}">0</span>%</span>
+                                        </div>
+                                        <p class="mb-0 text-dark" th:text="${latestRecord.aiPrediction != null ? latestRecord.aiPrediction : 'Chưa có kết luận AI.'}">Chờ kết quả</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="card shadow-sm rounded-4 border-0">
+                                    <div class="card-body">
+                                        <h2 class="h5 mb-2">Khuyến nghị tiếp theo</h2>
+                                        <p class="mb-0 text-dark" th:text="${latestRecord.recommendation != null ? latestRecord.recommendation : 'Chưa có khuyến nghị. Vui lòng chờ bác sĩ đánh giá thêm.'}">Chưa có khuyến nghị.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div th:if="${latestRecord == null}" class="text-muted">Chưa có kết quả nào.</div>
                 </section>
