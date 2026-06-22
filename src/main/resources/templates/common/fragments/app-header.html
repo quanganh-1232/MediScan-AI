@@ -16,11 +16,11 @@
                 <div class="ms-header-actions">
                     <div class="dropdown">
                         <button class="btn ms-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                            aria-label="Thông báo">
+                            aria-label="Thông báo" title="Thông báo cá nhân">
                             <span class="ms-bell-mark">!</span>
                             <span class="ms-notification-count" id="header-unread-count"
                                 th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
-                                th:text="${headerUnreadCount}">0</span>
+                                th:text="${headerUnreadCount}" title="Có thông báo mới">0</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel ms-notification-panel">
                             <div class="px-3 py-3 border-bottom">
@@ -68,7 +68,12 @@
                             </span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel">
-
+                            <div class="px-3 py-3 border-bottom">
+                                <div class="small text-muted">Đang đăng nhập</div>
+                                <div class="fw-semibold" sec:authentication="name">user@mediscan.ai</div>
+                                <div class="small text-muted" th:text="${roleLabel}">Role</div>
+                            </div>
+                            <a class="dropdown-item py-2" th:href="@{/home}">Tổng quan</a>
                             <a class="dropdown-item py-2" th:href="@{/profile}">Hồ sơ cá nhân</a>
                             <a class="dropdown-item py-2" th:href="@{/profile/edit}">Chỉnh sửa thông tin</a>
                             <a class="dropdown-item py-2" th:href="@{/notifications}">Thông báo</a>
@@ -91,10 +96,9 @@
                         return response.json();
                     })
                     .then(data => {
-                        // Update unread count
                         const countEl = document.getElementById('header-unread-count');
                         const badgeEl = document.getElementById('header-unread-badge');
-                        
+
                         if (data.unreadCount > 0) {
                             if (countEl) countEl.textContent = data.unreadCount;
                             else {
@@ -106,15 +110,11 @@
                                 btn.appendChild(span);
                             }
                             if (badgeEl) badgeEl.textContent = data.unreadCount + ' mới';
-                            else {
-                                // Add badge if it was missing
-                            }
                         } else {
                             if (countEl) countEl.remove();
                             if (badgeEl) badgeEl.remove();
                         }
 
-                        // Update list
                         const listEl = document.getElementById('header-notification-list');
                         if (listEl && data.notifications) {
                             if (data.notifications.length === 0) {
@@ -144,10 +144,8 @@
                     .catch(err => console.error('Error polling notifications', err));
             }
 
-            // Poll every 30 seconds
             setInterval(pollNotifications, 30000);
         });
     </script>
 </body>
-
 </html>

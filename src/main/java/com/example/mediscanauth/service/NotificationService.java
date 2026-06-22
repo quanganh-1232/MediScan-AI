@@ -2,7 +2,6 @@ package com.example.mediscanauth.service;
 
 import com.example.mediscanauth.model.Notification;
 import com.example.mediscanauth.model.User;
-
 import java.util.List;
 
 public interface NotificationService {
@@ -12,4 +11,6 @@ public interface NotificationService {
     List<Notification> findRecentForUser(User user);
 
     long countUnread(User user);
+
+    Notification markAsRead(Long notificationId);
 }

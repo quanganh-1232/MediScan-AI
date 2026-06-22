@@ -29,7 +29,12 @@
                                 <dt class="col-sm-4">Bệnh nhân</dt><dd class="col-sm-8" th:text="${record.patient.fullName}">Patient Name</dd>
                                 <dt class="col-sm-4">Kỹ thuật viên</dt><dd class="col-sm-8" th:text="${record.technician != null ? record.technician.fullName : 'Chưa chỉ định'}">Technician</dd>
                                 <dt class="col-sm-4">Trạng thái</dt><dd class="col-sm-8"><span class="badge bg-secondary" th:text="${record.status}">PENDING_AI</span></dd>
-                                <dt class="col-sm-4">Ngày tạo</dt><dd class="col-sm-8" th:text="${#temporals.format(record.createdAt, 'dd/MM/yyyy HH:mm:ss')}">date</dd>
+                                <dt class="col-sm-4">Ngày tạo</dt>
+                                <dd class="col-sm-8"
+                                    th:text="${record.createdAt != null ? #temporals.format(record.createdAt, 'dd/MM/yyyy HH:mm') : (record.capturedAt != null ? #temporals.format(record.capturedAt, 'dd/MM/yyyy') : 'N/A')}">date</dd>
+                                <dt class="col-sm-4" th:if="${record.confirmedAt != null}">Xác nhận lúc</dt>
+                                <dd class="col-sm-8" th:if="${record.confirmedAt != null}"
+                                    th:text="${#temporals.format(record.confirmedAt, 'HH:mm dd/MM/yyyy')}">confirmed date</dd>
                                 <dt class="col-sm-4">Vùng chụp</dt><dd class="col-sm-8" th:text="${record.bodyPart}">Body Part</dd>
                             </dl>
                         </div>
@@ -50,34 +55,17 @@
                         <h3 class="h6">Kết luận bác sĩ</h3>
                         <p th:text="${record.doctorConclusion != null ? record.doctorConclusion : 'Chưa có kết luận'}">Chưa có kết luận</p>
                     </div>
-                    <div class="mt-4">
-                        <h3 class="h6">Tọa độ khung tổn thương</h3>
-                        <form th:action="@{/doctor/record/{id}/coordinates(id=${record.recordId})}" method="post" class="row g-3">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                            <div class="col-md-3">
-                                <label class="form-label">X</label>
-                                <input type="number" name="bboxX" class="form-control" th:value="${record.bboxX}" placeholder="0" min="0" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Y</label>
-                                <input type="number" name="bboxY" class="form-control" th:value="${record.bboxY}" placeholder="0" min="0" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Width</label>
-                                <input type="number" name="bboxWidth" class="form-control" th:value="${record.bboxWidth}" placeholder="0" min="0" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Height</label>
-                                <input type="number" name="bboxHeight" class="form-control" th:value="${record.bboxHeight}" placeholder="0" min="0" />
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn ms-btn ms-btn-primary text-white">Lưu tọa độ</button>
-                            </div>
-                        </form>
+                    <div class="mt-4" th:if="${record.bboxX != null}">
+                        <h3 class="h6">Tọa độ khung tổn thương (AI)</h3>
+                        <div class="row g-2 text-muted small">
+                            <div class="col-3">X: <strong th:text="${record.bboxX}">-</strong></div>
+                            <div class="col-3">Y: <strong th:text="${record.bboxY}">-</strong></div>
+                            <div class="col-3">W: <strong th:text="${record.bboxWidth}">-</strong></div>
+                            <div class="col-3">H: <strong th:text="${record.bboxHeight}">-</strong></div>
+                        </div>
                     </div>
-                    <div class="mt-4 d-flex gap-2">
+                    <div class="mt-4">
                         <a th:href="@{/doctor/library}" class="btn ms-btn ms-btn-outline-secondary">Quay lại thư viện</a>
-                        <a th:href="@{/doctor/queue}" class="btn ms-btn ms-btn-primary text-white">Quay lại hàng đợi</a>
                     </div>
                 </section>
             </div>

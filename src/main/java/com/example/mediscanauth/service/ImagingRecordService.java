@@ -1,6 +1,7 @@
 package com.example.mediscanauth.service;
 
 import com.example.mediscanauth.model.ImagingRecord;
+import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,4 +42,6 @@ public interface ImagingRecordService {
     List<ImagingRecord> findRecordsUploadedByTechnician(String technicianEmail);
 
     Page<ImagingRecord> searchConfirmedLibrary(String keyword, String bodyPart, Pageable pageable);
+
+    void clearNonConfirmedRecords();
 }

@@ -12,43 +12,57 @@
 
     <div th:switch="${portalKey}">
         <nav th:case="'admin'" class="ms-sidebar-nav">
-                <a class="ms-nav-item" th:classappend="${activeSection == 'metrics'} ? ' active' : ''" th:href="@{/admin/metrics}">
+            <a class="ms-nav-item" th:classappend="${activeSection == 'overview'} ? ' active' : ''" th:href="@{/admin/overview}">
+                <span>
+                    <span class="d-block fw-semibold">Tổng quan</span>
+                    <span class="d-block small text-muted">Chỉ số và trạng thái hệ thống</span>
+                </span>
+                <span class="ms-badge ms-badge-soft">01</span>
+            </a>
+            <a class="ms-nav-item" th:classappend="${activeSection == 'metrics'} ? ' active' : ''" th:href="@{/admin/metrics}">
                 <span>
                     <span class="d-block fw-semibold">Metrics</span>
                     <span class="d-block small text-muted">Người dùng, hàng đợi, hồ sơ</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">01</span>
+                <span class="ms-badge ms-badge-soft">02</span>
             </a>
-                <a class="ms-nav-item" th:classappend="${activeSection == 'users'} ? ' active' : ''" th:href="@{/admin/users}">
+            <a class="ms-nav-item" th:classappend="${activeSection == 'users'} ? ' active' : ''" th:href="@{/admin/users}">
                 <span>
                     <span class="d-block fw-semibold">Người dùng</span>
                     <span class="d-block small text-muted">Danh sách tài khoản đang hoạt động</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">02</span>
+                <span class="ms-badge ms-badge-soft">03</span>
             </a>
-                <a class="ms-nav-item" th:classappend="${activeSection == 'recent-records'} ? ' active' : ''" th:href="@{/admin/recent-records}">
+            <a class="ms-nav-item" th:classappend="${activeSection == 'recent-records'} ? ' active' : ''" th:href="@{/admin/recent-records}">
                 <span>
                     <span class="d-block fw-semibold">Hồ sơ gần đây</span>
                     <span class="d-block small text-muted">Ca chụp mới nhất</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">03</span>
+                <span class="ms-badge ms-badge-soft">04</span>
             </a>
         </nav>
 
         <nav th:case="'doctor'" class="ms-sidebar-nav">
-            <a class="ms-nav-item" th:classappend="${activeSection == 'queue'} ? ' active' : ''" th:href="@{/doctor/queue}">
+            <a class="ms-nav-item" th:classappend="${activeSection == 'overview'} ? ' active' : ''" th:href="@{/doctor/overview}">
                 <span>
-                    <span class="d-block fw-semibold">Hàng đợi</span>
-                    <span class="d-block small text-muted">Ca ưu tiên cần xử lý</span>
+                    <span class="d-block fw-semibold">Tổng quan</span>
+                    <span class="d-block small text-muted">Tóm tắt hàng đợi đọc</span>
                 </span>
                 <span class="ms-badge ms-badge-soft">01</span>
+            </a>
+            <a class="ms-nav-item" th:classappend="${activeSection == 'pending'} ? ' active' : ''" th:href="@{/doctor/records/pending}">
+                <span>
+                    <span class="d-block fw-semibold">Chờ duyệt</span>
+                    <span class="d-block small text-muted">Danh sách hồ sơ cần đọc</span>
+                </span>
+                <span class="ms-badge ms-badge-soft">02</span>
             </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'library'} ? ' active' : ''" th:href="@{/doctor/library}">
                 <span>
                     <span class="d-block fw-semibold">Thư viện</span>
                     <span class="d-block small text-muted">Ca đã xác nhận làm tư liệu</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">02</span>
+                <span class="ms-badge ms-badge-soft">03</span>
             </a>
         </nav>
 

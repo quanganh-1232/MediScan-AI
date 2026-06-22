@@ -5,6 +5,7 @@ import com.example.mediscanauth.service.ImagingRecordService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
 public class AdminDashboardController {
@@ -44,6 +45,12 @@ public class AdminDashboardController {
     public String recentRecords(Model model) {
         addSharedModel(model);
         return "admin/recent-records";
+    }
+
+    @PostMapping("/admin/records/clear-pending")
+    public String clearPendingRecords() {
+        imagingRecordService.clearNonConfirmedRecords();
+        return "redirect:/home";
     }
 
     private void addSharedModel(Model model) {

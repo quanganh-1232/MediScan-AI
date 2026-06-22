@@ -55,6 +55,9 @@ public class ImagingRecord {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
     @Column(name = "bbox_x")
     private Integer bboxX;
 
@@ -179,6 +182,14 @@ public class ImagingRecord {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getConfirmedAt() {
+        return confirmedAt;
+    }
+
+    public void setConfirmedAt(LocalDateTime confirmedAt) {
+        this.confirmedAt = confirmedAt;
     }
 
     public Integer getBboxX() {

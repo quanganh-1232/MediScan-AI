@@ -3,6 +3,8 @@ package com.example.mediscanauth.service.impl;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.repository.ImagingRecordRepository;
+import com.example.mediscanauth.repository.PatientRepository;
+import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.UserAccountService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -27,9 +28,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -47,7 +48,9 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private final ObjectMapper objectMapper;
 
     public ImagingRecordServiceImpl(ImagingRecordRepository imagingRecordRepository,
-                                    UserAccountService userAccountService) {
+                                    UserAccountService userAccountService,
+                                    PatientRepository patientRepository,
+                                    UserRepository userRepository) {
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.restTemplate = new RestTemplate();
@@ -183,6 +186,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         record.setDoctorConclusion(cleanSentence(isBlank(conclusion) ? record.getAiPrediction() : conclusion));
         record.setRecommendation(cleanSentence(isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả. Theo dõi và điều trị theo chỉ định chuyên môn." : recommendation));
         record.setStatus("DOCTOR_CONFIRMED");
+        record.setConfirmedAt(LocalDateTime.now());
         return imagingRecordRepository.save(record);
     }
 
@@ -204,6 +208,14 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         return imagingRecordRepository.searchConfirmedLibrary(trimToEmpty(keyword), trimToEmpty(bodyPart), pageable);
     }
 
+    @Override
+    @Transactional
+    public void clearNonConfirmedRecords() {
+        imagingRecordRepository.deleteByStatusIn(
+                List.of("PENDING_AI", "AI_DONE", "AI_ANALYZED", "PENDING_DOCTOR", "AI_FAILED", "DOCTOR_REJECTED")
+        );
+    }
+
     private StoredImage selectRandomUploadImage(Path uploadPath) throws IOException {
         List<Path> imageFiles = Files.list(uploadPath)
                 .filter(Files::isRegularFile)
@@ -220,24 +232,10 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
         Path randomImage = imageFiles.get(ThreadLocalRandom.current().nextInt(imageFiles.size()));
         byte[] fileBytes = Files.readAllBytes(randomImage);
+        Files.delete(randomImage);
         return new StoredImage(randomImage.getFileName().toString(), fileBytes);
     }
 
-
-    private Path resolveSamplePath(Path uploadPath, String safeSampleName) throws IOException {
-        Path directPath = uploadPath.resolve(safeSampleName).normalize();
-        if (Files.exists(directPath)) {
-            return directPath;
-        }
-
-        try (var files = Files.list(uploadPath)) {
-            return files
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().endsWith(safeSampleName))
-                    .findFirst()
-                    .orElse(directPath);
-        }
-    }
 
     private void applyAiAnalysis(ImagingRecord record, Path uploadPath, byte[] fileBytes) {
         HttpHeaders headers = new HttpHeaders();
@@ -264,13 +262,10 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             }
 
             JsonNode jsonNode = objectMapper.readTree(response.getBody());
-            boolean fractureDetected = jsonNode.path("fracture_detected").asBoolean(false);
             int confidence = (int) Math.round(jsonNode.path("highest_confidence").asDouble(0.0) * 100);
             JsonNode diagnosisNode = jsonNode.path("diagnosis");
             String impression = diagnosisNode.path("impression").asText("");
-            String summary = diagnosisNode.path("summary").asText("");
-            String riskLevel = diagnosisNode.path("risk_level").asText("");
-            double fractureScore = diagnosisNode.path("fracture_score").asDouble(0.0);
+            String summary    = diagnosisNode.path("summary").asText("");
 
             String annotatedBase64 = jsonNode.path("annotated_image_base64").asText("");
             if (!isBlank(annotatedBase64) && !"null".equalsIgnoreCase(annotatedBase64)) {
@@ -282,10 +277,14 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
                 record.setFileName(annotatedFileName);
             }
 
+            // Dùng impression trực tiếp — đã là ngôn ngữ bác sĩ từ ANFIS service
             String clinicalText = !isBlank(impression) ? impression : summary;
-            record.setAiPrediction(limitText(buildAiPrediction(fractureDetected, confidence, record.getBodyPart(), clinicalText, riskLevel, fractureScore), LEGACY_TEXT_COLUMN_LIMIT));
+            record.setAiPrediction(limitText(clinicalText, LEGACY_TEXT_COLUMN_LIMIT));
             record.setAiConfidence(confidence);
-            record.setRecommendation(limitText("Chờ bác sĩ xác nhận. AI gợi ý đối chiếu vùng đau, tư thế chụp và cân nhắc chụp bổ sung nếu triệu chứng không phù hợp.", LEGACY_TEXT_COLUMN_LIMIT));
+
+            // Lấy recommendations từ ANFIS (top 3), fallback nếu rỗng
+            String recommendation = buildRecommendationText(diagnosisNode.path("recommendations"));
+            record.setRecommendation(limitText(recommendation, LEGACY_TEXT_COLUMN_LIMIT));
             record.setStatus("PENDING_DOCTOR");
         } catch (Exception ex) {
             markAiFailed(record, "Lỗi kết nối/phân tích AI: " + ex.getMessage());
@@ -299,43 +298,20 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         record.setStatus("AI_FAILED");
     }
 
-    private String buildAiPrediction(boolean fractureDetected, int confidence, String bodyPart, String clinicalText, String riskLevel, double fractureScore) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(fractureDetected ? "AI phát hiện dấu hiệu gãy xương" : "AI chưa phát hiện dấu hiệu gãy xương rõ");
-        if (!isBlank(bodyPart)) {
-            builder.append(" tại ").append(bodyPart.toLowerCase());
+    private String buildRecommendationText(JsonNode recommendationsNode) {
+        if (recommendationsNode == null || !recommendationsNode.isArray() || recommendationsNode.isEmpty()) {
+            return "Chờ bác sĩ xác nhận kết quả và đưa ra hướng điều trị phù hợp.";
         }
-        builder.append(" với độ tin cậy ").append(confidence).append("%.");
-        if (!isBlank(riskLevel)) {
-            builder.append(" Mức nguy cơ: ").append(toVietnameseRiskLevel(riskLevel)).append(".");
+        StringBuilder sb = new StringBuilder();
+        int limit = Math.min(recommendationsNode.size(), 3);
+        for (int i = 0; i < limit; i++) {
+            String item = recommendationsNode.get(i).asText("").trim();
+            if (!isBlank(item)) {
+                if (!sb.isEmpty()) sb.append(" ");
+                sb.append(cleanSentence(item));
+            }
         }
-        if (!isBlank(clinicalText)) {
-            builder.append(" Nhận định: ").append(cleanSentence(clinicalText));
-        }
-        builder.append(" Điểm ANFIS: ").append(String.format("%.1f", fractureScore)).append("/100.");
-        return builder.toString();
-    }
-
-    private String resolveBodyPart(String bodyPart, String viewPosition, String symptomDescription) {
-        StringBuilder resolved = new StringBuilder(isBlank(bodyPart) ? "Chưa xác định vùng chụp" : bodyPart.trim());
-        if (!isBlank(viewPosition)) {
-            resolved.append(" - ").append(viewPosition.trim());
-        }
-        if (!isBlank(symptomDescription)) {
-            resolved.append(" (").append(symptomDescription.trim()).append(")");
-        }
-        return resolved.toString();
-    }
-
-    private String toVietnameseRiskLevel(String riskLevel) {
-        return switch (riskLevel.toLowerCase()) {
-            case "very_low" -> "rất thấp";
-            case "low" -> "thấp";
-            case "moderate" -> "trung bình";
-            case "high" -> "cao";
-            case "very_high" -> "rất cao";
-            default -> riskLevel;
-        };
+        return sb.isEmpty() ? "Chờ bác sĩ xác nhận kết quả và đưa ra hướng điều trị phù hợp." : sb.toString();
     }
 
     private String cleanSentence(String value) {
@@ -351,12 +327,6 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             return value;
         }
         return value.substring(0, Math.max(0, maxLength - 3)).trim() + "...";
-    }
-
-    private String sanitizeFileName(String fileName) {
-        String fallback = "xray.png";
-        String safe = isBlank(fileName) ? fallback : Paths.get(fileName).getFileName().toString();
-        return safe.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
 
     private String trimToEmpty(String value) {
