@@ -25,16 +25,36 @@
                 <section class="ms-card-solid rounded-5 p-4 p-lg-5">
                     <div class="table-responsive">
                         <table class="ms-table">
-                            <thead><tr><th>Mã hồ sơ</th><th>Bệnh nhân</th><th>Vùng chụp</th><th>Dự đoán AI</th><th>Tin cậy</th></tr></thead>
+                            <thead><tr><th>Mã hồ sơ</th><th>Bệnh nhân</th><th>Vùng chụp</th><th>Dự đoán AI</th><th>Tin cậy</th><th>Thao tác</th></tr></thead>
                             <tbody>
                             <tr th:each="record : ${queueRecords}">
-                                <td><div class="fw-bold" th:text="${record.recordCode}">XR</div><div class="small text-muted" th:text="${#temporals.format(record.capturedAt, 'dd/MM/yyyy')}">date</div></td>
+                                <td>
+                                    <div class="fw-bold" th:text="${record.recordCode}">XR</div>
+                                    <div class="small text-muted" th:text="${#temporals.format(record.createdAt, 'dd/MM/yyyy HH:mm:ss')}">date</div>
+                                </td>
                                 <td th:text="${record.patient.fullName}">Patient</td>
                                 <td th:text="${record.bodyPart}">Body part</td>
                                 <td th:text="${record.aiPrediction}">Chờ AI phân tích</td>
-                                <td><div class="ms-progress-bar"><div class="ms-progress-fill" th:style="${'width:' + (record.aiConfidence != null ? record.aiConfidence : 0) + '%'}"></div></div><div class="small text-muted mt-1" th:text="${(record.aiConfidence != null ? record.aiConfidence : 0) + '%'}">0%</div></td>
+                                <td>
+                                    <div class="ms-progress-bar"><div class="ms-progress-fill" th:style="${'width:' + (record.aiConfidence != null ? record.aiConfidence : 0) + '%'}"></div></div>
+                                    <div class="small text-muted mt-1" th:text="${(record.aiConfidence != null ? record.aiConfidence : 0) + '%'}">0%</div>
+                                </td>
+                                <td style="min-width: 320px;">
+                                    <a th:href="@{/doctor/record/{id}(id=${record.recordId})}" class="btn ms-btn ms-btn-secondary text-dark w-100 mb-3">Chi tiết</a>
+                                    <img th:if="${record.fileName != null}" th:src="@{'/uploads/' + ${record.fileName}}" class="img-fluid rounded border mb-2" alt="X-Ray" style="max-height: 180px;">
+                                    <form th:action="@{/doctor/records/confirm}" method="post" class="d-grid gap-2">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                        <input type="hidden" name="recordId" th:value="${record.recordId}">
+                                        <textarea name="conclusion" class="form-control ms-input" rows="2" th:placeholder="${record.aiPrediction}"></textarea>
+                                        <textarea name="recommendation" class="form-control ms-input" rows="2" th:placeholder="${record.recommendation != null ? record.recommendation : 'Khuyến nghị điều trị / chụp bổ sung'}"></textarea>
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn ms-btn ms-btn-primary text-white flex-fill">Xác nhận</button>
+                                            <button type="submit" th:formaction="@{/doctor/records/reject}" class="btn ms-btn ms-btn-ghost border-secondary bg-white flex-fill">Yêu cầu xem lại</button>
+                                        </div>
+                                    </form>
+                                </td>
                             </tr>
-                            <tr th:if="${#lists.isEmpty(queueRecords)}"><td colspan="5" class="text-center text-muted py-4">Chưa có ca nào trong hàng đợi.</td></tr>
+                            <tr th:if="${#lists.isEmpty(queueRecords)}"><td colspan="6" class="text-center text-muted py-4">Chưa có ca nào trong hàng đợi.</td></tr>
                             </tbody>
                         </table>
                     </div>
