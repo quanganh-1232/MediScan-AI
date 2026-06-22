@@ -2,7 +2,11 @@ package com.example.mediscanauth.repository;
 
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,4 +28,22 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
     List<ImagingRecord> findByStatusInOrderByCreatedAtDesc(List<String> statuses);
 
     List<ImagingRecord> findTop10ByOrderByCreatedAtDesc();
+
+    List<ImagingRecord> findByTechnicianEmailOrderByCreatedAtDesc(String technicianEmail);
+
+    @Query("""
+            select r from ImagingRecord r
+            where r.status = 'DOCTOR_CONFIRMED'
+              and (:bodyPart is null or :bodyPart = '' or lower(r.bodyPart) like lower(concat('%', :bodyPart, '%')))
+              and (:keyword is null or :keyword = ''
+                or lower(r.recordCode) like lower(concat('%', :keyword, '%'))
+                or lower(r.bodyPart) like lower(concat('%', :keyword, '%'))
+                or lower(r.aiPrediction) like lower(concat('%', :keyword, '%'))
+                or lower(r.doctorConclusion) like lower(concat('%', :keyword, '%'))
+                or lower(r.patient.fullName) like lower(concat('%', :keyword, '%'))
+                or lower(r.patient.email) like lower(concat('%', :keyword, '%')))
+            """)
+    Page<ImagingRecord> searchConfirmedLibrary(@Param("keyword") String keyword,
+                                               @Param("bodyPart") String bodyPart,
+                                               Pageable pageable);
 }
