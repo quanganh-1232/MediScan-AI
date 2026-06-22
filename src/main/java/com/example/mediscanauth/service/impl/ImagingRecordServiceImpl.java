@@ -1,8 +1,12 @@
 package com.example.mediscanauth.service.impl;
 
 import com.example.mediscanauth.model.ImagingRecord;
+import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
+import com.example.mediscanauth.model.dto.DashboardDTO;
 import com.example.mediscanauth.repository.ImagingRecordRepository;
+import com.example.mediscanauth.repository.PatientRepository;
+import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.UserAccountService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,7 +51,9 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private final ObjectMapper objectMapper;
 
     public ImagingRecordServiceImpl(ImagingRecordRepository imagingRecordRepository,
-                                    UserAccountService userAccountService) {
+                                    UserAccountService userAccountService,
+                                    PatientRepository patientRepository,
+                                    UserRepository userRepository) {
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.restTemplate = new RestTemplate();

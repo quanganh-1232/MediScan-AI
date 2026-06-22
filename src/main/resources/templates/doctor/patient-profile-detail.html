@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Hồ sơ chi tiết bệnh nhân - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }</style>
+</head>
+<body>
+<div class="ms-shell">
+    <div th:replace="~{common/fragments/app-header :: header('Patient Diagnostics', 'Bác sĩ', 'ms-avatar-purple')}"></div>
+
+    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
+        <div class="row g-4 align-items-start">
+            <div class="col-12 col-xl-3">
+                <div th:replace="~{common/fragments/app-sidebar :: sidebar('doctor', 'Patient Diagnostics', 'Bác sĩ', 'ms-avatar-purple', 'patients')}"></div>
+            </div>
+
+            <div class="col-12 col-xl-9">
+                <section class="ms-page-hero mb-4">
+                    <div>
+                        <a th:href="@{/doctor/patients}" class="text-decoration-none fw-semibold small text-primary">&lt; Quay lại danh sách</a>
+                        <h1 class="ms-display display-6 mt-2 mb-2">Hồ sơ lâm sàng bệnh nhân</h1>
+                        <p class="ms-subtle mb-0">Thông tin chi tiết hành chính và toàn bộ lịch sử các ca quét AI X-quang của bệnh nhân.</p>
+                    </div>
+                </section>
+
+                <div class="row g-4">
+                    <div class="col-12 col-lg-4">
+                        <div class="ms-card-solid rounded-5 p-4 text-center mb-3">
+                            <div class="d-flex justify-content-center mb-3">
+                                <span class="ms-avatar ms-avatar-purple fs-3 p-4 fw-bold"
+                                      th:text="${profile.user != null ? #strings.substring(profile.user.fullName,0,1).toUpperCase() : #strings.substring(profile.fullName,0,1).toUpperCase()}">B</span>
+                            </div>
+                            <h3 class="fw-bold text-dark mb-1" th:text="${profile.user != null ? profile.user.fullName : profile.fullName}">N/A</h3>
+                            <div class="text-muted small mb-3" th:text="'Mã BN: BN-' + ${profile.patientId}">BN-000</div>
+                            <span class="ms-pill ms-pill-soft" th:text="${profile.gender != null ? profile.gender : 'N/A'}">Nam</span>
+
+                            <hr class="my-4 opacity-10">
+
+                            <div class="text-start">
+                                <div class="mb-3">
+                                    <span class="small text-uppercase text-muted fw-semibold d-block">Ngày sinh</span>
+                                    <span class="fw-bold text-dark" th:text="${profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
+                                </div>
+                                <div class="mb-3">
+                                    <span class="small text-uppercase text-muted fw-semibold d-block">Số điện thoại</span>
+                                    <span class="fw-bold text-dark" th:text="${profile.phone != null ? profile.phone : 'N/A'}">N/A</span>
+                                </div>
+                                <div class="mb-0">
+                                    <span class="small text-uppercase text-muted fw-semibold d-block">Địa chỉ thường trú</span>
+                                    <p class="mb-0 small ms-subtle mt-1" th:text="${profile.address != null ? profile.address : 'Chưa cập nhật địa chỉ'}"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-lg-8">
+                        <div class="ms-card-solid rounded-5 p-4 p-lg-5 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h2 class="ms-section-title h4 mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Lịch sử chụp X-quang</h2>
+                                <span class="ms-badge ms-badge-soft" th:text="${records != null ? records.size() + ' ca' : '0 ca'}">0 ca</span>
+                            </div>
+
+                            <div th:if="${#lists.isEmpty(records)}" class="text-center py-5 text-muted">
+                                <i class="bi bi-folder-x display-5 d-block mb-2 opacity-25"></i>
+                                <p class="small mb-0">Bệnh nhân chưa có lịch sử ca chụp nào trên hệ thống.</p>
+                            </div>
+
+                            <div th:if="${!#lists.isEmpty(records)}" class="table-responsive">
+                                <table class="ms-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Mã ca</th>
+                                        <th>Vị trí chụp</th>
+                                        <th>Dự đoán AI</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-end">Hành động</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="r : ${records}">
+                                        <td><span class="fw-bold text-dark" th:text="${r.recordCode}">XR-001</span></td>
+                                        <td class="fw-semibold text-secondary" th:text="${r.bodyPart}">Lồng ngực</td>
+                                        <td>
+                                            <div class="fw-bold text-danger mb-1" th:text="${r.aiPrediction}">Bất thường</div>
+                                            <div class="ms-progress-bar" style="max-width: 100px;">
+                                                <div class="ms-progress-fill bg-danger" th:style="${'width:' + (r.aiConfidence != null ? r.aiConfidence : 0) + '%'}"></div>
+                                            </div>
+                                            <div class="small text-muted mt-1" style="font-size: 0.7rem;" th:text="'Tin cậy: ' + ${r.aiConfidence} + '%'">0%</div>
+                                        </td>
+                                        <td>
+                                            <span class="ms-badge"
+                                                  th:classappend="${r.status == 'DONE' ? 'ms-badge-soft' : 'ms-badge-warning'}"
+                                                  th:text="${r.status}">PENDING</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <a th:href="@{'/doctor/records/' + ${r.recordId} + '/review'}" class="btn ms-btn ms-btn-ghost border-secondary bg-white btn-sm px-2">
+                                                <i class="bi bi-eye-fill"></i> Đọc ca
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,5 +1,8 @@
 package com.example.mediscanauth.controller.doctor;
 
+import com.example.mediscanauth.model.ImagingRecord;
+import com.example.mediscanauth.model.Patient;
+import com.example.mediscanauth.model.dto.DashboardDTO;
 import com.example.mediscanauth.service.ImagingRecordService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,8 +34,13 @@ public class DoctorDashboardController {
     }
 
     @GetMapping("/doctor/queue")
-    public String queue(Model model) {
-        addModel(model);
+    public String queue(Model model, Principal principal) {
+        Long doctorId = imagingRecordService.getDoctorIdByEmail(principal.getName());
+
+        DashboardDTO stats = imagingRecordService.getDoctorDashboardStats(doctorId);
+
+        model.addAttribute("queueRecords", stats.getQueueRecords());
+        model.addAttribute("queueCount", stats.getQueueCount());
         return "doctor/queue";
     }
 
