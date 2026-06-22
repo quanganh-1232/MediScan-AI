@@ -30,7 +30,8 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     private final XrayImageRepository xrayImageRepository;
     private final PatientRepository patientRepository;
 
-    private final String CLOUD_STORAGE_DIR = "uploads/xray/";
+    // ponytail: dùng static resource path để Spring Boot serve ảnh qua /uploads/xray/...
+    private final String CLOUD_STORAGE_DIR = "src/main/resources/static/uploads/xray/";
 
     public MedicalRecordServiceImpl(MedicalRecordRepository medicalRecordRepository,
                                     XrayImageRepository xrayImageRepository,

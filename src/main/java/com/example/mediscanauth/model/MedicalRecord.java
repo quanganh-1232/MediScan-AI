@@ -6,13 +6,17 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "medical_records")
 public class MedicalRecord {
-    private String aiPrediction;
-    private Double aiConfidence;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "record_id")
     private Long recordId;
+
+    @Column(name = "ai_prediction", length = 255)
+    private String aiPrediction;
+
+    @Column(name = "ai_confidence")
+    private Double aiConfidence;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "patient_id", nullable = false)
