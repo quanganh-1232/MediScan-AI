@@ -57,36 +57,22 @@
                 </span>
                 <span class="ms-badge ms-badge-soft">01</span>
             </a>
-            <a class="ms-nav-item" th:classappend="${activeSection == 'patients'} ? ' active' : ''" th:href="@{/doctor/patients}">
+            <a class="ms-nav-item" th:classappend="${activeSection == 'library'} ? ' active' : ''" th:href="@{/doctor/library}">
                 <span>
-                    <span class="d-block fw-semibold">Danh sách bệnh nhân</span>
-                    <span class="d-block small text-muted">Hồ sơ lâm sàng và lịch sử</span>
+                    <span class="d-block fw-semibold">Thư viện</span>
+                    <span class="d-block small text-muted">Ca đã xác nhận làm tư liệu</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">03</span>
+                <span class="ms-badge ms-badge-soft">02</span>
             </a>
         </nav>
 
         <nav th:case="'technician'" class="ms-sidebar-nav">
-            <a class="ms-nav-item" th:classappend="${activeSection == 'appointment-form'} ? ' active' : ''" th:href="@{/technician/appointments}">
-                <span>
-                    <span class="d-block fw-semibold">Tạo lịch chụp</span>
-                    <span class="d-block small text-muted">Mở form đặt lịch</span>
-                </span>
-                <span class="ms-badge ms-badge-soft">01</span>
-            </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'upload-form'} ? ' active' : ''" th:href="@{/technician/xray-upload}">
                 <span>
-                    <span class="d-block fw-semibold">Upload ảnh</span>
-                    <span class="d-block small text-muted">Tạo hồ sơ và ảnh X-Ray</span>
+                    <span class="d-block fw-semibold">Chụp X-Ray</span>
+                    <span class="d-block small text-muted">Chọn bệnh nhân, AI đọc phim, gửi bác sĩ</span>
                 </span>
-                <span class="ms-badge ms-badge-soft">02</span>
-            </a>
-            <a class="ms-nav-item" th:classappend="${activeSection == 'recent-items'} ? ' active' : ''" th:href="@{/technician/recent}">
-                <span>
-                    <span class="d-block fw-semibold">Danh sách gần đây</span>
-                    <span class="d-block small text-muted">Lịch, records và ảnh đã lưu</span>
-                </span>
-                <span class="ms-badge ms-badge-soft">03</span>
+                <span class="ms-badge ms-badge-soft">01</span>
             </a>
         </nav>
 

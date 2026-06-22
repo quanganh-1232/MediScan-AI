@@ -55,6 +55,18 @@ public class ImagingRecord {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "bbox_x")
+    private Integer bboxX;
+
+    @Column(name = "bbox_y")
+    private Integer bboxY;
+
+    @Column(name = "bbox_width")
+    private Integer bboxWidth;
+
+    @Column(name = "bbox_height")
+    private Integer bboxHeight;
+
     @PrePersist
     void prePersist() {
         if (createdAt == null) {
@@ -167,5 +179,37 @@ public class ImagingRecord {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Integer getBboxX() {
+        return bboxX;
+    }
+
+    public void setBboxX(Integer bboxX) {
+        this.bboxX = bboxX;
+    }
+
+    public Integer getBboxY() {
+        return bboxY;
+    }
+
+    public void setBboxY(Integer bboxY) {
+        this.bboxY = bboxY;
+    }
+
+    public Integer getBboxWidth() {
+        return bboxWidth;
+    }
+
+    public void setBboxWidth(Integer bboxWidth) {
+        this.bboxWidth = bboxWidth;
+    }
+
+    public Integer getBboxHeight() {
+        return bboxHeight;
+    }
+
+    public void setBboxHeight(Integer bboxHeight) {
+        this.bboxHeight = bboxHeight;
     }
 }

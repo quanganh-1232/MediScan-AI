@@ -3,8 +3,8 @@ package com.example.mediscanauth.service;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
-import com.example.mediscanauth.model.dto.DashboardDTO;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface ImagingRecordService {
@@ -27,17 +27,19 @@ public interface ImagingRecordService {
 
     ImagingRecord createFromTechnician(String technicianEmail, String patientEmail, String bodyPart, String fileName);
 
-    DashboardDTO getDoctorDashboardStats(Long doctorId);
+    ImagingRecord captureAndAnalyzeFromTechnician(String technicianEmail,
+                                                  String patientEmail,
+                                                  String doctorEmail);
 
-    Long getDoctorIdByEmail(String email);
+    ImagingRecord confirmDoctorReview(Long recordId, String doctorEmail, String conclusion, String recommendation);
 
-    List<DashboardDTO.QueueItemDTO> getPendingDTOsForDoctor(Long doctorId);
+    ImagingRecord rejectDoctorReview(Long recordId, String doctorEmail, String conclusion, String recommendation);
 
-    ImagingRecord getRecordDetail(Long recordId);
+    ImagingRecord updateRecordCoordinates(Long recordId, Integer bboxX, Integer bboxY, Integer bboxWidth, Integer bboxHeight);
 
-    Patient getPatientProfile(User user);
+    ImagingRecord getRecordById(Long recordId);
 
-    List<Patient> getAllPatients();
+    List<ImagingRecord> findRecordsUploadedByTechnician(String technicianEmail);
 
-    Patient getPatientById(Long patientId);
+    Page<ImagingRecord> searchConfirmedLibrary(String keyword, String bodyPart, Pageable pageable);
 }

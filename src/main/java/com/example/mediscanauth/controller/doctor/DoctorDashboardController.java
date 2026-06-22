@@ -4,13 +4,15 @@ import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.dto.DashboardDTO;
 import com.example.mediscanauth.service.ImagingRecordService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-
-import java.security.Principal;
-import java.util.List;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class DoctorDashboardController {
@@ -42,48 +44,54 @@ public class DoctorDashboardController {
         return "doctor/queue";
     }
 
-    @GetMapping("/doctor/records/pending")
-    public String pendingRecords(Model model, Principal principal) {
-        String email = principal.getName();
-        Long doctorId = imagingRecordService.getDoctorIdByEmail(email);
-
-        List<DashboardDTO.QueueItemDTO> pendingList = imagingRecordService.getPendingDTOsForDoctor(doctorId);
-
-        model.addAttribute("pendingRecords", pendingList);
-        model.addAttribute("queueCount", pendingList.size());
-
-        return "doctor/pending-list";
+    @PostMapping("/doctor/records/confirm")
+    public String confirm(Authentication authentication,
+                          @RequestParam Long recordId,
+                          @RequestParam(required = false) String conclusion,
+                          @RequestParam(required = false) String recommendation) {
+        imagingRecordService.confirmDoctorReview(recordId, authentication.getName(), conclusion, recommendation);
+        return "redirect:/doctor/library";
     }
 
-    @GetMapping("/doctor/records/{id}/review")
-    public String reviewDetail(@PathVariable Long id, Model model) {
-        ImagingRecord record = imagingRecordService.getRecordDetail(id);
-
-        Patient patientProfile = imagingRecordService.getPatientProfile(record.getPatient());
-
-        model.addAttribute("record", record);
-        model.addAttribute("profile", patientProfile); // Gửi thêm đối tượng profile
-
-        return "doctor/review-detail";
+    @PostMapping("/doctor/records/reject")
+    public String reject(Authentication authentication,
+                         @RequestParam Long recordId,
+                         @RequestParam(required = false) String conclusion,
+                         @RequestParam(required = false) String recommendation) {
+        imagingRecordService.rejectDoctorReview(recordId, authentication.getName(), conclusion, recommendation);
+        return "redirect:/doctor/queue";
     }
 
-    @GetMapping("/doctor/patients")
-    public String listPatients(Model model) {
-        List<Patient> patients = imagingRecordService.getAllPatients();
-        model.addAttribute("patients", patients);
-        return "doctor/patient-list";
+    @GetMapping("/doctor/library")
+    public String library(@RequestParam(required = false) String q,
+                          @RequestParam(required = false) String bodyPart,
+                          @RequestParam(defaultValue = "0") int page,
+                          @RequestParam(defaultValue = "8") int size,
+                          Model model) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1));
+        model.addAttribute("recordsPage", imagingRecordService.searchConfirmedLibrary(q, bodyPart, pageable));
+        model.addAttribute("q", q == null ? "" : q);
+        model.addAttribute("bodyPart", bodyPart == null ? "" : bodyPart);
+        model.addAttribute("bodyPartFilters", java.util.List.of("Cẳng tay", "Cổ tay", "Bàn tay", "Cẳng chân", "Cổ chân", "Bàn chân", "Xương sườn", "Vai", "Khuỷu tay", "Đầu gối"));
+        addModel(model);
+        return "doctor/library";
     }
 
-    @GetMapping("/doctor/patients/{id}")
-    public String patientDetail(@PathVariable Long id, Model model) {
-        Patient patient = imagingRecordService.getPatientById(id);
+    @GetMapping("/doctor/record/{recordId}")
+    public String recordDetail(@PathVariable Long recordId, Model model) {
+        model.addAttribute("record", imagingRecordService.getRecordById(recordId));
+        addModel(model);
+        return "doctor/record-detail";
+    }
 
-        List<ImagingRecord> records = imagingRecordService.findForPatient(patient.getUser());
-
-        model.addAttribute("profile", patient);
-        model.addAttribute("records", records);
-
-        return "doctor/patient-profile-detail";
+    @PostMapping("/doctor/record/{recordId}/coordinates")
+    public String saveRecordCoordinates(@PathVariable Long recordId,
+                                        @RequestParam(required = false) Integer bboxX,
+                                        @RequestParam(required = false) Integer bboxY,
+                                        @RequestParam(required = false) Integer bboxWidth,
+                                        @RequestParam(required = false) Integer bboxHeight) {
+        imagingRecordService.updateRecordCoordinates(recordId, bboxX, bboxY, bboxWidth, bboxHeight);
+        return "redirect:/doctor/record/" + recordId;
     }
 
     private void addModel(Model model) {
