@@ -42,4 +42,6 @@ public interface ImagingRecordService {
     List<ImagingRecord> findRecordsUploadedByTechnician(String technicianEmail);
 
     Page<ImagingRecord> searchConfirmedLibrary(String keyword, String bodyPart, Pageable pageable);
+
+    void clearNonConfirmedRecords();
 }

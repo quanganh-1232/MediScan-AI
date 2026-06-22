@@ -1,4 +1,5 @@
-<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <body>
     <header class="ms-app-header" th:fragment="header(portalName, roleLabel, roleClass)">
@@ -41,7 +42,8 @@
                                     <div class="d-flex justify-content-between gap-3">
                                         <div class="min-w-0">
                                             <div class="fw-semibold text-truncate" th:text="${n.title}">Tiêu đề</div>
-                                            <div class="small text-muted ms-notification-message" th:text="${n.message}">Nội dung</div>
+                                            <div class="small text-muted ms-notification-message" th:text="${n.message}">
+                                                Nội dung</div>
                                             <div class="small text-muted mt-1"
                                                 th:text="${n.createdAt != null ? #temporals.format(n.createdAt, 'HH:mm dd/MM/yyyy') : 'Vừa cập nhật'}">
                                                 08:30 12/06/2026</div>
@@ -71,7 +73,6 @@
                                 <div class="fw-semibold" sec:authentication="name">user@mediscan.ai</div>
                                 <div class="small text-muted" th:text="${roleLabel}">Role</div>
                             </div>
-                            
                             <a class="dropdown-item py-2" th:href="@{/home}">Tổng quan</a>
                             <a class="dropdown-item py-2" th:href="@{/profile}">Hồ sơ cá nhân</a>
                             <a class="dropdown-item py-2" th:href="@{/profile/edit}">Chỉnh sửa thông tin</a>
@@ -86,14 +87,6 @@
             </div>
         </div>
     </header>
-</body>
-</html>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </header>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             function pollNotifications() {
@@ -103,10 +96,9 @@
                         return response.json();
                     })
                     .then(data => {
-                        // Update unread count
                         const countEl = document.getElementById('header-unread-count');
                         const badgeEl = document.getElementById('header-unread-badge');
-                        
+
                         if (data.unreadCount > 0) {
                             if (countEl) countEl.textContent = data.unreadCount;
                             else {
@@ -118,15 +110,11 @@
                                 btn.appendChild(span);
                             }
                             if (badgeEl) badgeEl.textContent = data.unreadCount + ' mới';
-                            else {
-                                // Add badge if it was missing
-                            }
                         } else {
                             if (countEl) countEl.remove();
                             if (badgeEl) badgeEl.remove();
                         }
 
-                        // Update list
                         const listEl = document.getElementById('header-notification-list');
                         if (listEl && data.notifications) {
                             if (data.notifications.length === 0) {
@@ -156,14 +144,8 @@
                     .catch(err => console.error('Error polling notifications', err));
             }
 
-            // Poll every 30 seconds
             setInterval(pollNotifications, 30000);
         });
     </script>
 </body>
-<<<<<<< HEAD
 </html>
-=======
-
-</html>
->>>>>>> 9f8935cf28ec2fe31dd1f78a5d126d7f3e318809
