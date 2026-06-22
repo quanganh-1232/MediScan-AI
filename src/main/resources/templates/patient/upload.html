@@ -1,83 +1,72 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Chẩn đoán AI - MediScan AI</title>
+    <title>Patient Upload - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
-    <style>body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }</style>
 </head>
 <body>
 <div class="ms-shell">
-    <div th:replace="~{common/fragments/app-header :: header('Patient Portal', 'Bệnh nhân', 'ms-avatar-orange')}"></div>
-
+    <div th:replace="~{common/fragments/app-header :: header('Patient Portal', 'Bệnh nhân', 'ms-avatar-primary')}"></div>
     <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
         <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3">
-                <div th:replace="~{common/fragments/app-sidebar :: sidebar('patient', 'Patient Portal', 'Bệnh nhân', 'ms-avatar-orange', 'overview')}"></div>
-            </div>
-
+            <div class="col-12 col-xl-3"><div th:replace="~{common/fragments/app-sidebar :: sidebar('patient', 'Patient Portal', 'Bệnh nhân', 'ms-avatar-primary', 'upload-form')}"></div></div>
             <div class="col-12 col-xl-9">
-                <section class="ms-page-hero mb-4">
-                    <div>
-                        <span class="ms-pill ms-pill-success mb-3">Tính năng AI</span>
-                        <h1 class="ms-display display-6 mb-2">Chẩn đoán gãy xương bằng AI</h1>
-                        <p class="ms-subtle mb-0">Tải lên ảnh X-quang của bạn để công cụ AI của chúng tôi phân tích và đưa ra đánh giá tham khảo ban đầu.</p>
-                    </div>
+                
+                <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+                <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+                <section class="ms-page-hero mb-4"><div><span class="ms-pill ms-pill-success mb-3">Tải ảnh lên AI</span><h1 class="ms-display display-6 mb-2">Phân tích hình ảnh X-Ray</h1></div></section>
+                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
+                    <form id="uploadForm" th:action="@{/patient/upload}" method="post" enctype="multipart/form-data" onsubmit="showLoading()">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <div class="mb-4">
+                            <label class="ms-label" for="bodyPart">Vùng chụp (VD: Cánh tay, Xương sườn, v.v.)</label>
+                            <input id="bodyPart" name="bodyPart" class="form-control ms-input" required placeholder="Nhập vùng cơ thể...">
+                        </div>
+                        <div class="mb-4">
+                            <label class="ms-label" for="xrayImage">Tải lên ảnh X-Ray (.png, .jpg, .dcm)</label>
+                            <input type="file" id="xrayImage" name="xrayImage" class="form-control ms-input" accept=".png, .jpg, .jpeg, .dcm" required onchange="previewImage(event)">
+                            <div class="mt-3 text-center">
+                                <img id="imagePreview" src="#" alt="Preview" style="max-height: 300px; display: none; border-radius: 8px; border: 1px solid #ddd; padding: 5px;"/>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100">Gửi và Phân Tích</button>
+                    </form>
                 </section>
-
-                <div class="row g-4">
-                    <div class="col-lg-8">
-                        <section class="ms-card-solid rounded-5 p-4 p-lg-5">
-
-                            <div th:if="${errorMessage}" class="alert alert-danger rounded-4 mb-4" th:text="${errorMessage}"></div>
-
-                            <form th:action="@{/patient/upload}" method="post" enctype="multipart/form-data">
-
-                                <div class="mb-4">
-                                    <label for="bodyPart" class="form-label fw-bold text-secondary">Vùng xương (Bắt buộc):</label>
-                                    <select class="form-select form-select-lg rounded-4 border-2" id="bodyPart" name="bodyPart" required>
-                                        <option value="" disabled selected>-- Chọn vị trí cần chẩn đoán --</option>
-                                        <option value="Cổ tay (Wrist)">Cổ tay (Wrist)</option>
-                                        <option value="Cánh tay (Arm)">Cánh tay (Arm)</option>
-                                        <option value="Cẳng chân (Leg)">Cẳng chân (Leg)</option>
-                                        <option value="Xương sườn (Ribs)">Xương sườn (Ribs)</option>
-                                        <option value="Vị trí khác">Vị trí khác</option>
-                                    </select>
-                                </div>
-
-                                <div class="mb-4">
-                                    <label for="symptoms" class="form-label fw-bold text-secondary">Mô tả triệu chứng (Tùy chọn):</label>
-                                    <textarea class="form-control rounded-4 border-2" id="symptoms" name="symptoms" rows="3" placeholder="Ví dụ: Bị ngã xe đau nhức phần cổ tay..."></textarea>
-                                </div>
-
-                                <div class="mb-5">
-                                    <label for="file" class="form-label fw-bold text-secondary">Ảnh X-Quang (Bắt buộc):</label>
-                                    <input class="form-control form-control-lg rounded-4 border-2" type="file" id="file" name="file" accept="image/png, image/jpeg" required>
-                                    <div class="form-text text-muted mt-2 small">Định dạng hỗ trợ: JPG, PNG. Ảnh cần rõ nét.</div>
-                                </div>
-
-                                <div class="alert alert-warning rounded-4 mb-4 small">
-                                    <strong>Lưu ý:</strong> Kết quả phân tích từ AI chỉ mang tính chất tham khảo. Xin vui lòng tham vấn ý kiến bác sĩ chuyên khoa để có kết luận chính thức.
-                                </div>
-
-                                <div class="d-flex gap-3 justify-content-end">
-                                    <a th:href="@{/patient/dashboard}" class="btn btn-lg btn-light rounded-4 px-4">Hủy</a>
-                                    <button type="submit" class="btn btn-lg btn-success rounded-4 px-4 text-white fw-semibold" style="background-color: #198754;">Bắt đầu phân tích AI</button>
-                                </div>
-                            </form>
-                        </section>
-                    </div>
-                </div>
             </div>
         </div>
     </main>
 </div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
+    <div class="spinner-border text-success" style="width: 4rem; height: 4rem;" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <h3 class="text-white mt-4" style="font-weight: 600;">Đang phân tích hình ảnh AI...</h3>
+    <p class="text-light">Vui lòng đợi trong giây lát</p>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+}
+function previewImage(event) {
+    var reader = new FileReader();
+    reader.onload = function(){
+        var output = document.getElementById('imagePreview');
+        output.src = reader.result;
+        output.style.display = 'inline-block';
+    };
+    if (event.target.files[0]) {
+        reader.readAsDataURL(event.target.files[0]);
+    }
+}
+</script>
 </body>
 </html>
