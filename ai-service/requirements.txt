@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+numpy
+opencv-python
+pydicom
+Pillow
+matplotlib
+ultralytics
+scikit-fuzzy

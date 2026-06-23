@@ -136,11 +136,37 @@ body {
 .ms-app-header {
     position: sticky;
     top: 0;
-    z-index: 20;
-    padding: 0.6rem 0;
-    background: rgba(248, 251, 255, 0.88);
-    border-bottom: 1px solid var(--ms-border);
-    backdrop-filter: blur(18px);
+    z-index: 1000;
+    padding: 0.75rem 0;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+    box-shadow: 0 4px 30px rgba(15, 23, 42, 0.03);
+    color: var(--ms-text);
+    transition: all 0.3s ease;
+}
+
+.ms-account-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3rem;
+    max-width: 18rem;
+    padding: 0.35rem 0.65rem 0.35rem 0.4rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--ms-text);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.02);
+}
+
+.ms-account-btn:hover,
+.ms-account-btn:focus {
+    border-color: rgba(15, 118, 110, 0.2);
+    box-shadow: 0 4px 15px rgba(15, 118, 110, 0.06);
+    transform: translateY(-1px);
 }
 
 .ms-topbar {
@@ -158,6 +184,13 @@ body {
 }
 
 .ms-account-dropdown {
+    min-width: 0;
+}
+
+.ms-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
     min-width: 0;
 }
 
@@ -213,23 +246,7 @@ body {
     background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.92));
 }
 
-.ms-account-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-height: 3rem;
-    max-width: 18rem;
-    padding: 0.35rem 0.55rem;
-    border: 1px solid var(--ms-border);
-    border-radius: 999px;
-    background: #ffffff;
-}
 
-.ms-account-btn:hover,
-.ms-account-btn:focus {
-    border-color: rgba(15, 118, 110, 0.26);
-    box-shadow: 0 0 0 0.2rem rgba(15, 118, 110, 0.08);
-}
 
 .ms-dropdown-panel {
     min-width: 19rem;
@@ -246,6 +263,103 @@ body {
 
 .ms-notification-item:hover {
     background: rgba(15, 118, 110, 0.06);
+}
+
+.ms-notification-panel {
+    width: min(23rem, calc(100vw - 2rem));
+}
+
+.ms-icon-btn {
+    position: relative;
+    width: 3rem;
+    height: 3rem;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #ffffff;
+    color: var(--ms-primary-strong);
+    font-weight: 800;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.02);
+}
+
+.ms-icon-btn:hover,
+.ms-icon-btn:focus {
+    border-color: rgba(15, 118, 110, 0.2);
+    color: var(--ms-primary);
+}
+
+.ms-bell-mark {
+    width: 1.45rem;
+    height: 1.45rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(15, 118, 110, 0.1);
+    line-height: 1;
+}
+
+.ms-notification-count {
+    position: absolute;
+    top: -0.25rem;
+    right: -0.25rem;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.25rem;
+    border-radius: 999px;
+    background: var(--ms-danger);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    border: 2px solid #ffffff;
+}
+
+.ms-notification-message {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ms-unread-dot {
+    flex: 0 0 auto;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-top: 0.45rem;
+    border-radius: 999px;
+    background: var(--ms-warning);
+}
+
+.ms-home-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+    gap: 1.5rem;
+    align-items: stretch;
+    padding: clamp(1.5rem, 3vw, 3rem);
+    border-radius: 28px;
+    border: 1px solid var(--ms-border);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(240, 253, 250, 0.92)),
+        linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(37, 99, 235, 0.08));
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+}
+
+.ms-home-hero-copy {
+    max-width: 50rem;
+}
+
+.ms-home-hero-status {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 1.25rem;
+    border-radius: 22px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 118, 110, 0.12);
 }
 
 .ms-page-hero {
@@ -525,6 +639,19 @@ body {
 
     .ms-dropdown-panel {
         min-width: 17rem;
+    }
+
+    .ms-home-hero {
+        grid-template-columns: 1fr;
+        border-radius: 24px;
+    }
+
+    .ms-header-actions {
+        gap: 0.4rem;
+    }
+
+    .ms-account-btn {
+        max-width: 8rem;
     }
 }
 
