@@ -45,6 +45,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             user.setRole(roleService.getOrCreatePatientRole());
             user.setStatus("ACTIVE");
             user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+        } else if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+            throw new OAuth2AuthenticationException("This account is locked or inactive.");
         }
 
         user.setFullName(defaultString(oauthUser.getAttribute("name"), email));
