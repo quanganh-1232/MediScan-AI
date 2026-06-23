@@ -134,7 +134,8 @@ public class AdminDashboardController {
 
         model.addAttribute("userPage", userPage);
         model.addAttribute("users", userPage.getContent());
-        model.addAttribute("roles", userAdminService.getAssignableRoles());
+        model.addAttribute("roleFilters", userAdminService.getRoleFilters());
+        model.addAttribute("assignableRoles", userAdminService.getAssignableRoles());
         model.addAttribute("keyword", keyword == null ? "" : keyword);
         model.addAttribute("selectedRole", role == null ? "" : role);
         model.addAttribute("selectedStatus", status == null ? "" : status);

@@ -21,7 +21,7 @@
                     <div>
                         <span class="ms-pill ms-pill-danger mb-3">Admin workspace</span>
                         <h1 class="ms-display display-6 mb-2">Manage User Accounts</h1>
-                        <p class="ms-subtle mb-0">View users, search accounts, assign roles, and lock or unlock access.</p>
+                        <p class="ms-subtle mb-0">View users, search accounts, promote or downgrade clinical roles, and lock or unlock access.</p>
                     </div>
                     <div class="ms-readonly-note">
                         <div class="fw-bold">Patient, Technician, Doctor Accounts</div>
@@ -79,7 +79,7 @@
                             <label for="role" class="ms-label">Role</label>
                             <select id="role" name="role" class="form-select ms-input">
                                 <option value="">All roles</option>
-                                <option th:each="role : ${roles}"
+                                <option th:each="role : ${roleFilters}"
                                         th:value="${role.roleName}"
                                         th:text="${role.roleName}"
                                         th:selected="${role.roleName == selectedRole}">PATIENT</option>
@@ -119,6 +119,17 @@
                                 <td th:text="${u.email}">email</td>
                                 <td>
                                     <span class="ms-badge ms-badge-soft" th:text="${u.role != null ? u.role.roleName : 'NO_ROLE'}">PATIENT</span>
+                                    <form th:action="@{/admin/users/{id}/role(id=${u.userId})}"
+                                          method="post"
+                                          class="d-flex flex-column flex-md-row gap-2 mt-2">
+                                        <select name="roleName" class="form-select form-select-sm ms-input">
+                                            <option th:each="role : ${assignableRoles}"
+                                                    th:value="${role.roleName}"
+                                                    th:text="${role.roleName}"
+                                                    th:selected="${u.role != null && role.roleName == u.role.roleName}">PATIENT</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">Assign</button>
+                                    </form>
                                 </td>
                                 <td>
                                     <span class="ms-badge"
@@ -195,10 +206,10 @@
                         </div>
                         <div class="col-12 col-lg-6">
                             <form th:action="@{/admin/users/{id}/role(id=${selectedUser.userId})}" method="post" class="mb-3">
-                                <label class="ms-label" for="roleName">Assign User Role</label>
+                                <label class="ms-label" for="roleName">Assign Clinical Role</label>
                                 <div class="input-group">
                                     <select id="roleName" name="roleName" class="form-select ms-input">
-                                        <option th:each="role : ${roles}"
+                                        <option th:each="role : ${assignableRoles}"
                                                 th:value="${role.roleName}"
                                                 th:text="${role.roleName}"
                                                 th:selected="${selectedUser.role != null && role.roleName == selectedUser.role.roleName}">PATIENT</option>

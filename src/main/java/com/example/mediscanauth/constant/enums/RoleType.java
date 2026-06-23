@@ -1,5 +1,5 @@
 package com.example.mediscanauth.constant.enums;
 
 public enum RoleType {
-    ADMIN, SALE, AGENT, CUSTOMER
+    ADMIN, DOCTOR, TECHNICIAN, PATIENT
 }

@@ -2,6 +2,7 @@ package com.example.mediscanauth.service.impl;
 
 import com.example.mediscanauth.constant.enums.FilterLogicType;
 import com.example.mediscanauth.constant.enums.FilterOperation;
+import com.example.mediscanauth.constant.enums.RoleType;
 import com.example.mediscanauth.constant.enums.SortDirection;
 import com.example.mediscanauth.dto.request.BaseFilterRequest;
 import com.example.mediscanauth.dto.request.FilterCriteria;
@@ -21,12 +22,23 @@ import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class UserAdminService extends BaseServiceImpl<User, Long> {
 
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_LOCKED = "LOCKED";
+    private static final List<RoleType> ASSIGNABLE_ACCOUNT_ROLES = List.of(
+            RoleType.DOCTOR,
+            RoleType.TECHNICIAN,
+            RoleType.PATIENT
+    );
+    private static final Map<RoleType, String> ROLE_DESCRIPTIONS = Map.of(
+            RoleType.DOCTOR, "Doctor who reviews AI results",
+            RoleType.TECHNICIAN, "Technician who creates imaging records",
+            RoleType.PATIENT, "Patient who views medical records"
+    );
 
     private final RoleRepository roleRepository;
 
@@ -59,8 +71,16 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<Role> getAssignableRoles() {
+        return ASSIGNABLE_ACCOUNT_ROLES.stream()
+                .map(this::getOrCreateAssignableRole)
+                .toList();
+    }
+
+    @Transactional
+    public List<Role> getRoleFilters() {
+        ensureAssignableRolesExist();
         return roleRepository.findAll(Sort.by(Sort.Direction.ASC, "roleName"));
     }
 
@@ -88,10 +108,10 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
     public User assignUserRole(Long userId, String roleName, String currentAdminEmail) {
         User user = getUserDetail(userId);
         String normalizedRoleName = normalizeRoleName(roleName);
+        RoleType requestedRole = parseAssignableRole(normalizedRoleName);
         preventSelfDemotion(user, normalizedRoleName, currentAdminEmail);
 
-        Role role = roleRepository.findByRoleName(normalizedRoleName)
-                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + normalizedRoleName));
+        Role role = getOrCreateAssignableRole(requestedRole);
         user.setRole(role);
         return update(user);
     }
@@ -170,7 +190,11 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
     }
 
     private String normalizeRoleName(String roleName) {
-        return normalizeText(roleName).toUpperCase(Locale.ROOT);
+        String normalizedRoleName = normalizeText(roleName).toUpperCase(Locale.ROOT);
+        return switch (normalizedRoleName) {
+            case "TECH", "TECHNICAN", "TECHINICAN" -> RoleType.TECHNICIAN.name();
+            default -> normalizedRoleName;
+        };
     }
 
     private int safePage(Integer page) {
@@ -201,5 +225,23 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
 
     private boolean isSameUser(User user, String email) {
         return user.getEmail() != null && user.getEmail().equalsIgnoreCase(normalizeText(email));
+    }
+
+    private void ensureAssignableRolesExist() {
+        ASSIGNABLE_ACCOUNT_ROLES.forEach(this::getOrCreateAssignableRole);
+    }
+
+    private Role getOrCreateAssignableRole(RoleType roleType) {
+        return roleRepository.findByRoleName(roleType.name())
+                .orElseGet(() -> roleRepository.save(new Role(null, roleType.name(), ROLE_DESCRIPTIONS.get(roleType))));
+    }
+
+    private RoleType parseAssignableRole(String roleName) {
+        for (RoleType roleType : ASSIGNABLE_ACCOUNT_ROLES) {
+            if (roleType.name().equals(roleName)) {
+                return roleType;
+            }
+        }
+        throw new IllegalArgumentException("Only DOCTOR, TECHNICIAN, or PATIENT can be assigned from this page.");
     }
 }
