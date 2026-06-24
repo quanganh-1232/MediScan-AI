@@ -63,7 +63,8 @@
           <div class="modal-body p-4">
               <div class="row g-4 align-items-center">
                   <div class="col-md-5 text-center">
-                      <img th:src="${newRecord.aiPrediction != null ? '/uploads/annotated_' + newRecord.fileName : '/uploads/' + newRecord.fileName}" class="img-fluid rounded-4" style="max-height: 250px; object-fit: contain;" alt="Result Image">
+                      <img th:if="${newRecord.aiPrediction != null}" th:src="@{'/uploads/annotated_' + ${newRecord.fileName}}" class="img-fluid rounded-4" style="max-height: 250px; object-fit: contain;" alt="Annotated Result">
+                      <img th:if="${newRecord.aiPrediction == null}" th:src="@{'/uploads/' + ${newRecord.fileName}}" class="img-fluid rounded-4" style="max-height: 250px; object-fit: contain;" alt="Original Image">
                   </div>
                   <div class="col-md-7">
                       <div class="mb-3">
