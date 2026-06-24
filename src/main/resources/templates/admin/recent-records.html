@@ -13,7 +13,7 @@
     <div th:replace="~{common/fragments/app-header :: header('Admin Center', 'Quản trị viên', 'ms-avatar-primary')}"></div>
     <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
         <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3" th:replace="~{common/fragments/app-sidebar :: sidebar('admin', 'Admin Center', 'Quản trị viên', 'ms-avatar-primary', 'recent-records')}"></div>
+            <div class="col-12 col-xl-3"><div th:replace="~{common/fragments/app-sidebar :: sidebar('admin', 'Admin Center', 'Quản trị viên', 'ms-avatar-primary', 'recent-records')}"></div></div>
             <div class="col-12 col-xl-9">
                 <section class="ms-page-hero mb-4">
                     <div>
@@ -26,7 +26,6 @@
                         <li class="ms-activity-item" th:each="record : ${recentRecords}">
                             <div class="fw-bold" th:text="${record.recordCode}">XR</div>
                             <div class="small text-muted" th:text="${record.patient.fullName + ' - ' + record.bodyPart}">Patient</div>
-                            <span class="ms-badge ms-badge-soft mt-2 d-inline-flex" th:text="${record.status}">PENDING_AI</span>
                         </li>
                     </ul>
                     <div th:if="${#lists.isEmpty(recentRecords)}" class="text-muted">Chưa có hồ sơ chụp.</div>

@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Users - MediScan AI</title>
+    <title>Manage User Accounts - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -10,32 +10,219 @@
 </head>
 <body>
 <div class="ms-shell">
-    <div th:replace="~{common/fragments/app-header :: header('Admin Center', 'Quản trị viên', 'ms-avatar-primary')}"></div>
+    <div th:replace="~{common/fragments/app-header :: header('Admin Center', 'Administrator', 'ms-avatar-primary')}"></div>
+
     <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
         <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3" th:replace="~{common/fragments/app-sidebar :: sidebar('admin', 'Admin Center', 'Quản trị viên', 'ms-avatar-primary', 'users')}"></div>
+            <div class="col-12 col-xl-3" th:replace="~{common/fragments/app-sidebar :: sidebar('admin', 'Admin Center', 'Administrator', 'ms-avatar-primary', 'users')}"></div>
+
             <div class="col-12 col-xl-9">
                 <section class="ms-page-hero mb-4">
                     <div>
-                        <span class="ms-pill ms-pill-danger mb-3">Admin users</span>
-                        <h1 class="ms-display display-6 mb-2">Quản lý tài khoản</h1>
+                        <span class="ms-pill ms-pill-danger mb-3">Admin workspace</span>
+                        <h1 class="ms-display display-6 mb-2">Manage User Accounts</h1>
+                        <p class="ms-subtle mb-0">View users, search accounts, assign roles, and lock or unlock access.</p>
+                    </div>
+                    <div class="ms-readonly-note">
+                        <div class="fw-bold">Patient, Technician, Doctor Accounts</div>
+                        <div class="small text-muted">All user list and search actions are handled through UserAdminService.filter.</div>
                     </div>
                 </section>
-                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
+
+                <div th:if="${success}" class="alert alert-success border-0 shadow-sm" th:text="${success}"></div>
+                <div th:if="${error}" class="alert alert-danger border-0 shadow-sm" th:text="${error}"></div>
+
+                <section class="mb-4">
+                    <div class="row g-3 g-lg-4">
+                        <div class="col-6 col-xl-3">
+                            <div class="ms-metric h-100">
+                                <div class="ms-metric-label">Total users</div>
+                                <div class="ms-metric-number" th:text="${totalUserCount}">0</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-xl-3">
+                            <div class="ms-metric h-100">
+                                <div class="ms-metric-label">Active accounts</div>
+                                <div class="ms-metric-number" th:text="${activeUserCount}">0</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-xl-3">
+                            <div class="ms-metric h-100">
+                                <div class="ms-metric-label">Locked accounts</div>
+                                <div class="ms-metric-number" th:text="${lockedUserCount}">0</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-xl-3">
+                            <div class="ms-metric h-100">
+                                <div class="ms-metric-label">Filtered result</div>
+                                <div class="ms-metric-number" th:text="${userPage.totalElements}">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="ms-card-solid rounded-5 p-4 p-lg-5 mb-4">
+                    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+                        <div>
+                            <h2 class="ms-section-title h4 mb-1">User list</h2>
+                            <p class="text-muted mb-0">Search by full name, email, or phone; filter by role and account status.</p>
+                        </div>
+                    </div>
+
+                    <form th:action="@{/admin/users}" method="get" class="row g-3 align-items-end mb-4">
+                        <div class="col-12 col-lg-5">
+                            <label for="keyword" class="ms-label">Search user</label>
+                            <input id="keyword" name="keyword" class="form-control ms-input"
+                                   placeholder="Name, email, or phone" th:value="${keyword}">
+                        </div>
+                        <div class="col-6 col-lg-3">
+                            <label for="role" class="ms-label">Role</label>
+                            <select id="role" name="role" class="form-select ms-input">
+                                <option value="">All roles</option>
+                                <option th:each="role : ${roles}"
+                                        th:value="${role.roleName}"
+                                        th:text="${role.roleName}"
+                                        th:selected="${role.roleName == selectedRole}">PATIENT</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-lg-2">
+                            <label for="status" class="ms-label">Status</label>
+                            <select id="status" name="status" class="form-select ms-input">
+                                <option value="">All</option>
+                                <option value="ACTIVE" th:selected="${selectedStatus == 'ACTIVE'}">ACTIVE</option>
+                                <option value="LOCKED" th:selected="${selectedStatus == 'LOCKED'}">LOCKED</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-lg-2 d-grid gap-2">
+                            <button type="submit" class="btn ms-btn ms-btn-primary text-white">Search</button>
+                            <a th:href="@{/admin/users}" class="btn ms-btn ms-btn-ghost text-dark border-secondary bg-white">Reset</a>
+                        </div>
+                    </form>
+
                     <div class="table-responsive">
                         <table class="ms-table">
-                            <thead><tr><th>Người dùng</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th></tr></thead>
+                            <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                            </thead>
                             <tbody>
                             <tr th:each="u : ${users}">
-                                <td><div class="fw-bold" th:text="${u.fullName}">User</div><div class="small text-muted" th:text="${u.phone != null ? u.phone : 'Chưa cập nhật SĐT'}"></div></td>
+                                <td>
+                                    <div class="fw-bold" th:text="${u.fullName}">User</div>
+                                    <div class="small text-muted" th:text="${u.phone != null && !u.phone.isBlank() ? u.phone : 'No phone'}">No phone</div>
+                                </td>
                                 <td th:text="${u.email}">email</td>
-                                <td><span class="ms-badge ms-badge-soft" th:text="${u.role.roleName}">PATIENT</span></td>
-                                <td><span class="ms-badge" th:classappend="${u.status == 'ACTIVE'} ? ' ms-badge-success' : ' ms-badge-danger'" th:text="${u.status}">ACTIVE</span></td>
+                                <td>
+                                    <span class="ms-badge ms-badge-soft" th:text="${u.role != null ? u.role.roleName : 'NO_ROLE'}">PATIENT</span>
+                                </td>
+                                <td>
+                                    <span class="ms-badge"
+                                          th:classappend="${u.status == 'ACTIVE'} ? ' ms-badge-success' : ' ms-badge-danger'"
+                                          th:text="${u.status}">ACTIVE</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+                                        <a class="btn btn-sm btn-outline-primary"
+                                           th:href="@{/admin/users/{id}(id=${u.userId}, keyword=${keyword}, role=${selectedRole}, status=${selectedStatus}, page=${userPage.number})}">
+                                            Detail
+                                        </a>
+                                        <form th:if="${u.status == 'ACTIVE'}" th:action="@{/admin/users/{id}/lock(id=${u.userId})}" method="post">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Lock</button>
+                                        </form>
+                                        <form th:if="${u.status != 'ACTIVE'}" th:action="@{/admin/users/{id}/unlock(id=${u.userId})}" method="post">
+                                            <button type="submit" class="btn btn-sm btn-outline-success">Unlock</button>
+                                        </form>
+                                    </div>
+                                </td>
                             </tr>
-                            <tr th:if="${#lists.isEmpty(users)}"><td colspan="4" class="text-center text-muted py-4">Chưa có user nào.</td></tr>
+                            <tr th:if="${#lists.isEmpty(users)}">
+                                <td colspan="5" class="text-center text-muted py-4">No users found.</td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>
+
+                    <nav th:if="${userPage.totalPages > 1}" class="mt-4" aria-label="User pages">
+                        <ul class="pagination justify-content-end mb-0">
+                            <li class="page-item" th:classappend="${userPage.first} ? ' disabled' : ''">
+                                <a class="page-link"
+                                   th:href="@{/admin/users(keyword=${keyword}, role=${selectedRole}, status=${selectedStatus}, page=${userPage.number - 1})}">Previous</a>
+                            </li>
+                            <li class="page-item"
+                                th:each="p : ${#numbers.sequence(0, userPage.totalPages - 1)}"
+                                th:classappend="${p == userPage.number} ? ' active' : ''">
+                                <a class="page-link"
+                                   th:href="@{/admin/users(keyword=${keyword}, role=${selectedRole}, status=${selectedStatus}, page=${p})}"
+                                   th:text="${p + 1}">1</a>
+                            </li>
+                            <li class="page-item" th:classappend="${userPage.last} ? ' disabled' : ''">
+                                <a class="page-link"
+                                   th:href="@{/admin/users(keyword=${keyword}, role=${selectedRole}, status=${selectedStatus}, page=${userPage.number + 1})}">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </section>
+
+                <section class="ms-card-solid rounded-5 p-4 p-lg-5" th:if="${selectedUser != null}">
+                    <div class="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3 mb-4">
+                        <div>
+                            <span class="ms-pill ms-pill-soft mb-3">View User Detail</span>
+                            <h2 class="ms-section-title h4 mb-1" th:text="${selectedUser.fullName}">Selected User</h2>
+                            <p class="text-muted mb-0" th:text="${selectedUser.email}">user@mediscan.ai</p>
+                        </div>
+                        <span class="ms-badge"
+                              th:classappend="${selectedUser.status == 'ACTIVE'} ? ' ms-badge-success' : ' ms-badge-danger'"
+                              th:text="${selectedUser.status}">ACTIVE</span>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-12 col-lg-6">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4 text-muted">User ID</dt>
+                                <dd class="col-sm-8" th:text="${selectedUser.userId}">1</dd>
+                                <dt class="col-sm-4 text-muted">Phone</dt>
+                                <dd class="col-sm-8" th:text="${selectedUser.phone != null && !selectedUser.phone.isBlank() ? selectedUser.phone : 'No phone'}">No phone</dd>
+                                <dt class="col-sm-4 text-muted">Provider</dt>
+                                <dd class="col-sm-8" th:text="${selectedUser.authProvider}">LOCAL</dd>
+                                <dt class="col-sm-4 text-muted">Created at</dt>
+                                <dd class="col-sm-8" th:text="${selectedUser.createdAt != null ? #temporals.format(selectedUser.createdAt, 'yyyy-MM-dd HH:mm') : 'N/A'}">N/A</dd>
+                            </dl>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <form th:action="@{/admin/users/{id}/role(id=${selectedUser.userId})}" method="post" class="mb-3">
+                                <label class="ms-label" for="roleName">Assign User Role</label>
+                                <div class="input-group">
+                                    <select id="roleName" name="roleName" class="form-select ms-input">
+                                        <option th:each="role : ${roles}"
+                                                th:value="${role.roleName}"
+                                                th:text="${role.roleName}"
+                                                th:selected="${selectedUser.role != null && role.roleName == selectedUser.role.roleName}">PATIENT</option>
+                                    </select>
+                                    <button type="submit" class="btn ms-btn ms-btn-primary text-white">Assign</button>
+                                </div>
+                            </form>
+
+                            <form th:if="${selectedUser.status == 'ACTIVE'}"
+                                  th:action="@{/admin/users/{id}/lock(id=${selectedUser.userId})}"
+                                  method="post">
+                                <button type="submit" class="btn ms-btn btn-outline-danger w-100">Lock Account</button>
+                            </form>
+                            <form th:if="${selectedUser.status != 'ACTIVE'}"
+                                  th:action="@{/admin/users/{id}/unlock(id=${selectedUser.userId})}"
+                                  method="post">
+                                <button type="submit" class="btn ms-btn btn-outline-success w-100">Unlock Account</button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="ms-card-solid rounded-5 p-4 p-lg-5 text-center text-muted" th:if="${selectedUser == null}">
+                    Select a user to view account detail, assign role, or lock and unlock access.
                 </section>
             </div>
         </div>

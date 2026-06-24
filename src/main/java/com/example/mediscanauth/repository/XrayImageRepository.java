@@ -9,5 +9,4 @@ public interface XrayImageRepository extends JpaRepository<XrayImage, Long> {
     List<XrayImage> findTop10ByOrderByUploadedAtDesc();
 
     long countByStatus(String status);
-    void deleteByRecord(com.example.mediscanauth.model.MedicalRecord record);
 }
