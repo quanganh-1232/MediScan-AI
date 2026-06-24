@@ -40,6 +40,9 @@ public class ImagingRecord {
     @Column(name = "ai_confidence")
     private Integer aiConfidence;
 
+    @Column(name = "risk_level", length = 50)
+    private String riskLevel;
+
     @Column(name = "doctor_conclusion", columnDefinition = "text")
     private String doctorConclusion;
 
@@ -146,6 +149,14 @@ public class ImagingRecord {
 
     public void setAiConfidence(Integer aiConfidence) {
         this.aiConfidence = aiConfidence;
+    }
+
+    public String getRiskLevel() {
+        return riskLevel;
+    }
+
+    public void setRiskLevel(String riskLevel) {
+        this.riskLevel = riskLevel;
     }
 
     public String getDoctorConclusion() {
