@@ -45,7 +45,7 @@ public class PatientDashboardController {
     @GetMapping("/patient/records")
     public String records(Authentication authentication, Model model,
                           @RequestParam(defaultValue = "0") int page,
-                          @RequestParam(defaultValue = "10") int size,
+                          @RequestParam(defaultValue = "5") int size,
                           @RequestParam(required = false) String keyword,
                           @RequestParam(required = false) String bodyPart) {
         User patient = userAccountService.findByEmail(authentication.getName());
