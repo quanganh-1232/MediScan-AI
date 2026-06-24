@@ -42,7 +42,6 @@ public class ImagingRecord {
 
     @Column(name = "risk_level", length = 50)
     private String riskLevel;
-
     @Column(name = "doctor_conclusion", columnDefinition = "text")
     private String doctorConclusion;
 
