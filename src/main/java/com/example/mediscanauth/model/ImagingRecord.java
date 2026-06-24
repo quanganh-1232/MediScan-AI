@@ -34,16 +34,19 @@ public class ImagingRecord {
     @Column(name = "file_name", length = 180)
     private String fileName;
 
-    @Column(name = "ai_prediction", length = 180)
+    @Column(name = "ai_prediction", columnDefinition = "text")
     private String aiPrediction;
 
     @Column(name = "ai_confidence")
     private Integer aiConfidence;
 
-    @Column(name = "doctor_conclusion", length = 500)
+    @Column(name = "risk_level", length = 50)
+    private String riskLevel;
+
+    @Column(name = "doctor_conclusion", columnDefinition = "text")
     private String doctorConclusion;
 
-    @Column(name = "recommendation", length = 500)
+    @Column(name = "recommendation", columnDefinition = "text")
     private String recommendation;
 
     @Column(name = "status", nullable = false, length = 40)
@@ -54,6 +57,21 @@ public class ImagingRecord {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
+    @Column(name = "bbox_x")
+    private Integer bboxX;
+
+    @Column(name = "bbox_y")
+    private Integer bboxY;
+
+    @Column(name = "bbox_width")
+    private Integer bboxWidth;
+
+    @Column(name = "bbox_height")
+    private Integer bboxHeight;
 
     @PrePersist
     void prePersist() {
@@ -133,6 +151,14 @@ public class ImagingRecord {
         this.aiConfidence = aiConfidence;
     }
 
+    public String getRiskLevel() {
+        return riskLevel;
+    }
+
+    public void setRiskLevel(String riskLevel) {
+        this.riskLevel = riskLevel;
+    }
+
     public String getDoctorConclusion() {
         return doctorConclusion;
     }
@@ -167,5 +193,45 @@ public class ImagingRecord {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getConfirmedAt() {
+        return confirmedAt;
+    }
+
+    public void setConfirmedAt(LocalDateTime confirmedAt) {
+        this.confirmedAt = confirmedAt;
+    }
+
+    public Integer getBboxX() {
+        return bboxX;
+    }
+
+    public void setBboxX(Integer bboxX) {
+        this.bboxX = bboxX;
+    }
+
+    public Integer getBboxY() {
+        return bboxY;
+    }
+
+    public void setBboxY(Integer bboxY) {
+        this.bboxY = bboxY;
+    }
+
+    public Integer getBboxWidth() {
+        return bboxWidth;
+    }
+
+    public void setBboxWidth(Integer bboxWidth) {
+        this.bboxWidth = bboxWidth;
+    }
+
+    public Integer getBboxHeight() {
+        return bboxHeight;
+    }
+
+    public void setBboxHeight(Integer bboxHeight) {
+        this.bboxHeight = bboxHeight;
     }
 }

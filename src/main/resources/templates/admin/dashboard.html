@@ -1,120 +1,84 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-
 <head>
     <meta charset="UTF-8">
     <title>Admin Dashboard - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-        }
-    </style>
+    <style>body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }</style>
 </head>
-
 <body>
-    <div class="ms-shell">
-        <div
-            th:replace="~{common/fragments/app-header :: header('Admin Center', 'Quản trị viên', 'ms-avatar-primary')}">
-        </div>
+<div class="ms-shell">
+    <div th:replace="~{common/fragments/app-header :: header('Admin Center', 'Quản trị viên', 'ms-avatar-primary')}"></div>
 
-        <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
-            <div class="row g-4 align-items-start">
-                <div class="col-12 col-xl-3">
-                    <div
-                        th:replace="~{common/fragments/app-sidebar :: sidebar('admin', 'Admin Center', 'Quản trị viên', 'ms-avatar-primary', 'overview')}">
+    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
+        <div class="row g-4 align-items-start">
+            <div class="col-12 col-xl-3">
+                <div th:replace="~{common/fragments/app-sidebar :: sidebar('admin', 'Admin Center', 'Quản trị viên', 'ms-avatar-primary', 'overview')}"></div>
+            </div>
+
+            <div class="col-12 col-xl-9">
+                <section id="overview" class="ms-page-hero mb-4">
+                    <div>
+                        <span class="ms-pill ms-pill-danger mb-3">Bảng điều khiển quản trị</span>
+                        <h1 class="ms-display display-6 mb-2">Giám sát dữ liệu hệ thống</h1>
+                        <p class="ms-subtle mb-0">Tổng quan bên trái là các khu vực quan trọng. Bấm từng mục để đi thẳng đến phần cần xem.</p>
                     </div>
-                </div>
+                    <div class="ms-readonly-note">
+                        <div class="fw-bold">Database driven</div>
+                        <div class="small text-muted">Thêm user hoặc hồ sơ chụp mới thì metric sẽ tự tăng.</div>
+                    </div>
+                </section>
 
-                <div class="col-12 col-xl-9">
+                <section id="metrics" class="mb-4">
+                    <div class="row g-3 g-lg-4">
+                        <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Người dùng hoạt động</div><div class="ms-metric-number" th:text="${activeUserCount}">0</div><div class="text-muted small mt-2">users.status = ACTIVE</div></div></div>
+                        <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Ca chờ xử lý</div><div class="ms-metric-number" th:text="${queueCount}">0</div><div class="text-muted small mt-2">PENDING_AI / AI_DONE / PENDING_DOCTOR</div></div></div>
+                        <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Ca chụp hôm nay</div><div class="ms-metric-number" th:text="${todayRecordCount}">0</div><div class="text-muted small mt-2">imaging_records.captured_at</div></div></div>
+                        <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Tổng hồ sơ chụp</div><div class="ms-metric-number" th:text="${totalRecordCount}">0</div><div class="text-muted small mt-2">Toàn bộ imaging_records</div></div></div>
+                    </div>
+                </section>
 
-                    <section id="metrics" class="mb-4">
-                        <div class="row g-3 g-lg-4">
-                            <div class="col-6 col-xl-3">
-                                <div class="ms-metric h-100">
-                                    <div class="ms-metric-label">Người dùng hoạt động</div>
-                                    <div class="ms-metric-number" th:text="${activeUserCount}">0</div>
-                                </div>
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <section id="users" class="ms-card-solid rounded-5 p-4 p-lg-5 h-100">
+                            <h2 class="ms-section-title h4 mb-4">Quản lý tài khoản</h2>
+                            <div class="table-responsive">
+                                <table class="ms-table">
+                                    <thead><tr><th>Người dùng</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th></tr></thead>
+                                    <tbody>
+                                    <tr th:each="u : ${users}">
+                                        <td><div class="fw-bold" th:text="${u.fullName}">User</div><div class="small text-muted" th:text="${u.phone != null ? u.phone : 'Chưa cập nhật SĐT'}"></div></td>
+                                        <td th:text="${u.email}">email</td>
+                                        <td><span class="ms-badge ms-badge-soft" th:text="${u.role.roleName}">PATIENT</span></td>
+                                        <td><span class="ms-badge" th:classappend="${u.status == 'ACTIVE'} ? ' ms-badge-success' : ' ms-badge-danger'" th:text="${u.status}">ACTIVE</span></td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(users)}"><td colspan="4" class="text-center text-muted py-4">Chưa có user nào.</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="col-6 col-xl-3">
-                                <div class="ms-metric h-100">
-                                    <div class="ms-metric-label">Ca chờ xử lý</div>
-                                    <div class="ms-metric-number" th:text="${queueCount}">0</div>
-                                </div>
-                            </div>
-                            <div class="col-6 col-xl-3">
-                                <div class="ms-metric h-100">
-                                    <div class="ms-metric-label">Ca chụp hôm nay</div>
-                                    <div class="ms-metric-number" th:text="${todayRecordCount}">0</div>
-                                </div>
-                            </div>
-                            <div class="col-6 col-xl-3">
-                                <div class="ms-metric h-100">
-                                    <div class="ms-metric-label">Tổng hồ sơ chụp</div>
-                                    <div class="ms-metric-number" th:text="${totalRecordCount}">0</div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <div class="row g-4">
-                        <div class="col-lg-8">
-                            <section id="users" class="ms-card-solid rounded-5 p-4 p-lg-5 h-100">
-                                <h2 class="ms-section-title h4 mb-4">Quản lý tài khoản</h2>
-                                <div class="table-responsive">
-                                    <table class="ms-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Người dùng</th>
-                                                <th>Email</th>
-                                                <th>Vai trò</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr th:each="u : ${users}">
-                                                <td>
-                                                    <div class="fw-bold" th:text="${u.fullName}">User</div>
-                                                    <div class="small text-muted"
-                                                        th:text="${u.phone != null ? u.phone : 'Chưa cập nhật SĐT'}">
-                                                    </div>
-                                                </td>
-                                                <td th:text="${u.email}">email</td>
-                                                <td><span class="ms-badge ms-badge-soft"
-                                                        th:text="${u.role.roleName}">PATIENT</span></td>
-                                            </tr>
-                                            <tr th:if="${#lists.isEmpty(users)}">
-                                                <td colspan="3" class="text-center text-muted py-4">Chưa có user nào.
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
-                        </div>
-                        <div class="col-lg-4">
-                            <section id="recent-records" class="ms-card-solid rounded-5 p-4 p-lg-5 h-100">
-                                <h2 class="ms-section-title h4 mb-4">Hồ sơ chụp gần đây</h2>
-                                <ul class="ms-list">
-                                    <li class="ms-activity-item" th:each="record : ${recentRecords}">
-                                        <div class="fw-bold" th:text="${record.recordCode}">XR</div>
-                                        <div class="small text-muted"
-                                            th:text="${record.patient.fullName + ' - ' + record.bodyPart}">Patient</div>
-                                    </li>
-                                </ul>
-                                <div th:if="${#lists.isEmpty(recentRecords)}" class="text-muted">Chưa có hồ sơ chụp.
-                                </div>
-                            </section>
-                        </div>
+                        </section>
+                    </div>
+                    <div class="col-lg-4">
+                        <section id="recent-records" class="ms-card-solid rounded-5 p-4 p-lg-5 h-100">
+                            <h2 class="ms-section-title h4 mb-4">Hồ sơ chụp gần đây</h2>
+                            <ul class="ms-list">
+                                <li class="ms-activity-item" th:each="record : ${recentRecords}">
+                                    <div class="fw-bold" th:text="${record.recordCode}">XR</div>
+                                    <div class="small text-muted" th:text="${record.patient.fullName + ' - ' + record.bodyPart}">Patient</div>
+                                    <span class="ms-badge ms-badge-soft mt-2 d-inline-flex" th:text="${record.status}">PENDING_AI</span>
+                                </li>
+                            </ul>
+                            <div th:if="${#lists.isEmpty(recentRecords)}" class="text-muted">Chưa có hồ sơ chụp.</div>
+                        </section>
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        </div>
+    </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>

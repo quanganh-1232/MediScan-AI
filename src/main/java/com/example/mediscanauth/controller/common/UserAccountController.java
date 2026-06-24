@@ -1,5 +1,6 @@
 package com.example.mediscanauth.controller.common;
 
+import com.example.mediscanauth.model.Notification;
 import com.example.mediscanauth.controller.common.dto.ProfileUpdateDTO;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.service.NotificationService;
@@ -88,5 +89,19 @@ public class UserAccountController {
         model.addAttribute("notifications", notificationService.findForUser(user));
         model.addAttribute("unreadCount", notificationService.countUnread(user));
         return "common/notifications";
+    }
+
+    @GetMapping("/notifications/click")
+    public String handleNotificationClick(@RequestParam Long id, Authentication authentication) {
+        Notification n = notificationService.markAsRead(id);
+
+        boolean isDoctor = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_DOCTOR"));
+
+        if (isDoctor && n.getRecordId() != null) {
+            return "redirect:/doctor/records/" + n.getRecordId() + "/review";
+        }
+
+        return "redirect:/notifications";
     }
 }
