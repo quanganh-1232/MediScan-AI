@@ -40,7 +40,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     // TODO: move to application.properties
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
     private static final String AI_SERVICE_URL = "http://localhost:8000/predict";
-    private static final int LEGACY_TEXT_COLUMN_LIMIT = 490;
+    private static final int LEGACY_TEXT_COLUMN_LIMIT = 900;
 
     public PatientWorkflowServiceImpl(ImagingRecordRepository imagingRecordRepository,
                                       UserAccountService userAccountService) {
@@ -116,6 +116,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
                     try (FileOutputStream fos = new FileOutputStream(annotatedFilePath.toFile())) {
                         fos.write(decodedBytes);
                     }
+
                 }
                 
                 String clinicalText = !diagnosisImpression.isBlank() ? diagnosisImpression : diagnosisSummary;
@@ -125,6 +126,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
                 record.setFileName(originalFileName);
                 record.setAiPrediction(limitText(aiPredictionText, LEGACY_TEXT_COLUMN_LIMIT));
                 record.setAiConfidence(confidence);
+                record.setRiskLevel(riskLevel);
                 record.setRecommendation(limitText(aiRecommendationText, LEGACY_TEXT_COLUMN_LIMIT));
                 record.setStatus("AI_ANALYZED");
             } else {
@@ -144,23 +146,19 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
 
     private String buildAiPrediction(boolean fractureDetected, int confidence, String bodyPart, String clinicalText, String riskLevel, double fractureScore) {
         StringBuilder builder = new StringBuilder();
-        builder.append("Kết luận tạm thời:");
-
-        if (fractureDetected) {
-            builder.append(" Hình ảnh cho thấy dấu hiệu gãy ").append(bodyPart.toLowerCase()).append(", với độ tin cậy ").append(confidence).append("%.");
-        } else {
-            builder.append(" Chưa phát hiện bằng chứng rõ ràng của gãy ").append(bodyPart.toLowerCase()).append(", kết quả này cần được bác sĩ xác nhận thêm.");
-        }
-
-        if (!riskLevel.isBlank()) {
-            builder.append(" Mức nguy cơ: ").append(toVietnameseRiskLevel(riskLevel)).append(".");
-        }
-
         if (!clinicalText.isBlank()) {
-            builder.append(" Nhận định: ").append(cleanSentence(clinicalText));
+            String formattedText = cleanSentence(clinicalText)
+                    .replaceAll("(?i)(RẤT CAO|CAO|TRUNG BÌNH|THẤP|RẤT THẤP)", "<b>$1</b>");
+            builder.append("Nhận định chuyên môn:\n").append(formattedText);
+        } else {
+            if (fractureDetected) {
+                builder.append("Hình ảnh cho thấy dấu hiệu bất thường, cần bác sĩ xem xét thêm.");
+            } else {
+                builder.append("Chưa phát hiện dấu hiệu bất thường trên hệ thống AI.");
+            }
         }
 
-        builder.append(" Điểm ANFIS: ").append(String.format("%.1f", fractureScore)).append("/100.");
+        builder.append("\n\n(Điểm đánh giá hệ thống: ").append(String.format("%.1f", fractureScore)).append("/100)");
         return builder.toString();
     }
 
@@ -170,19 +168,19 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
 
         if (fractureDetected) {
             if (confidence >= 80) {
-                builder.append(" Nên liên hệ bác sĩ chuyên khoa xương khớp ngay để được chẩn đoán hình ảnh chính xác và lên kế hoạch điều trị.");
+                builder.append("\n- Nên liên hệ bác sĩ chuyên khoa xương khớp ngay để được chẩn đoán hình ảnh chính xác và lên kế hoạch điều trị.");
             } else {
-                builder.append(" Kết quả cho thấy khả năng gãy xương, cần thăm khám lâm sàng và xét nghiệm bổ sung để xác nhận.");
+                builder.append("\n- Kết quả cho thấy khả năng gãy xương, cần thăm khám lâm sàng và xét nghiệm bổ sung để xác nhận.");
             }
         } else {
-            builder.append(" Dù chưa thấy dấu hiệu gãy rõ rệt, vẫn khuyến nghị theo dõi triệu chứng và tái khám nếu có đau tăng hoặc sưng tấy.");
+            builder.append("\n- Dù chưa thấy dấu hiệu gãy rõ rệt, vẫn khuyến nghị theo dõi triệu chứng và tái khám nếu có đau tăng hoặc sưng tấy.");
         }
 
         if (!riskLevel.isBlank() && !"LOW".equalsIgnoreCase(riskLevel)) {
-            builder.append(" Với mức nguy cơ ").append(riskLevel.toLowerCase()).append(", nên cân nhắc kiểm tra thêm theo chỉ dẫn bác sĩ.");
+            builder.append("\n- Với mức nguy cơ <b>").append(toVietnameseRiskLevel(riskLevel)).append("</b>, nên cân nhắc kiểm tra thêm theo chỉ dẫn bác sĩ.");
         }
 
-        builder.append(" AI chỉ hỗ trợ phân tích ban đầu; quyết định điều trị cuối cùng cần do bác sĩ chuyên môn đưa ra.");
+        builder.append("\n\nLưu ý: AI chỉ hỗ trợ phân tích ban đầu; quyết định điều trị cuối cùng cần do bác sĩ chuyên môn đưa ra.");
         return builder.toString();
     }
 
