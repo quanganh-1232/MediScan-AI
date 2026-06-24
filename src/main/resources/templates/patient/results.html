@@ -37,9 +37,16 @@
                                                 <h2 class="h5 mb-1">Tóm tắt chẩn đoán AI</h2>
                                                 <p class="text-muted mb-0">AI phân tích ban đầu dựa trên ảnh chụp và mô hình ANFIS.</p>
                                             </div>
-                                            <span class="badge bg-success">Độ tin cậy: <span th:text="${latestRecord.aiConfidence != null ? latestRecord.aiConfidence : 0}">0</span>%</span>
+                                            <div class="d-flex flex-column align-items-end gap-2">
+                                                <span class="badge bg-success" style="font-size: 0.9rem;">Độ tin cậy: <span th:text="${latestRecord.aiConfidence != null ? latestRecord.aiConfidence : 0}">0</span>%</span>
+                                                <span th:if="${latestRecord.riskLevel != null && latestRecord.riskLevel != ''}"
+                                                      th:class="'badge ' + (${latestRecord.riskLevel == 'high' || latestRecord.riskLevel == 'very_high'} ? 'bg-danger' : (${latestRecord.riskLevel == 'moderate'} ? 'bg-warning text-dark' : 'bg-info'))"
+                                                      style="font-size: 0.85rem;"
+                                                      th:text="'Mức nguy cơ: ' + (${latestRecord.riskLevel == 'very_high' ? 'Rất cao' : (latestRecord.riskLevel == 'high' ? 'Cao' : (latestRecord.riskLevel == 'moderate' ? 'Trung bình' : (latestRecord.riskLevel == 'low' ? 'Thấp' : 'Rất thấp')))})">
+                                                </span>
+                                            </div>
                                         </div>
-                                        <p class="mb-0 text-dark" th:text="${latestRecord.aiPrediction != null ? latestRecord.aiPrediction : 'Chưa có kết luận AI.'}">Chờ kết quả</p>
+                                        <p class="mb-0 text-dark" style="white-space: pre-line;" th:utext="${latestRecord.aiPrediction != null ? latestRecord.aiPrediction : 'Chưa có kết luận AI.'}">Chờ kết quả</p>
                                     </div>
                                 </div>
                             </div>
@@ -47,7 +54,7 @@
                                 <div class="card shadow-sm rounded-4 border-0">
                                     <div class="card-body">
                                         <h2 class="h5 mb-2">Khuyến nghị tiếp theo</h2>
-                                        <p class="mb-0 text-dark" th:text="${latestRecord.recommendation != null ? latestRecord.recommendation : 'Chưa có khuyến nghị. Vui lòng chờ bác sĩ đánh giá thêm.'}">Chưa có khuyến nghị.</p>
+                                        <p class="mb-0 text-dark" style="white-space: pre-line;" th:utext="${latestRecord.recommendation != null ? latestRecord.recommendation : 'Chưa có khuyến nghị. Vui lòng chờ bác sĩ đánh giá thêm.'}">Chưa có khuyến nghị.</p>
                                     </div>
                                 </div>
                             </div>
