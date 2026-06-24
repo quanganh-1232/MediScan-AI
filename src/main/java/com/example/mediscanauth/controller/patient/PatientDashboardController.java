@@ -43,15 +43,34 @@ public class PatientDashboardController {
     }
 
     @GetMapping("/patient/records")
-    public String records(Authentication authentication, Model model) {
-        addModel(authentication, model);
+    public String records(Authentication authentication, Model model,
+                          @RequestParam(defaultValue = "0") int page,
+                          @RequestParam(defaultValue = "10") int size,
+                          @RequestParam(required = false) String keyword,
+                          @RequestParam(required = false) String bodyPart) {
+        User patient = userAccountService.findByEmail(authentication.getName());
+        model.addAttribute("currentUser", patient);
+        model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(patient));
+        model.addAttribute("recordCount", imagingRecordService.countForPatient(patient));
+        model.addAttribute("unreadCount", notificationService.countUnread(patient));
+        model.addAttribute("activeSection", "records");
+
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("bodyPart", bodyPart);
+        model.addAttribute("recordPage", imagingRecordService.searchForPatient(patient, keyword, bodyPart, org.springframework.data.domain.PageRequest.of(page, size)));
         return "patient/records";
     }
 
-    @GetMapping("/patient/results")
-    public String results(Authentication authentication, Model model) {
-        addModel(authentication, model);
-        return "patient/results";
+    @PostMapping("/patient/records/delete")
+    public String deleteRecord(Authentication authentication, @RequestParam("recordId") Long recordId, RedirectAttributes redirectAttributes) {
+        User patient = userAccountService.findByEmail(authentication.getName());
+        try {
+            imagingRecordService.deleteRecordForPatient(recordId, patient);
+            redirectAttributes.addFlashAttribute("successMessage", "Đã xóa hồ sơ thành công.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/patient/records";
     }
 
     @GetMapping("/patient/support")
@@ -80,7 +99,7 @@ public class PatientDashboardController {
         try {
             patientWorkflowService.uploadImageAndAnalyze(authentication.getName(), bodyPart, file);
             redirectAttributes.addFlashAttribute("successMessage", "Tải lên và phân tích AI thành công!");
-            return "redirect:/patient/results";
+            return "redirect:/patient/records";
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Đã xảy ra lỗi: " + e.getMessage());
             return "redirect:/patient/upload";
@@ -90,7 +109,6 @@ public class PatientDashboardController {
     private void addModel(Authentication authentication, Model model) {
         User patient = userAccountService.findByEmail(authentication.getName());
         model.addAttribute("currentUser", patient);
-        model.addAttribute("records", imagingRecordService.findForPatient(patient));
         model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(patient));
         model.addAttribute("recordCount", imagingRecordService.countForPatient(patient));
         model.addAttribute("unreadCount", notificationService.countUnread(patient));

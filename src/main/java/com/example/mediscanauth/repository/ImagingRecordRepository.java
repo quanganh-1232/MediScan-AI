@@ -60,4 +60,28 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
     Page<ImagingRecord> searchConfirmedLibrary(@Param("keyword") String keyword,
                                                @Param("bodyPart") String bodyPart,
                                                Pageable pageable);
+
+    @Query(value = """
+            select r from ImagingRecord r
+            where r.patient = :patient
+              and (:bodyPart is null or :bodyPart = '' or r.bodyPart = :bodyPart)
+              and (:keyword is null or :keyword = ''
+                or lower(r.recordCode) like lower(concat('%', :keyword, '%'))
+                or lower(r.aiPrediction) like lower(concat('%', :keyword, '%'))
+                or lower(r.doctorConclusion) like lower(concat('%', :keyword, '%')))
+            ORDER BY r.capturedAt DESC, r.createdAt DESC
+            """,
+            countQuery = """
+            select count(r) from ImagingRecord r
+            where r.patient = :patient
+              and (:bodyPart is null or :bodyPart = '' or r.bodyPart = :bodyPart)
+              and (:keyword is null or :keyword = ''
+                or lower(r.recordCode) like lower(concat('%', :keyword, '%'))
+                or lower(r.aiPrediction) like lower(concat('%', :keyword, '%'))
+                or lower(r.doctorConclusion) like lower(concat('%', :keyword, '%')))
+            """)
+    Page<ImagingRecord> searchForPatient(@Param("patient") User patient,
+                                         @Param("keyword") String keyword,
+                                         @Param("bodyPart") String bodyPart,
+                                         Pageable pageable);
 }

@@ -43,5 +43,9 @@ public interface ImagingRecordService {
 
     Page<ImagingRecord> searchConfirmedLibrary(String keyword, String bodyPart, Pageable pageable);
 
+    Page<ImagingRecord> searchForPatient(User patient, String keyword, String bodyPart, Pageable pageable);
+
+    void deleteRecordForPatient(Long recordId, User patient);
+
     void clearNonConfirmedRecords();
 }
