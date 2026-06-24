@@ -40,19 +40,28 @@
                 </section>
 
                 <section class="ms-card-solid rounded-5 p-4 p-lg-5">
+                    <style>
+                        .col-record-code { width: 18%; max-width: 150px; }
+                        .text-truncate-code { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 100%; vertical-align: bottom; }
+                        .text-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
+                        .col-conclusion { width: 45%; }
+                    </style>
                     <div class="table-responsive">
                         <table class="ms-table">
-                            <thead><tr><th>Mã hồ sơ</th><th>Ngày chụp</th><th>Vùng chụp</th><th>Kết luận / AI</th><th>Hành động</th></tr></thead>
+                            <thead><tr><th class="col-record-code">Mã hồ sơ</th><th>Ngày chụp</th><th>Vùng chụp</th><th class="col-conclusion">Kết luận / AI</th><th>Hành động</th></tr></thead>
                             <tbody>
                             <tr th:each="record : ${recordPage.content}">
-                                <td><div class="fw-bold" th:text="${record.recordCode}">XR-2026-0001</div><div class="small text-muted" th:text="${record.doctor != null ? 'Bác sĩ: ' + record.doctor.fullName : 'Chưa phân bác sĩ'}">Chưa phân bác sĩ</div></td>
+                                <td class="col-record-code">
+                                    <a class="fw-bold text-decoration-none text-truncate-code" th:href="@{/patient/records/{id}(id=${record.recordId})}" th:text="${record.recordCode}" th:title="${record.recordCode}">XR-2026-0001</a>
+                                    <div class="small text-muted text-truncate-code" th:if="${record.doctor != null}" th:text="'Bác sĩ: ' + record.doctor.fullName" th:title="'Bác sĩ: ' + record.doctor.fullName">Bác sĩ</div>
+                                </td>
                                 <td th:text="${#temporals.format(record.capturedAt, 'dd/MM/yyyy')}">21/05/2026</td>
                                 <td th:text="${record.bodyPart}">Cẳng tay</td>
-                                <td>
-                                    <div th:if="${record.doctorConclusion != null}">
+                                <td class="col-conclusion">
+                                    <div class="text-clamp-2" th:if="${record.doctorConclusion != null}" th:title="${record.doctorConclusion}">
                                         <span class="badge bg-success">Bác sĩ</span> <span th:text="${record.doctorConclusion}">Kết luận</span>
                                     </div>
-                                    <div th:if="${record.doctorConclusion == null && record.aiPrediction != null}">
+                                    <div class="text-clamp-2" th:if="${record.doctorConclusion == null && record.aiPrediction != null}" th:title="${record.aiPrediction}">
                                         <span class="badge bg-primary">AI</span> <span th:text="${record.aiPrediction}">AI</span>
                                     </div>
                                     <div th:if="${record.doctorConclusion == null && record.aiPrediction == null}">

@@ -61,6 +61,26 @@ public class PatientDashboardController {
         return "patient/records";
     }
 
+    @GetMapping("/patient/records/{id}")
+    public String recordDetail(Authentication authentication, @org.springframework.web.bind.annotation.PathVariable("id") Long id, Model model, RedirectAttributes redirectAttributes) {
+        User patient = userAccountService.findByEmail(authentication.getName());
+        try {
+            com.example.mediscanauth.model.ImagingRecord record = imagingRecordService.getRecordById(id);
+            if (!record.getPatient().getUserId().equals(patient.getUserId())) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Bạn không có quyền xem hồ sơ này.");
+                return "redirect:/patient/records";
+            }
+            model.addAttribute("record", record);
+            model.addAttribute("currentUser", patient);
+            model.addAttribute("activeSection", "records");
+            model.addAttribute("unreadCount", notificationService.countUnread(patient));
+            return "patient/record-detail";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy hồ sơ.");
+            return "redirect:/patient/records";
+        }
+    }
+
     @PostMapping("/patient/records/delete")
     public String deleteRecord(Authentication authentication, @RequestParam("recordId") Long recordId, RedirectAttributes redirectAttributes) {
         User patient = userAccountService.findByEmail(authentication.getName());
