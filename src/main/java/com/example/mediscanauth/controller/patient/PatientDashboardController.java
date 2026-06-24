@@ -117,9 +117,10 @@ public class PatientDashboardController {
         }
         
         try {
-            patientWorkflowService.uploadImageAndAnalyze(authentication.getName(), bodyPart, file);
+            com.example.mediscanauth.model.ImagingRecord record = patientWorkflowService.uploadImageAndAnalyze(authentication.getName(), bodyPart, file);
             redirectAttributes.addFlashAttribute("successMessage", "Tải lên và phân tích AI thành công!");
-            return "redirect:/patient/records";
+            redirectAttributes.addFlashAttribute("newRecord", record);
+            return "redirect:/patient/upload";
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Đã xảy ra lỗi: " + e.getMessage());
             return "redirect:/patient/upload";
