@@ -116,14 +116,13 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
                     try (FileOutputStream fos = new FileOutputStream(annotatedFilePath.toFile())) {
                         fos.write(decodedBytes);
                     }
-                    finalFileName = annotatedFileName;
                 }
                 
                 String clinicalText = !diagnosisImpression.isBlank() ? diagnosisImpression : diagnosisSummary;
                 String aiPredictionText = buildAiPrediction(fractureDetected, confidence, bodyPart, clinicalText, riskLevel, fractureScore);
                 String aiRecommendationText = buildAiRecommendation(fractureDetected, confidence, riskLevel);
 
-                record.setFileName(finalFileName);
+                record.setFileName(originalFileName);
                 record.setAiPrediction(limitText(aiPredictionText, LEGACY_TEXT_COLUMN_LIMIT));
                 record.setAiConfidence(confidence);
                 record.setRecommendation(limitText(aiRecommendationText, LEGACY_TEXT_COLUMN_LIMIT));
