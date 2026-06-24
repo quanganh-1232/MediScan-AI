@@ -227,7 +227,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         ImagingRecord record = imagingRecordRepository.findById(recordId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hồ sơ."));
         
-        if (!record.getPatient().getId().equals(patient.getId())) {
+        if (!record.getPatient().getUserId().equals(patient.getUserId())) {
             throw new IllegalArgumentException("Bạn không có quyền xóa hồ sơ này.");
         }
 
