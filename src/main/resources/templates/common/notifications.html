@@ -35,6 +35,7 @@
                             <div>
                                 <div th:class="${n.read} ? 'text-dark' : 'fw-bold text-dark'" th:text="${n.title}">Tiêu đề</div>
                                 <div class="text-muted small" th:text="${n.message}">Nội dung</div>
+                                <div class="small text-muted mt-1" th:text="${n.createdAt != null ? #temporals.format(n.createdAt, 'HH:mm dd/MM/yyyy') : 'Vừa cập nhật'}">08:30 12/06/2026</div>
                             </div>
                             <span class="ms-badge"
                                   th:classappend="${n.read} ? ' ms-badge-soft' : ' ms-badge-warning'"

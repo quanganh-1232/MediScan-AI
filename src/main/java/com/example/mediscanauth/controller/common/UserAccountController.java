@@ -1,6 +1,5 @@
 package com.example.mediscanauth.controller.common;
 
-
 import com.example.mediscanauth.model.Notification;
 import com.example.mediscanauth.controller.common.dto.ProfileUpdateDTO;
 import com.example.mediscanauth.model.User;

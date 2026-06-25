@@ -90,7 +90,7 @@
                             <h2 class="ms-section-title h4 mb-1">Hồ sơ chẩn đoán gần đây</h2>
                             <p class="ms-subtle mb-0">Các ca mới nhất đang được hệ thống ghi nhận và theo dõi.</p>
                         </div>
-                        <a sec:authorize="hasRole('DOCTOR')" th:href="@{/doctor/queue}" class="btn ms-btn ms-btn-primary text-white">Duyệt ca</a>
+                        <a sec:authorize="hasRole('DOCTOR')" th:href="@{/doctor/records/pending}" class="btn ms-btn ms-btn-primary text-white">Duyệt ca</a>
                         <a sec:authorize="hasRole('TECHNICIAN')" th:href="@{/technician/xray-upload}" class="btn ms-btn ms-btn-primary text-white">Tạo hồ sơ</a>
                         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/recent-records}" class="btn ms-btn ms-btn-primary text-white">Xem chi tiết</a>
                         <a sec:authorize="hasRole('PATIENT')" th:href="@{/patient/records}" class="btn ms-btn ms-btn-primary text-white">Hồ sơ của tôi</a>
@@ -157,7 +157,7 @@
                     <h2 class="ms-section-title h4 mb-3">Lối tắt nghiệp vụ</h2>
                     <div class="d-grid gap-2">
                         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/users}" class="btn ms-btn ms-btn-primary text-white">Quản lý tài khoản</a>
-                        <a sec:authorize="hasRole('DOCTOR')" th:href="@{/doctor/queue}" class="btn ms-btn ms-btn-primary text-white">Hàng chờ chẩn đoán</a>
+                        <a sec:authorize="hasRole('DOCTOR')" th:href="@{/doctor/records/pending}" class="btn ms-btn ms-btn-primary text-white">Hàng chờ chẩn đoán</a>
                         <a sec:authorize="hasRole('TECHNICIAN')" th:href="@{/technician/appointments}" class="btn ms-btn ms-btn-primary text-white">Lịch chụp</a>
                         <a sec:authorize="hasRole('PATIENT')" th:href="@{/patient/results}" class="btn ms-btn ms-btn-primary text-white">Kết quả của tôi</a>
                         <a th:href="@{/profile}" class="btn ms-btn ms-btn-ghost text-primary border-primary bg-white">Hồ sơ cá nhân</a>

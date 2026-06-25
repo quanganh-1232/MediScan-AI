@@ -40,6 +40,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     // TODO: move to application.properties
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
     private static final String AI_SERVICE_URL = "http://localhost:8000/predict";
+    private static final int LEGACY_TEXT_COLUMN_LIMIT = 900;
 
     public PatientWorkflowServiceImpl(ImagingRecordRepository imagingRecordRepository,
                                       UserAccountService userAccountService) {
@@ -80,7 +81,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
             // 3. Process AI Result and create ImagingRecord
             ImagingRecord record = new ImagingRecord();
-            record.setRecordCode(nextCode("IMG", imagingRecordRepository.count() + 1));
+            record.setRecordCode(nextCode("IMG"));
             record.setPatient(patientUser);
             record.setBodyPart(bodyPart);
 
@@ -89,7 +90,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
                 response = restTemplate.postForEntity(AI_SERVICE_URL, requestEntity, String.class);
             } catch (Exception e) {
                 record.setFileName(originalFileName);
-                record.setAiPrediction("Lỗi kết nối AI: " + e.getMessage());
+                record.setAiPrediction(limitText("Lỗi kết nối AI: " + e.getMessage(), LEGACY_TEXT_COLUMN_LIMIT));
                 record.setAiConfidence(0);
                 record.setStatus("AI_FAILED");
                 return imagingRecordRepository.save(record);
@@ -99,6 +100,11 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
                 JsonNode jsonNode = objectMapper.readTree(response.getBody());
                 boolean fractureDetected = jsonNode.get("fracture_detected").asBoolean();
                 int confidence = (int) (jsonNode.get("highest_confidence").asDouble() * 100);
+                JsonNode diagnosisNode = jsonNode.path("diagnosis");
+                String diagnosisImpression = diagnosisNode.path("impression").asText("");
+                String diagnosisSummary = diagnosisNode.path("summary").asText("");
+                String riskLevel = diagnosisNode.path("risk_level").asText("");
+                double fractureScore = diagnosisNode.path("fracture_score").asDouble(0.0);
                 
                 String annotatedBase64 = jsonNode.get("annotated_image_base64").asText();
                 String finalFileName = originalFileName;
@@ -110,31 +116,24 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
                     try (FileOutputStream fos = new FileOutputStream(annotatedFilePath.toFile())) {
                         fos.write(decodedBytes);
                     }
-                    finalFileName = annotatedFileName;
+
                 }
                 
-                String prediction;
-                if (fractureDetected) {
-                    if (confidence >= 80) {
-                        prediction = "Phát hiện có gãy xương (Độ tin cậy rất cao: " + confidence + "%)";
-                    } else if (confidence >= 50) {
-                        prediction = "Có khả năng gãy xương (Độ tin cậy khá: " + confidence + "%)";
-                    } else {
-                        prediction = "Nghi ngờ gãy xương nhưng độ tin cậy thấp (" + confidence + "%). Cần bác sĩ kiểm tra.";
-                    }
-                } else {
-                    prediction = "Không phát hiện gãy xương";
-                }
-                
-                record.setFileName(finalFileName);
-                record.setAiPrediction(prediction);
+                String clinicalText = !diagnosisImpression.isBlank() ? diagnosisImpression : diagnosisSummary;
+                String aiPredictionText = buildAiPrediction(fractureDetected, confidence, bodyPart, clinicalText, riskLevel, fractureScore);
+                String aiRecommendationText = buildAiRecommendation(fractureDetected, confidence, riskLevel);
+
+                record.setFileName(originalFileName);
+                record.setAiPrediction(limitText(aiPredictionText, LEGACY_TEXT_COLUMN_LIMIT));
                 record.setAiConfidence(confidence);
+                record.setRiskLevel(riskLevel);
+                record.setRecommendation(limitText(aiRecommendationText, LEGACY_TEXT_COLUMN_LIMIT));
                 record.setStatus("AI_ANALYZED");
-                
             } else {
                 record.setFileName(originalFileName);
                 record.setAiPrediction("Lỗi phân tích AI");
                 record.setAiConfidence(0);
+                record.setRecommendation(limitText("Vui lòng thử lại hoặc liên hệ quản trị viên.", LEGACY_TEXT_COLUMN_LIMIT));
                 record.setStatus("AI_FAILED");
             }
 
@@ -145,7 +144,74 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
         }
     }
 
-    private String nextCode(String prefix, long next) {
-        return prefix + "-" + LocalDate.now().getYear() + "-" + String.format("%05d", next);
+    private String buildAiPrediction(boolean fractureDetected, int confidence, String bodyPart, String clinicalText, String riskLevel, double fractureScore) {
+        StringBuilder builder = new StringBuilder();
+        if (!clinicalText.isBlank()) {
+            String formattedText = cleanSentence(clinicalText)
+                    .replaceAll("(?i)(RẤT CAO|CAO|TRUNG BÌNH|THẤP|RẤT THẤP)", "<b>$1</b>");
+            builder.append("Nhận định chuyên môn:\n").append(formattedText);
+        } else {
+            if (fractureDetected) {
+                builder.append("Hình ảnh cho thấy dấu hiệu bất thường, cần bác sĩ xem xét thêm.");
+            } else {
+                builder.append("Chưa phát hiện dấu hiệu bất thường trên hệ thống AI.");
+            }
+        }
+
+        builder.append("\n\n(Điểm đánh giá hệ thống: ").append(String.format("%.1f", fractureScore)).append("/100)");
+        return builder.toString();
+    }
+
+    private String buildAiRecommendation(boolean fractureDetected, int confidence, String riskLevel) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Khuyến nghị:");
+
+        if (fractureDetected) {
+            if (confidence >= 80) {
+                builder.append("\n- Nên liên hệ bác sĩ chuyên khoa xương khớp ngay để được chẩn đoán hình ảnh chính xác và lên kế hoạch điều trị.");
+            } else {
+                builder.append("\n- Kết quả cho thấy khả năng gãy xương, cần thăm khám lâm sàng và xét nghiệm bổ sung để xác nhận.");
+            }
+        } else {
+            builder.append("\n- Dù chưa thấy dấu hiệu gãy rõ rệt, vẫn khuyến nghị theo dõi triệu chứng và tái khám nếu có đau tăng hoặc sưng tấy.");
+        }
+
+        if (!riskLevel.isBlank() && !"LOW".equalsIgnoreCase(riskLevel)) {
+            builder.append("\n- Với mức nguy cơ <b>").append(toVietnameseRiskLevel(riskLevel)).append("</b>, nên cân nhắc kiểm tra thêm theo chỉ dẫn bác sĩ.");
+        }
+
+        builder.append("\n\nLưu ý: AI chỉ hỗ trợ phân tích ban đầu; quyết định điều trị cuối cùng cần do bác sĩ chuyên môn đưa ra.");
+        return builder.toString();
+    }
+
+    private String toVietnameseRiskLevel(String riskLevel) {
+        return switch (riskLevel.toLowerCase()) {
+            case "very_low" -> "rất thấp";
+            case "low" -> "thấp";
+            case "moderate" -> "trung bình";
+            case "high" -> "cao";
+            case "very_high" -> "rất cao";
+            default -> riskLevel;
+        };
+    }
+
+    private String cleanSentence(String value) {
+        String text = value == null ? "" : value.trim();
+        if (text.isEmpty()) {
+            return "";
+        }
+        return text.endsWith(".") ? text : text + ".";
+    }
+
+    private String limitText(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, Math.max(0, maxLength - 3)).trim() + "...";
+    }
+
+    private String nextCode(String prefix) {
+        String shortId = java.util.UUID.randomUUID().toString().substring(0, 5).toUpperCase();
+        return prefix + "-" + LocalDate.now().getYear() + "-" + shortId;
     }
 }
