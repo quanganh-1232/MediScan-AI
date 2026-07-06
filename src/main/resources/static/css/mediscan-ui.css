@@ -4,8 +4,8 @@
     --ms-surface-solid: #ffffff;
     --ms-text: #10263f;
     --ms-muted: #5f7187;
-    --ms-primary: #0f766e;
-    --ms-primary-strong: #0b5d56;
+    --ms-primary: #1a6ef4;
+    --ms-primary-strong: #114ec2;
     --ms-accent: #2563eb;
     --ms-accent-soft: rgba(37, 99, 235, 0.12);
     --ms-success: #15803d;
@@ -23,7 +23,7 @@ body {
     color: var(--ms-text);
     background:
         radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 34%),
-        radial-gradient(circle at top right, rgba(15, 118, 110, 0.14), transparent 30%),
+        radial-gradient(circle at top right, rgba(26, 110, 244, 0.14), transparent 30%),
         linear-gradient(180deg, #f8fbff 0%, #eef4f8 100%);
 }
 
@@ -92,7 +92,7 @@ body {
     min-height: 100%;
     overflow: hidden;
     background:
-        linear-gradient(135deg, rgba(7, 89, 133, 0.95), rgba(13, 148, 136, 0.92)),
+        linear-gradient(135deg, rgba(13, 42, 99, 0.96), rgba(26, 110, 244, 0.9)),
         url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600"%3E%3Crect width="800" height="600" fill="none"/%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="105" cy="96" r="78"/%3E%3Ccircle cx="635" cy="136" r="120"/%3E%3Ccircle cx="548" cy="462" r="144"/%3E%3Ccircle cx="226" cy="444" r="92"/%3E%3C/g%3E%3C/svg%3E') center/cover;
 }
 
@@ -130,7 +130,7 @@ body {
 .ms-brand-mark-solid {
     color: #ffffff;
     background: linear-gradient(135deg, var(--ms-primary), var(--ms-primary-strong));
-    border-color: rgba(15, 118, 110, 0.2);
+    border-color: rgba(26, 110, 244, 0.2);
 }
 
 .ms-app-header {
@@ -164,8 +164,8 @@ body {
 
 .ms-account-btn:hover,
 .ms-account-btn:focus {
-    border-color: rgba(15, 118, 110, 0.2);
-    box-shadow: 0 4px 15px rgba(15, 118, 110, 0.06);
+    border-color: rgba(26, 110, 244, 0.2);
+    box-shadow: 0 4px 15px rgba(26, 110, 244, 0.06);
     transform: translateY(-1px);
 }
 
@@ -211,8 +211,8 @@ body {
 .ms-sidebar-meta {
     padding: 1rem;
     border-radius: 20px;
-    background: rgba(15, 118, 110, 0.05);
-    border: 1px solid rgba(15, 118, 110, 0.12);
+    background: rgba(26, 110, 244, 0.05);
+    border: 1px solid rgba(26, 110, 244, 0.12);
 }
 
 .ms-sidebar-nav {
@@ -235,8 +235,8 @@ body {
 
 .ms-nav-item:hover,
 .ms-nav-item.active {
-    background: rgba(15, 118, 110, 0.08);
-    border-color: rgba(15, 118, 110, 0.14);
+    background: rgba(26, 110, 244, 0.08);
+    border-color: rgba(26, 110, 244, 0.14);
     color: var(--ms-primary-strong);
 }
 
@@ -262,7 +262,7 @@ body {
 }
 
 .ms-notification-item:hover {
-    background: rgba(15, 118, 110, 0.06);
+    background: rgba(26, 110, 244, 0.06);
 }
 
 .ms-notification-panel {
@@ -285,7 +285,7 @@ body {
 
 .ms-icon-btn:hover,
 .ms-icon-btn:focus {
-    border-color: rgba(15, 118, 110, 0.2);
+    border-color: rgba(26, 110, 244, 0.2);
     color: var(--ms-primary);
 }
 
@@ -295,7 +295,7 @@ body {
     display: grid;
     place-items: center;
     border-radius: 999px;
-    background: rgba(15, 118, 110, 0.1);
+    background: rgba(26, 110, 244, 0.1);
     line-height: 1;
 }
 
@@ -343,7 +343,7 @@ body {
     border: 1px solid var(--ms-border);
     background:
         linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(240, 253, 250, 0.92)),
-        linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(37, 99, 235, 0.08));
+        linear-gradient(135deg, rgba(26, 110, 244, 0.12), rgba(37, 99, 235, 0.08));
     box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
 }
 
@@ -359,7 +359,7 @@ body {
     padding: 1.25rem;
     border-radius: 22px;
     background: #ffffff;
-    border: 1px solid rgba(15, 118, 110, 0.12);
+    border: 1px solid rgba(26, 110, 244, 0.12);
 }
 
 .ms-page-hero {
@@ -382,8 +382,8 @@ body {
     justify-content: center;
     padding: 1rem;
     border-radius: 20px;
-    background: rgba(15, 118, 110, 0.06);
-    border: 1px solid rgba(15, 118, 110, 0.14);
+    background: rgba(26, 110, 244, 0.06);
+    border: 1px solid rgba(26, 110, 244, 0.14);
 }
 
 .ms-result-preview {
@@ -444,8 +444,8 @@ body {
 }
 
 .ms-input:focus {
-    border-color: rgba(13, 148, 136, 0.58);
-    box-shadow: 0 0 0 0.25rem rgba(13, 148, 136, 0.12);
+    border-color: rgba(26, 110, 244, 0.58);
+    box-shadow: 0 0 0 0.25rem rgba(26, 110, 244, 0.12);
 }
 
 .ms-btn {
@@ -583,7 +583,7 @@ body {
     inset: auto 0 -0.35rem 0;
     height: 0.6rem;
     border-radius: 999px;
-    background: linear-gradient(90deg, rgba(37, 99, 235, 0.1), rgba(15, 118, 110, 0.26), rgba(37, 99, 235, 0.1));
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.1), rgba(26, 110, 244, 0.26), rgba(37, 99, 235, 0.1));
 }
 
 @media (max-width: 991.98px) {
@@ -776,17 +776,17 @@ body {
     border-radius: 999px;
 }
 .ms-upload-area {
-    border: 2px dashed rgba(15, 118, 110, 0.3);
+    border: 2px dashed rgba(26, 110, 244, 0.3);
     border-radius: 24px;
     padding: 3rem 2rem;
     text-align: center;
-    background: rgba(15, 118, 110, 0.02);
+    background: rgba(26, 110, 244, 0.02);
     transition: all 0.3s ease;
     cursor: pointer;
 }
 .ms-upload-area:hover {
-    background: rgba(15, 118, 110, 0.05);
-    border-color: rgba(15, 118, 110, 0.6);
+    background: rgba(26, 110, 244, 0.05);
+    border-color: rgba(26, 110, 244, 0.6);
 }
 .ms-upload-icon {
     font-size: 3rem;

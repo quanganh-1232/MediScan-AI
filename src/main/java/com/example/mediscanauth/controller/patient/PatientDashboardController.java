@@ -43,54 +43,15 @@ public class PatientDashboardController {
     }
 
     @GetMapping("/patient/records")
-    public String records(Authentication authentication, Model model,
-                          @RequestParam(defaultValue = "0") int page,
-                          @RequestParam(defaultValue = "5") int size,
-                          @RequestParam(required = false) String keyword,
-                          @RequestParam(required = false) String bodyPart) {
-        User patient = userAccountService.findByEmail(authentication.getName());
-        model.addAttribute("currentUser", patient);
-        model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(patient));
-        model.addAttribute("recordCount", imagingRecordService.countForPatient(patient));
-        model.addAttribute("unreadCount", notificationService.countUnread(patient));
-        model.addAttribute("activeSection", "records");
-
-        model.addAttribute("keyword", keyword);
-        model.addAttribute("bodyPart", bodyPart);
-        model.addAttribute("recordPage", imagingRecordService.searchForPatient(patient, keyword, bodyPart, org.springframework.data.domain.PageRequest.of(page, size)));
+    public String records(Authentication authentication, Model model) {
+        addModel(authentication, model);
         return "patient/records";
     }
 
-    @GetMapping("/patient/records/{id}")
-    public String recordDetail(Authentication authentication, @org.springframework.web.bind.annotation.PathVariable("id") Long id, Model model, RedirectAttributes redirectAttributes) {
-        User patient = userAccountService.findByEmail(authentication.getName());
-        try {
-            com.example.mediscanauth.model.ImagingRecord record = imagingRecordService.getRecordById(id);
-            if (!record.getPatient().getUserId().equals(patient.getUserId())) {
-                redirectAttributes.addFlashAttribute("errorMessage", "Bạn không có quyền xem hồ sơ này.");
-                return "redirect:/patient/records";
-            }
-            model.addAttribute("record", record);
-            model.addAttribute("currentUser", patient);
-            model.addAttribute("activeSection", "records");
-            model.addAttribute("unreadCount", notificationService.countUnread(patient));
-            return "patient/record-detail";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy hồ sơ.");
-            return "redirect:/patient/records";
-        }
-    }
-
-    @PostMapping("/patient/records/delete")
-    public String deleteRecord(Authentication authentication, @RequestParam("recordId") Long recordId, RedirectAttributes redirectAttributes) {
-        User patient = userAccountService.findByEmail(authentication.getName());
-        try {
-            imagingRecordService.deleteRecordForPatient(recordId, patient);
-            redirectAttributes.addFlashAttribute("successMessage", "Đã xóa hồ sơ thành công.");
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-        }
-        return "redirect:/patient/records";
+    @GetMapping("/patient/results")
+    public String results(Authentication authentication, Model model) {
+        addModel(authentication, model);
+        return "patient/results";
     }
 
     @GetMapping("/patient/support")
@@ -100,10 +61,9 @@ public class PatientDashboardController {
     }
 
     @GetMapping("/patient/upload")
-    public String uploadForm(Authentication authentication, Model model) {
-        addModel(authentication, model);
-        model.addAttribute("activeSection", "upload-form");
-        return "patient/upload";
+    public String uploadForm() {
+        // Patient self-upload flow removed: X-ray images are captured by technicians only.
+        return "redirect:/home";
     }
 
     @PostMapping("/patient/upload")
@@ -117,10 +77,9 @@ public class PatientDashboardController {
         }
         
         try {
-            com.example.mediscanauth.model.ImagingRecord record = patientWorkflowService.uploadImageAndAnalyze(authentication.getName(), bodyPart, file);
+            patientWorkflowService.uploadImageAndAnalyze(authentication.getName(), bodyPart, file);
             redirectAttributes.addFlashAttribute("successMessage", "Tải lên và phân tích AI thành công!");
-            redirectAttributes.addFlashAttribute("newRecord", record);
-            return "redirect:/patient/upload";
+            return "redirect:/patient/results";
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Đã xảy ra lỗi: " + e.getMessage());
             return "redirect:/patient/upload";
@@ -130,6 +89,7 @@ public class PatientDashboardController {
     private void addModel(Authentication authentication, Model model) {
         User patient = userAccountService.findByEmail(authentication.getName());
         model.addAttribute("currentUser", patient);
+        model.addAttribute("records", imagingRecordService.findForPatient(patient));
         model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(patient));
         model.addAttribute("recordCount", imagingRecordService.countForPatient(patient));
         model.addAttribute("unreadCount", notificationService.countUnread(patient));

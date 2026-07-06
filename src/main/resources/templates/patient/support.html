@@ -2,32 +2,101 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Patient Support - MediScan AI</title>
+    <title>Hỗ trợ - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
 </head>
 <body>
-<div class="ms-shell">
-    <div th:replace="~{common/fragments/app-header :: header('Patient Portal', 'Bệnh nhân', 'ms-avatar-orange')}"></div>
-    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
-        <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3"><div th:replace="~{common/fragments/app-sidebar :: sidebar('patient', 'Patient Portal', 'Bệnh nhân', 'ms-avatar-orange', 'support')}"></div></div>
-            <div class="col-12 col-xl-9">
-                <section class="ms-page-hero mb-4"><div><span class="ms-pill ms-pill-success mb-3">Patient support</span><h1 class="ms-display display-6 mb-2">Hỗ trợ hồ sơ</h1></div></section>
-                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
-                    <p class="ms-subtle mb-4">Khu vực này hỗ trợ xem lại dữ liệu, cập nhật thông tin cá nhân và nhận thông báo.</p>
-                    <div class="d-grid gap-2">
-                        <a th:href="@{/profile/edit}" class="btn ms-btn ms-btn-primary text-white">Cập nhật thông tin</a>
-                        <a th:href="@{/notifications}" class="btn ms-btn ms-btn-ghost text-dark border-secondary bg-white">Xem thông báo</a>
-                        <a th:href="@{/change-password}" class="btn ms-btn ms-btn-ghost text-dark border-secondary bg-white">Đổi mật khẩu</a>
-                    </div>
-                </section>
-            </div>
+
+<div th:replace="~{patient/fragments/patient-shell :: nav('support')}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+
+    <div class="mb-4">
+        <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-life-preserver text-primary me-2"></i>Hỗ trợ</h1>
+        <p class="text-secondary mb-0">Quản lý tài khoản và nhận trợ giúp khi cần thiết.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-4">
+            <section class="pt-card p-4 h-100">
+                <div class="pt-card-title mb-3"><i class="bi bi-person-gear"></i> Tài khoản của bạn</div>
+                <div class="d-grid gap-2">
+                    <a th:href="@{/profile/edit}" class="pt-quick-item">
+                        <span class="pt-quick-icon"><i class="bi bi-pencil-square"></i></span>
+                        <span>
+                            <span class="d-block fw-semibold">Cập nhật thông tin</span>
+                            <span class="d-block small text-muted">Họ tên, số điện thoại, địa chỉ</span>
+                        </span>
+                    </a>
+                    <a th:href="@{/notifications}" class="pt-quick-item">
+                        <span class="pt-quick-icon"><i class="bi bi-bell"></i></span>
+                        <span>
+                            <span class="d-block fw-semibold">Xem thông báo</span>
+                            <span class="d-block small text-muted">Cập nhật từ phòng khám</span>
+                        </span>
+                    </a>
+                    <a th:href="@{/change-password}" class="pt-quick-item">
+                        <span class="pt-quick-icon"><i class="bi bi-key"></i></span>
+                        <span>
+                            <span class="d-block fw-semibold">Đổi mật khẩu</span>
+                            <span class="d-block small text-muted">Bảo mật tài khoản</span>
+                        </span>
+                    </a>
+                </div>
+            </section>
         </div>
-    </main>
-</div>
+
+        <div class="col-12 col-lg-4">
+            <section class="pt-card p-4 h-100">
+                <div class="pt-card-title mb-3"><i class="bi bi-chat-dots"></i> Chatbot hỗ trợ</div>
+                <p class="small text-muted">Trợ lý ảo sẵn sàng giải đáp thắc mắc về triệu chứng, quy trình khám và hướng dẫn sử dụng hệ thống.</p>
+                <button class="btn ms-btn ms-btn-primary text-white w-100" onclick="chatFocus()">
+                    <i class="bi bi-robot me-1"></i> Mở chatbot ngay
+                </button>
+                <div class="small text-muted mt-3"><i class="bi bi-info-circle me-1"></i>Chatbot chỉ mang tính chất tham khảo, không thay thế chẩn đoán của bác sĩ.</div>
+            </section>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <section class="pt-card p-4 h-100">
+                <div class="pt-card-title mb-3"><i class="bi bi-telephone"></i> Liên hệ phòng khám</div>
+                <div class="d-grid gap-3 small">
+                    <div class="d-flex gap-3 align-items-center">
+                        <span class="pt-quick-icon"><i class="bi bi-headset"></i></span>
+                        <span>
+                            <span class="d-block text-muted">Hỗ trợ kỹ thuật</span>
+                            <span class="d-block fw-bold fs-6">1900 1234</span>
+                        </span>
+                    </div>
+                    <div class="d-flex gap-3 align-items-center">
+                        <span class="pt-quick-icon"><i class="bi bi-envelope"></i></span>
+                        <span>
+                            <span class="d-block text-muted">Email</span>
+                            <span class="d-block fw-bold">support@mediscan.ai</span>
+                        </span>
+                    </div>
+                    <div class="d-flex gap-3 align-items-center">
+                        <span class="pt-quick-icon"><i class="bi bi-clock"></i></span>
+                        <span>
+                            <span class="d-block text-muted">Giờ làm việc</span>
+                            <span class="d-block fw-bold">07:30 - 17:00 (T2 - T7)</span>
+                        </span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+
+<div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -2,103 +2,122 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Patient Records - MediScan AI</title>
+    <title>Hồ sơ y tế - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
 </head>
 <body>
-<div class="ms-shell">
-    <div th:replace="~{common/fragments/app-header :: header('Patient Portal', 'Bệnh nhân', 'ms-avatar-orange')}"></div>
-    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
-        <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3"><div th:replace="~{common/fragments/app-sidebar :: sidebar('patient', 'Patient Portal', 'Bệnh nhân', 'ms-avatar-orange', 'records')}"></div></div>
-            <div class="col-12 col-xl-9">
-                <section class="ms-page-hero mb-4"><div><span class="ms-pill ms-pill-success mb-3">Patient records</span><h1 class="ms-display display-6 mb-2">Hồ sơ chụp X-Quang</h1></div></section>
-                
-                <div th:if="${successMessage}" class="alert alert-success mt-3" th:text="${successMessage}"></div>
-                <div th:if="${errorMessage}" class="alert alert-danger mt-3" th:text="${errorMessage}"></div>
 
-                <section class="ms-card-solid rounded-5 p-4 p-lg-5 mb-4">
-                    <form th:action="@{/patient/records}" method="get" class="row g-3">
-                        <div class="col-md-6">
-                            <input type="text" name="keyword" class="form-control" placeholder="Tìm kiếm theo mã, kết luận..." th:value="${keyword}">
-                        </div>
-                        <div class="col-md-4">
-                            <select name="bodyPart" class="form-select">
-                                <option value="">Tất cả vùng chụp</option>
-                                <option value="Cẳng tay" th:selected="${bodyPart == 'Cẳng tay'}">Cẳng tay</option>
-                                <option value="Xương sườn" th:selected="${bodyPart == 'Xương sườn'}">Xương sườn</option>
-                                <option value="Khác" th:selected="${bodyPart == 'Khác'}">Khác</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100">Lọc</button>
-                        </div>
-                    </form>
-                </section>
+<div th:replace="~{patient/fragments/patient-shell :: nav('records')}"></div>
 
-                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
-                    <style>
-                        .col-record-code { width: 18%; max-width: 150px; }
-                        .text-truncate-code { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 100%; vertical-align: bottom; }
-                        .text-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
-                        .col-conclusion { width: 45%; }
-                    </style>
-                    <div class="table-responsive">
-                        <table class="ms-table">
-                            <thead><tr><th class="col-record-code">Mã hồ sơ</th><th>Ngày chụp</th><th>Vùng chụp</th><th class="col-conclusion">Kết luận / AI</th><th>Hành động</th></tr></thead>
-                            <tbody>
-                            <tr th:each="record : ${recordPage.content}">
-                                <td class="col-record-code">
-                                    <a class="fw-bold text-decoration-none text-truncate-code" th:href="@{/patient/records/{id}(id=${record.recordId})}" th:text="${record.recordCode}" th:title="${record.recordCode}">XR-2026-0001</a>
-                                    <div class="small text-muted text-truncate-code" th:if="${record.doctor != null}" th:text="'Bác sĩ: ' + record.doctor.fullName" th:title="'Bác sĩ: ' + record.doctor.fullName">Bác sĩ</div>
-                                </td>
-                                <td th:text="${#temporals.format(record.capturedAt, 'dd/MM/yyyy')}">21/05/2026</td>
-                                <td th:text="${record.bodyPart}">Cẳng tay</td>
-                                <td class="col-conclusion">
-                                    <div class="text-clamp-2" th:if="${record.doctorConclusion != null}" th:title="${record.doctorConclusion}">
-                                        <span class="badge bg-success">Bác sĩ</span> <span th:text="${record.doctorConclusion}">Kết luận</span>
-                                    </div>
-                                    <div class="text-clamp-2" th:if="${record.doctorConclusion == null && record.aiPrediction != null}" th:title="${record.aiPrediction}">
-                                        <span class="badge bg-primary">AI</span> <span th:text="${record.aiPrediction}">AI</span>
-                                    </div>
-                                    <div th:if="${record.doctorConclusion == null && record.aiPrediction == null}">
-                                        <span class="text-muted">Chờ phân tích</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <form th:action="@{/patient/records/delete}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa hồ sơ này? Hành động này không thể hoàn tác.');">
-                                        <input type="hidden" name="recordId" th:value="${record.recordId}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <tr th:if="${recordPage.empty}"><td colspan="5" class="text-center py-4 text-muted">Không tìm thấy hồ sơ nào.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+<main class="container-fluid px-3 px-lg-4 py-4">
 
-                    <!-- Pagination -->
-                    <nav th:if="${recordPage.totalPages > 1}" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item" th:classappend="${recordPage.first ? 'disabled' : ''}">
-                                <a class="page-link" th:href="@{/patient/records(page=${recordPage.number - 1}, size=${recordPage.size}, keyword=${keyword}, bodyPart=${bodyPart})}">Trước</a>
-                            </li>
-                            <li class="page-item" th:each="i : ${#numbers.sequence(0, recordPage.totalPages - 1)}" th:classappend="${recordPage.number == i ? 'active' : ''}">
-                                <a class="page-link" th:href="@{/patient/records(page=${i}, size=${recordPage.size}, keyword=${keyword}, bodyPart=${bodyPart})}" th:text="${i + 1}">1</a>
-                            </li>
-                            <li class="page-item" th:classappend="${recordPage.last ? 'disabled' : ''}">
-                                <a class="page-link" th:href="@{/patient/records(page=${recordPage.number + 1}, size=${recordPage.size}, keyword=${keyword}, bodyPart=${bodyPart})}">Sau</a>
-                            </li>
-                        </ul>
-                    </nav>
-                </section>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-folder2-open text-primary me-2"></i>Hồ sơ y tế của tôi</h1>
+            <p class="text-secondary mb-0">Toàn bộ hồ sơ chụp X-quang và kết luận chẩn đoán của bạn.</p>
+        </div>
+        <a th:href="@{/home#booking}" class="btn ms-btn ms-btn-primary text-white">
+            <i class="bi bi-calendar2-plus me-1"></i> Đặt lịch khám mới
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="pt-stat">
+                <span class="pt-stat-icon"><i class="bi bi-folder2"></i></span>
+                <span>
+                    <span class="pt-stat-label d-block">Tổng hồ sơ</span>
+                    <span class="pt-stat-number" th:text="${recordCount}">0</span>
+                    <span class="small text-muted"> hồ sơ</span>
+                </span>
             </div>
         </div>
-    </main>
-</div>
+        <div class="col-6 col-lg-3">
+            <div class="pt-stat">
+                <span class="pt-stat-icon ok"><i class="bi bi-clipboard2-check"></i></span>
+                <span>
+                    <span class="pt-stat-label d-block">Kết quả mới nhất</span>
+                    <span class="fw-bold" th:text="${latestRecord != null ? latestRecord.recordCode : 'Chưa có'}">Chưa có</span>
+                </span>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="pt-stat">
+                <span class="pt-stat-icon warn"><i class="bi bi-info-circle"></i></span>
+                <span class="small text-muted">Hồ sơ chỉ được tạo bởi kỹ thuật viên khi bạn đến chụp X-quang tại phòng khám. Kết luận cuối cùng do bác sĩ xác nhận.</span>
+            </div>
+        </div>
+    </div>
+
+    <section class="pt-card p-4">
+        <div class="pt-card-title fs-5 mb-3"><i class="bi bi-images"></i> Hồ sơ chụp X-quang</div>
+        <div class="table-responsive">
+            <table class="pt-table">
+                <thead>
+                <tr>
+                    <th>Mã hồ sơ</th>
+                    <th>Ngày chụp</th>
+                    <th>Vùng chụp</th>
+                    <th>Bác sĩ phụ trách</th>
+                    <th>Trạng thái</th>
+                    <th>Kết luận</th>
+                    <th class="text-end"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="record : ${records}">
+                    <td><span class="fw-bold text-primary" th:text="${record.recordCode}">XR-2026-0001</span></td>
+                    <td>
+                        <span class="fw-semibold" th:text="${record.capturedAt != null ? #temporals.format(record.capturedAt, 'dd/MM/yyyy') : '-'}">21/05/2026</span>
+                    </td>
+                    <td th:text="${record.bodyPart}">Cẳng tay</td>
+                    <td th:text="${record.doctor != null ? 'BS. ' + record.doctor.fullName : 'Chưa phân công'}">BS. Trần Minh Đức</td>
+                    <td>
+                        <span th:switch="${record.status}">
+                            <span th:case="'PENDING_AI'" class="pt-status pt-status-pending">Chờ AI phân tích</span>
+                            <span th:case="'AI_ANALYZED'" class="pt-status pt-status-confirmed">AI đã phân tích</span>
+                            <span th:case="'PENDING_DOCTOR'" class="pt-status pt-status-confirmed">Chờ bác sĩ duyệt</span>
+                            <span th:case="'DOCTOR_CONFIRMED'" class="pt-status pt-status-done">Đã có kết luận</span>
+                            <span th:case="'DOCTOR_REJECTED'" class="pt-status pt-status-cancelled">Cần chụp lại</span>
+                            <span th:case="'AI_FAILED'" class="pt-status pt-status-cancelled">AI phân tích lỗi</span>
+                            <span th:case="*" class="pt-status pt-status-pending" th:text="${record.status}">-</span>
+                        </span>
+                    </td>
+                    <td>
+                        <span class="small" th:if="${record.doctorConclusion != null}"
+                              th:title="${record.doctorConclusion}"
+                              th:text="${#strings.abbreviate(record.doctorConclusion, 50)}">Kết luận</span>
+                        <span class="small text-muted" th:if="${record.doctorConclusion == null}">Chưa có kết luận cuối</span>
+                    </td>
+                    <td class="text-end">
+                        <a th:href="@{/patient/results}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-2">
+                            <i class="bi bi-eye me-1"></i> Xem
+                        </a>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(records)}">
+                    <td colspan="7" class="text-center text-muted py-5">
+                        <i class="bi bi-folder2-open fs-1 d-block mb-2 opacity-50"></i>
+                        <p class="fw-semibold text-dark mb-1">Chưa có hồ sơ chụp nào.</p>
+                        <p class="small mb-3">Hồ sơ sẽ xuất hiện sau khi bạn đến khám và chụp X-quang tại phòng khám.</p>
+                        <a th:href="@{/home#booking}" class="btn ms-btn ms-btn-primary text-white">Đặt lịch khám ngay</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

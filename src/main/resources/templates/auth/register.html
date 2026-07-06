@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link th:href="@{/css/auth.css}" rel="stylesheet">
 </head>
@@ -17,72 +18,97 @@
         <div class="container ms-container">
             <div class="row g-4 align-items-stretch justify-content-center">
                 <div class="col-12 col-lg-5">
-                    <div class="ms-auth-hero h-100 d-flex flex-column justify-content-between">
+                    <div class="ms-auth-hero ms-card h-100">
                         <div>
                             <div class="ms-brand mb-4">
-                                <div class="ms-brand-mark">M</div>
+                                <div class="ms-brand-mark ms-brand-mark-solid"><i class="bi bi-activity"></i></div>
                                 <div>
                                     <div class="small text-uppercase opacity-75">MediScan AI</div>
-                                    <div class="h5 mb-0">Hệ thống Chẩn đoán Chấn thương</div>
+                                    <div class="h5 mb-0">Chẩn đoán chấn thương xương</div>
                                 </div>
                             </div>
-                            <span class="ms-pill ms-btn-ghost mb-4">AI Healthcare</span>
-                            <h1 class="ms-display display-5 mb-3 fw-bold">Tham gia nền tảng hỗ trợ y tế thông minh.</h1>
-                            <p class="mb-0 opacity-90 fs-5" style="max-width: 30rem;">Giải pháp AI hỗ trợ phân tích hình ảnh và chẩn đoán chấn thương nhanh chóng, chính xác.</p>
+                            <span class="ms-auth-hero-badge mb-4"><i class="bi bi-shield-check"></i> Nền tảng AI y tế</span>
+                            <h1 class="ms-auth-title mb-3">Tạo tài khoản để bắt đầu quy trình khám chấn thương.</h1>
+                            <p class="mb-0 opacity-90 fs-6" style="max-width: 28rem;">Đặt lịch khám, theo dõi tiến trình chụp X-quang và nhận kết quả chẩn đoán được bác sĩ xác nhận với sự hỗ trợ của AI.</p>
                         </div>
-                        <div class="mt-4 pt-4 border-top border-white border-opacity-25">
-                            <div class="row g-3">
-                                <div class="col-6">
-                                    <div class="ms-pill ms-btn-ghost w-100 justify-content-center">Chẩn đoán nhanh</div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="ms-pill ms-btn-ghost w-100 justify-content-center">Độ chính xác cao</div>
-                                </div>
-                            </div>
-                        </div>
+                        <ul class="ms-feature-list mt-5">
+                            <li class="ms-feature-item">
+                                <span class="ms-feature-icon"><i class="bi bi-calendar2-check"></i></span>
+                                Đặt lịch khám nhanh chóng
+                            </li>
+                            <li class="ms-feature-item">
+                                <span class="ms-feature-icon"><i class="bi bi-graph-up-arrow"></i></span>
+                                AI hỗ trợ, độ chính xác cao
+                            </li>
+                            <li class="ms-feature-item">
+                                <span class="ms-feature-icon"><i class="bi bi-clipboard2-pulse"></i></span>
+                                Theo dõi hồ sơ khám xuyên suốt
+                            </li>
+                        </ul>
                     </div>
                 </div>
 
                 <div class="col-12 col-lg-5">
                     <div class="ms-auth-panel ms-card-solid h-100">
                         <div class="mb-4">
-                            <div class="ms-brand text-uppercase small text-muted mb-3 fw-bold">Join MediScan AI</div>
+                            <div class="ms-auth-eyebrow text-uppercase small fw-bold mb-3"><i class="bi bi-person-plus-fill"></i> Join MediScan AI</div>
                             <h2 class="ms-section-title h2 mb-2">Đăng ký tài khoản</h2>
-                            <p class="ms-subtle mb-0">Nhập thông tin cơ bản để bắt đầu sử dụng AI y tế.</p>
+                            <p class="ms-subtle mb-0">Nhập thông tin cơ bản để bắt đầu sử dụng hệ thống.</p>
                         </div>
 
-                        <div th:if="${error}" class="alert alert-danger rounded-3 border-0" th:text="${error}"></div>
+                        <div th:if="${error}" class="alert alert-danger ms-auth-alert"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
 
                         <form th:action="@{/register}" th:object="${registerRequest}" method="post" class="mt-4" novalidate>
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
                             <div class="mb-3">
                                 <label for="fullName" class="ms-label">Họ và tên</label>
-                                <input type="text" id="fullName" th:field="*{fullName}" class="form-control ms-input" placeholder="Nhập họ và tên" autocomplete="name" required autofocus>
+                                <div class="ms-input-group">
+                                    <span class="ms-input-icon"><i class="bi bi-person"></i></span>
+                                    <input type="text" id="fullName" th:field="*{fullName}" class="form-control ms-input" placeholder="Nhập họ và tên" autocomplete="name" required autofocus>
+                                </div>
                                 <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></div>
                             </div>
 
                             <div class="mb-3">
                                 <label for="email" class="ms-label">Email</label>
-                                <input type="email" id="email" th:field="*{email}" class="form-control ms-input" placeholder="Nhập email" autocomplete="email" required>
+                                <div class="ms-input-group">
+                                    <span class="ms-input-icon"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" id="email" th:field="*{email}" class="form-control ms-input" placeholder="Nhập email" autocomplete="email" required>
+                                </div>
                                 <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
                             </div>
 
                             <div class="mb-3">
                                 <label for="phone" class="ms-label">Số điện thoại</label>
-                                <input type="tel" id="phone" th:field="*{phone}" class="form-control ms-input" placeholder="Nhập số điện thoại" autocomplete="tel" required>
+                                <div class="ms-input-group">
+                                    <span class="ms-input-icon"><i class="bi bi-telephone"></i></span>
+                                    <input type="tel" id="phone" th:field="*{phone}" class="form-control ms-input" placeholder="Nhập số điện thoại" autocomplete="tel" required>
+                                </div>
                                 <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
                             </div>
 
                             <div class="mb-3">
                                 <label for="password" class="ms-label">Mật khẩu</label>
-                                <input type="password" id="password" th:field="*{password}" class="form-control ms-input" placeholder="Tạo mật khẩu" autocomplete="new-password" required minlength="6">
+                                <div class="ms-input-group has-toggle">
+                                    <span class="ms-input-icon"><i class="bi bi-lock"></i></span>
+                                    <input type="password" id="password" th:field="*{password}" class="form-control ms-input" placeholder="Tạo mật khẩu" autocomplete="new-password" required minlength="6">
+                                    <button type="button" class="ms-input-toggle" aria-label="Hiện mật khẩu" onclick="msTogglePassword('password', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                                 <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
                             </div>
 
                             <div class="mb-3">
                                 <label for="confirmPassword" class="ms-label">Xác nhận mật khẩu</label>
-                                <input type="password" id="confirmPassword" th:field="*{confirmPassword}" class="form-control ms-input" placeholder="Nhập lại mật khẩu" autocomplete="new-password" required minlength="6">
+                                <div class="ms-input-group has-toggle">
+                                    <span class="ms-input-icon"><i class="bi bi-lock-fill"></i></span>
+                                    <input type="password" id="confirmPassword" th:field="*{confirmPassword}" class="form-control ms-input" placeholder="Nhập lại mật khẩu" autocomplete="new-password" required minlength="6">
+                                    <button type="button" class="ms-input-toggle" aria-label="Hiện mật khẩu" onclick="msTogglePassword('confirmPassword', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                                 <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></div>
                             </div>
 
@@ -93,7 +119,7 @@
 
                         <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
                             <span class="text-muted small">Đã có tài khoản?</span>
-                            <a th:href="@{/login}" class="fw-semibold text-decoration-none">Quay lại đăng nhập</a>
+                            <a th:href="@{/login}" class="ms-auth-footer-link">Quay lại đăng nhập</a>
                         </div>
                     </div>
                 </div>
@@ -101,5 +127,15 @@
         </div>
     </div>
 </div>
+<script>
+    function msTogglePassword(fieldId, btn) {
+        const input = document.getElementById(fieldId);
+        const icon = btn.querySelector('i');
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        icon.classList.toggle('bi-eye', showing);
+        icon.classList.toggle('bi-eye-slash', !showing);
+    }
+</script>
 </body>
 </html>

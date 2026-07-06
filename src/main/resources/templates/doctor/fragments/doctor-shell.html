@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- ============ Doctor top navbar ============ -->
+<nav class="pt-navbar" th:fragment="nav">
+    <div class="container-fluid px-3 px-lg-4">
+        <div class="pt-navbar-inner">
+            <a th:href="@{/home}" class="ms-brand text-decoration-none text-dark">
+                <div class="ms-brand-mark ms-brand-mark-solid"><i class="bi bi-activity"></i></div>
+                <div>
+                    <div class="fw-bold">MediScan AI</div>
+                    <div class="small text-muted">Hệ thống chẩn đoán chấn thương xương khớp</div>
+                </div>
+            </a>
+
+            <div class="d-flex align-items-center gap-2">
+                <a th:href="@{/notifications}" class="btn ms-icon-btn" title="Thông báo">
+                    <i class="bi bi-bell"></i>
+                    <span class="ms-notification-count" th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
+                          th:text="${headerUnreadCount}">0</span>
+                </a>
+                <div class="dropdown">
+                    <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="ms-avatar ms-avatar-primary"
+                              th:text="${currentUser != null ? #strings.substring(currentUser.fullName, 0, 1).toUpperCase() : 'B'}">B</span>
+                        <span class="d-none d-md-block text-start">
+                            <span class="d-block fw-bold" th:text="${currentUser != null ? currentUser.fullName : ''}">Bác sĩ</span>
+                            <span class="d-block small text-muted">Bác sĩ</span>
+                        </span>
+                        <i class="bi bi-chevron-down small text-muted"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel">
+                        <a class="dropdown-item py-2" th:href="@{/home}"><i class="bi bi-house me-2"></i>Tổng quan</a>
+                        <a class="dropdown-item py-2" th:href="@{/profile}"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a>
+                        <a class="dropdown-item py-2" th:href="@{/profile/edit}"><i class="bi bi-pencil-square me-2"></i>Chỉnh sửa thông tin</a>
+                        <a class="dropdown-item py-2" th:href="@{/notifications}"><i class="bi bi-bell me-2"></i>Thông báo</a>
+                        <a class="dropdown-item py-2" th:href="@{/change-password}"><i class="bi bi-key me-2"></i>Đổi mật khẩu</a>
+                        <form th:action="@{/logout}" method="post" class="px-3 pt-2 pb-2">
+                            <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100">Đăng xuất</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ============ Doctor sidebar ============ -->
+<div class="rc-sidebar" th:fragment="sidebar(active)">
+    <div class="d-grid gap-1">
+        <a class="rc-nav-item" th:classappend="${active == 'pending'} ? ' active'" th:href="@{/doctor/records/pending}"><i class="bi bi-images"></i> Ca chờ đọc ảnh</a>
+        <a class="rc-nav-item" href="#" title="Sắp ra mắt"><i class="bi bi-journal-medical"></i> Hồ sơ bệnh án</a>
+        <a class="rc-nav-item" th:classappend="${active == 'library'} ? ' active'" th:href="@{/doctor/library}"><i class="bi bi-collection"></i> Thư viện chẩn đoán</a>
+        <hr class="my-2">
+        <a class="rc-nav-item" th:href="@{/notifications}"><i class="bi bi-bell"></i> Thông báo</a>
+    </div>
+</div>
+
+</body>
+</html>
