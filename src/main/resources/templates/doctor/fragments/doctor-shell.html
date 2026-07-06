@@ -48,13 +48,13 @@
 
 <!-- ============ Doctor sidebar ============ -->
 <div class="rc-sidebar" th:fragment="sidebar(active)">
-    <nav class="d-grid gap-1">
+    <div class="d-grid gap-1">
         <a class="rc-nav-item" th:classappend="${active == 'pending'} ? ' active'" th:href="@{/doctor/records/pending}"><i class="bi bi-images"></i> Ca chờ đọc ảnh</a>
         <a class="rc-nav-item" href="#" title="Sắp ra mắt"><i class="bi bi-journal-medical"></i> Hồ sơ bệnh án</a>
         <a class="rc-nav-item" th:classappend="${active == 'library'} ? ' active'" th:href="@{/doctor/library}"><i class="bi bi-collection"></i> Thư viện chẩn đoán</a>
         <hr class="my-2">
         <a class="rc-nav-item" th:href="@{/notifications}"><i class="bi bi-bell"></i> Thông báo</a>
-    </nav>
+    </div>
 </div>
 
 </body>
