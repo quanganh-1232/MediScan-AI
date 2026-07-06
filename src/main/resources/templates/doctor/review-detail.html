@@ -8,10 +8,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
-        .xray-panel { background: #0b0f19; border: 1px solid #1e293b; }
+        .xray-panel { background: #0e1524; border: 1px solid #1e293b; border-radius: 18px; }
         .xray-container { position: relative; display: block; line-height: 0; }
         .xray-container img { width: 100%; height: auto; display: block; filter: contrast(1.1); }
         #bboxCanvas {
@@ -32,14 +32,21 @@
 </head>
 <body>
 <div class="ms-shell">
-    <div th:replace="~{common/fragments/app-header :: header('Diagnosis Center', 'Bác sĩ', 'ms-avatar-purple')}"></div>
+    <div th:replace="~{doctor/fragments/doctor-shell :: nav}"></div>
 
-    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
+    <main class="container-fluid px-3 px-lg-4 py-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <a th:href="@{/doctor/records/pending}" class="small fw-semibold text-decoration-none"><i class="bi bi-chevron-left"></i> Quay lại danh sách ca chờ</a>
+                <h1 class="fw-bold mb-0 fs-3 mt-1"><i class="bi bi-images text-primary me-2"></i>Đọc ảnh &amp; xác nhận chẩn đoán</h1>
+            </div>
+            <span class="pt-status pt-status-pending" th:text="${'Hồ sơ ' + record.recordCode}">XR-0001</span>
+        </div>
         <div class="row g-4">
 
             <!-- ===== X-Ray + canvas editor ===== -->
             <div class="col-12 col-xl-6">
-                <div class="ms-card-solid xray-panel rounded-5 p-3 p-lg-4">
+                <div class="xray-panel p-3 p-lg-4">
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom border-secondary border-opacity-25">
                         <span class="small text-white-50">
                             <i class="bi bi-cpu me-1 text-info"></i> AI Detection — kéo khung để chỉnh vùng
@@ -69,9 +76,9 @@
             <div class="col-12 col-xl-6">
 
                 <!-- Patient info -->
-                <div class="ms-card-solid rounded-5 p-4 mb-4">
+                <div class="pt-card p-4 mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 class="ms-section-title h5 mb-0">Thông tin bệnh nhân</h2>
+                        <h2 class="pt-card-title h5 mb-0"><i class="bi bi-person"></i> Thông tin bệnh nhân</h2>
                         <span class="ms-badge ms-badge-soft" th:text="'Mã ca: ' + ${record.recordCode}">XR-123</span>
                     </div>
                     <div class="row g-3">
@@ -103,9 +110,9 @@
                 </div>
 
                 <!-- AI prediction -->
-                <div class="ms-card-solid rounded-5 p-4 mb-4 border-start border-4 border-warning">
+                <div class="pt-card p-4 mb-4 border-start border-4 border-warning">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h2 class="ms-section-title h5 mb-0 text-warning">MediScan AI Prediction</h2>
+                        <h2 class="pt-card-title h5 mb-0"><i class="bi bi-cpu"></i> Kết quả AI tham khảo</h2>
                         <span class="ms-pill ms-pill-warning" th:text="${record.bodyPart}">Chest</span>
                     </div>
                     <div class="p-3 bg-light rounded-4 mt-2">
@@ -127,8 +134,8 @@
                     <input type="hidden" name="bboxWidth"  id="hiddenBboxWidth"  th:value="${record.bboxWidth}">
                     <input type="hidden" name="bboxHeight" id="hiddenBboxHeight" th:value="${record.bboxHeight}">
 
-                    <div class="ms-card-solid rounded-5 p-4">
-                        <h2 class="ms-section-title h5 mb-3">Kết luận & Chẩn đoán lâm sàng</h2>
+                    <div class="pt-card p-4">
+                        <h2 class="pt-card-title h5 mb-3"><i class="bi bi-clipboard2-check"></i> Kết luận &amp; Chẩn đoán lâm sàng</h2>
                         <textarea name="conclusion" class="form-control border-0 bg-light rounded-4 p-3 mb-4 ms-subtle"
                                   rows="5"
                                   placeholder="Nhập nhận định chuyên môn, kê đơn hoặc khuyến nghị hướng điều trị..."></textarea>

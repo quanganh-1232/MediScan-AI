@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Trang chủ - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+</head>
+<body>
+
+<div th:replace="~{patient/fragments/patient-shell :: nav('home')}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+    <div class="row g-4">
+
+        <!-- ============ Left rail ============ -->
+        <div class="col-12 col-xl-3 order-2 order-xl-1">
+            <div class="pt-card p-3 mb-4">
+                <div class="pt-card-title mb-3"><i class="bi bi-calendar2-week"></i> Lịch hẹn sắp tới</div>
+                <div th:if="${upcomingAppointment != null}">
+                    <div class="d-flex gap-3 p-2 rounded-3" style="background:#f8fafd;">
+                        <div class="pt-datebox">
+                            <div class="small fw-semibold" th:text="${#temporals.format(upcomingAppointment.scheduledTime, 'EEEE', new java.util.Locale('vi'))}">Thứ 5</div>
+                            <div class="day" th:text="${#temporals.format(upcomingAppointment.scheduledTime, 'dd')}">23</div>
+                            <div class="small" th:text="${'Tháng ' + #temporals.format(upcomingAppointment.scheduledTime, 'M, yyyy')}">Tháng 5, 2026</div>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="fw-bold" th:text="${#temporals.format(upcomingAppointment.scheduledTime, 'HH:mm')}">08:30</div>
+                            <div class="fw-semibold small" th:text="${upcomingAppointment.doctor != null ? 'BS. ' + upcomingAppointment.doctor.fullName : 'Chưa gán bác sĩ'}">BS. Trần Minh Đức</div>
+                            <div class="small text-muted" th:text="${upcomingAppointment.bodyPart != null ? upcomingAppointment.bodyPart : 'Khám chấn thương xương'}">Khám chấn thương</div>
+                            <div class="small text-muted mt-1" th:if="${upcomingAppointment.location != null}">
+                                <i class="bi bi-geo-alt"></i> <span th:text="${upcomingAppointment.location}">Cơ sở 1</span>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#history" class="btn ms-btn ms-btn-ghost w-100 mt-3 border text-primary d-flex justify-content-between align-items-center">
+                        Xem chi tiết lịch hẹn <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+                <div th:if="${upcomingAppointment == null}" class="text-center text-muted py-3">
+                    <i class="bi bi-calendar2-x fs-2 d-block mb-2 opacity-50"></i>
+                    <div class="small mb-3">Bạn chưa có lịch hẹn sắp tới.</div>
+                    <a href="#booking" class="btn ms-btn ms-btn-primary text-white w-100">Đặt lịch ngay</a>
+                </div>
+            </div>
+
+            <div class="pt-card p-3 mb-4">
+                <div class="pt-card-title mb-3"><i class="bi bi-lightning-charge"></i> Thao tác nhanh</div>
+                <div class="d-grid gap-2">
+                    <a href="#booking" class="pt-quick-item">
+                        <span class="pt-quick-icon"><i class="bi bi-calendar2-plus"></i></span>
+                        <span>
+                            <span class="d-block fw-semibold">Đặt lịch khám</span>
+                            <span class="d-block small text-muted">Chọn bác sĩ, thời gian phù hợp</span>
+                        </span>
+                    </a>
+                    <a href="#" onclick="chatFocus(); return false;" class="pt-quick-item">
+                        <span class="pt-quick-icon"><i class="bi bi-chat-dots"></i></span>
+                        <span>
+                            <span class="d-block fw-semibold">Chatbot hỗ trợ</span>
+                            <span class="d-block small text-muted">Hỏi đáp, tư vấn triệu chứng</span>
+                        </span>
+                    </a>
+                    <a th:href="@{/patient/results}" class="pt-quick-item">
+                        <span class="pt-quick-icon"><i class="bi bi-clipboard2-pulse"></i></span>
+                        <span>
+                            <span class="d-block fw-semibold">Kết quả chẩn đoán</span>
+                            <span class="d-block small text-muted">Xem kết quả và khuyến nghị</span>
+                        </span>
+                    </a>
+                    <a th:href="@{/patient/records}" class="pt-quick-item">
+                        <span class="pt-quick-icon"><i class="bi bi-folder2-open"></i></span>
+                        <span>
+                            <span class="d-block fw-semibold">Hồ sơ y tế</span>
+                            <span class="d-block small text-muted">Thông tin và hồ sơ của bạn</span>
+                        </span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="pt-card p-3">
+                <div class="pt-card-title mb-2"><i class="bi bi-heart-pulse"></i> Nhắc nhở sức khỏe</div>
+                <p class="small text-muted mb-0">Hãy vận động nhẹ nhàng mỗi ngày để bảo vệ xương khớp và tăng cường sức khỏe nhé!</p>
+            </div>
+        </div>
+
+        <!-- ============ Main column ============ -->
+        <div class="col-12 col-xl-9 order-1 order-xl-2">
+            <section class="pt-hero mb-4">
+                <div class="small fw-bold text-primary mb-1">Chào mừng bạn đến với MediScan AI</div>
+                <h1 class="fw-bold mb-2" style="font-size: clamp(1.6rem, 2.6vw, 2.2rem);">Chẩn đoán chấn thương xương khớp</h1>
+                <p class="text-secondary mb-4">Ứng dụng trí tuệ nhân tạo và đội ngũ bác sĩ chuyên khoa giúp bạn chẩn đoán chính xác và điều trị kịp thời.</p>
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <div class="pt-hero-feature">
+                            <span class="icon"><i class="bi bi-shield-check"></i></span>
+                            <span class="small"><span class="d-block fw-bold">Chẩn đoán chính xác</span><span class="text-muted" style="font-size:0.75rem;">Công nghệ AI hiện đại</span></span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="pt-hero-feature">
+                            <span class="icon"><i class="bi bi-person-badge"></i></span>
+                            <span class="small"><span class="d-block fw-bold">Bác sĩ chuyên khoa</span><span class="text-muted" style="font-size:0.75rem;">Kinh nghiệm hàng đầu</span></span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="pt-hero-feature">
+                            <span class="icon"><i class="bi bi-clock"></i></span>
+                            <span class="small"><span class="d-block fw-bold">Tiết kiệm thời gian</span><span class="text-muted" style="font-size:0.75rem;">Đặt lịch nhanh chóng</span></span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="pt-hero-feature">
+                            <span class="icon"><i class="bi bi-lock"></i></span>
+                            <span class="small"><span class="d-block fw-bold">Bảo mật thông tin</span><span class="text-muted" style="font-size:0.75rem;">An toàn tuyệt đối</span></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="booking" class="pt-card p-4 mb-4">
+                <div class="pt-card-title mb-3 fs-5"><i class="bi bi-calendar2-plus"></i> Đặt lịch khám</div>
+                <form id="bookingForm" onsubmit="return submitBooking(event)">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-4">
+                            <label class="ms-label" for="bkDoctor">Bác sĩ</label>
+                            <select id="bkDoctor" class="form-select ms-input">
+                                <option value="">Chọn bác sĩ</option>
+                                <option th:each="d : ${doctors}" th:value="${d.userId}" th:text="${'BS. ' + d.fullName}">BS. Trần Minh Đức</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="ms-label" for="bkDate">Ngày khám</label>
+                            <input type="date" id="bkDate" class="form-control ms-input">
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="ms-label" for="bkTime">Thời gian</label>
+                            <select id="bkTime" class="form-select ms-input">
+                                <option>08:00</option><option>08:30</option><option>09:00</option><option>09:30</option>
+                                <option>10:00</option><option>10:30</option><option>11:00</option><option>13:30</option>
+                                <option>14:00</option><option>14:30</option><option>15:00</option><option>15:30</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3 d-grid">
+                            <button type="submit" class="btn ms-btn ms-btn-primary text-white">
+                                <i class="bi bi-calendar2-check me-1"></i> Đặt lịch ngay
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div class="small text-success mt-3"><i class="bi bi-shield-check me-1"></i>Thông tin của bạn được bảo mật và chỉ sử dụng cho mục đích khám chữa bệnh.</div>
+                <div id="bookingNotice" class="alert alert-info mt-3 mb-0 d-none"></div>
+            </section>
+
+            <section id="history" class="pt-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="pt-card-title fs-5"><i class="bi bi-clock-history"></i> Lịch sử khám</div>
+                    <a th:href="@{/patient/records}" class="small fw-semibold text-decoration-none">Xem tất cả <i class="bi bi-chevron-right"></i></a>
+                </div>
+                <div class="table-responsive">
+                    <table class="pt-table">
+                        <thead>
+                        <tr>
+                            <th>Ngày khám</th>
+                            <th>Bác sĩ</th>
+                            <th>Lý do khám</th>
+                            <th>Trạng thái</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="a : ${myAppointments}">
+                            <td>
+                                <div class="fw-semibold" th:text="${#temporals.format(a.scheduledTime, 'dd/MM/yyyy')}">15/05/2026</div>
+                                <div class="small text-muted" th:text="${#temporals.format(a.scheduledTime, 'HH:mm')}">09:15</div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold" th:text="${a.doctor != null ? 'BS. ' + a.doctor.fullName : 'Chưa gán'}">BS. Lê Hoàng Tú</div>
+                            </td>
+                            <td>
+                                <span th:text="${a.bodyPart != null ? a.bodyPart : (a.note != null ? a.note : 'Khám chấn thương xương')}">Đau khớp gối phải</span>
+                            </td>
+                            <td>
+                                <span th:switch="${a.status}">
+                                    <span th:case="'PENDING'" class="pt-status pt-status-pending">Chờ xác nhận</span>
+                                    <span th:case="'CONFIRMED'" class="pt-status pt-status-confirmed">Đã xác nhận</span>
+                                    <span th:case="'SCHEDULED'" class="pt-status pt-status-confirmed">Đã đặt lịch</span>
+                                    <span th:case="'CHECKED_IN'" class="pt-status pt-status-checkedin">Đã check-in</span>
+                                    <span th:case="'TRIAGED'" class="pt-status pt-status-checkedin">Đã khám sơ bộ</span>
+                                    <span th:case="'IN_PROGRESS'" class="pt-status pt-status-confirmed">Đang khám</span>
+                                    <span th:case="'COMPLETED'" class="pt-status pt-status-done">Hoàn thành</span>
+                                    <span th:case="'CANCELLED'" class="pt-status pt-status-cancelled">Đã hủy</span>
+                                    <span th:case="'MISSED'" class="pt-status pt-status-cancelled">Vắng mặt</span>
+                                    <span th:case="*" class="pt-status pt-status-pending" th:text="${a.status}">-</span>
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a th:href="@{/patient/records}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary">Xem chi tiết <i class="bi bi-chevron-right"></i></a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(myAppointments)}">
+                            <td colspan="5" class="text-center text-muted py-4">
+                                <i class="bi bi-journal-medical fs-3 d-block mb-2 opacity-50"></i>
+                                Chưa có lịch sử khám. Hãy đặt lịch khám đầu tiên của bạn!
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+
+<div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function submitBooking(e) {
+        e.preventDefault();
+        const notice = document.getElementById('bookingNotice');
+        notice.classList.remove('d-none');
+        notice.textContent = 'Chức năng đặt lịch trực tuyến đang được hoàn thiện. Vui lòng liên hệ lễ tân để được hỗ trợ đặt lịch.';
+        return false;
+    }
+</script>
+</body>
+</html>

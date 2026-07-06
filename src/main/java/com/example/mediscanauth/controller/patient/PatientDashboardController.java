@@ -61,10 +61,9 @@ public class PatientDashboardController {
     }
 
     @GetMapping("/patient/upload")
-    public String uploadForm(Authentication authentication, Model model) {
-        addModel(authentication, model);
-        model.addAttribute("activeSection", "upload-form");
-        return "patient/upload";
+    public String uploadForm() {
+        // Patient self-upload flow removed: X-ray images are captured by technicians only.
+        return "redirect:/home";
     }
 
     @PostMapping("/patient/upload")

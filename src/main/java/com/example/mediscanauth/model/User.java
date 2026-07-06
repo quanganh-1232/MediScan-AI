@@ -16,10 +16,6 @@ public class User {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "department_id")
-    private Department department;
-
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
@@ -67,14 +63,6 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
-    }
-
-    public Department getDepartment() {
-        return department;
-    }
-
-    public void setDepartment(Department department) {
-        this.department = department;
     }
 
     public String getFullName() {

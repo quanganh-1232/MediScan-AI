@@ -2,40 +2,122 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Patient Records - MediScan AI</title>
+    <title>Hồ sơ y tế - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
 </head>
 <body>
-<div class="ms-shell">
-    <div th:replace="~{common/fragments/app-header :: header('Patient Portal', 'Bệnh nhân', 'ms-avatar-orange')}"></div>
-    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
-        <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3"><div th:replace="~{common/fragments/app-sidebar :: sidebar('patient', 'Patient Portal', 'Bệnh nhân', 'ms-avatar-orange', 'records')}"></div></div>
-            <div class="col-12 col-xl-9">
-                <section class="ms-page-hero mb-4"><div><span class="ms-pill ms-pill-success mb-3">Patient records</span><h1 class="ms-display display-6 mb-2">Hồ sơ chụp X-Quang</h1></div></section>
-                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
-                    <div class="table-responsive">
-                        <table class="ms-table">
-                            <thead><tr><th>Mã hồ sơ</th><th>Ngày chụp</th><th>Vùng chụp</th><th>Kết luận</th></tr></thead>
-                            <tbody>
-                            <tr th:each="record : ${records}">
-                                <td><div class="fw-bold" th:text="${record.recordCode}">XR-2026-0001</div><div class="small text-muted" th:text="${record.doctor != null ? 'Bác sĩ: ' + record.doctor.fullName : 'Chưa phân bác sĩ'}">Chưa phân bác sĩ</div></td>
-                                <td th:text="${#temporals.format(record.capturedAt, 'dd/MM/yyyy')}">21/05/2026</td>
-                                <td th:text="${record.bodyPart}">Cẳng tay</td>
-                                <td th:text="${record.doctorConclusion != null ? record.doctorConclusion : record.aiPrediction}">Chờ AI phân tích</td>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(records)}"><td colspan="4" class="text-center py-4 text-muted">Chưa có hồ sơ chụp nào trong database.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+
+<div th:replace="~{patient/fragments/patient-shell :: nav('records')}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-folder2-open text-primary me-2"></i>Hồ sơ y tế của tôi</h1>
+            <p class="text-secondary mb-0">Toàn bộ hồ sơ chụp X-quang và kết luận chẩn đoán của bạn.</p>
+        </div>
+        <a th:href="@{/home#booking}" class="btn ms-btn ms-btn-primary text-white">
+            <i class="bi bi-calendar2-plus me-1"></i> Đặt lịch khám mới
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="pt-stat">
+                <span class="pt-stat-icon"><i class="bi bi-folder2"></i></span>
+                <span>
+                    <span class="pt-stat-label d-block">Tổng hồ sơ</span>
+                    <span class="pt-stat-number" th:text="${recordCount}">0</span>
+                    <span class="small text-muted"> hồ sơ</span>
+                </span>
             </div>
         </div>
-    </main>
-</div>
+        <div class="col-6 col-lg-3">
+            <div class="pt-stat">
+                <span class="pt-stat-icon ok"><i class="bi bi-clipboard2-check"></i></span>
+                <span>
+                    <span class="pt-stat-label d-block">Kết quả mới nhất</span>
+                    <span class="fw-bold" th:text="${latestRecord != null ? latestRecord.recordCode : 'Chưa có'}">Chưa có</span>
+                </span>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="pt-stat">
+                <span class="pt-stat-icon warn"><i class="bi bi-info-circle"></i></span>
+                <span class="small text-muted">Hồ sơ chỉ được tạo bởi kỹ thuật viên khi bạn đến chụp X-quang tại phòng khám. Kết luận cuối cùng do bác sĩ xác nhận.</span>
+            </div>
+        </div>
+    </div>
+
+    <section class="pt-card p-4">
+        <div class="pt-card-title fs-5 mb-3"><i class="bi bi-images"></i> Hồ sơ chụp X-quang</div>
+        <div class="table-responsive">
+            <table class="pt-table">
+                <thead>
+                <tr>
+                    <th>Mã hồ sơ</th>
+                    <th>Ngày chụp</th>
+                    <th>Vùng chụp</th>
+                    <th>Bác sĩ phụ trách</th>
+                    <th>Trạng thái</th>
+                    <th>Kết luận</th>
+                    <th class="text-end"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="record : ${records}">
+                    <td><span class="fw-bold text-primary" th:text="${record.recordCode}">XR-2026-0001</span></td>
+                    <td>
+                        <span class="fw-semibold" th:text="${record.capturedAt != null ? #temporals.format(record.capturedAt, 'dd/MM/yyyy') : '-'}">21/05/2026</span>
+                    </td>
+                    <td th:text="${record.bodyPart}">Cẳng tay</td>
+                    <td th:text="${record.doctor != null ? 'BS. ' + record.doctor.fullName : 'Chưa phân công'}">BS. Trần Minh Đức</td>
+                    <td>
+                        <span th:switch="${record.status}">
+                            <span th:case="'PENDING_AI'" class="pt-status pt-status-pending">Chờ AI phân tích</span>
+                            <span th:case="'AI_ANALYZED'" class="pt-status pt-status-confirmed">AI đã phân tích</span>
+                            <span th:case="'PENDING_DOCTOR'" class="pt-status pt-status-confirmed">Chờ bác sĩ duyệt</span>
+                            <span th:case="'DOCTOR_CONFIRMED'" class="pt-status pt-status-done">Đã có kết luận</span>
+                            <span th:case="'DOCTOR_REJECTED'" class="pt-status pt-status-cancelled">Cần chụp lại</span>
+                            <span th:case="'AI_FAILED'" class="pt-status pt-status-cancelled">AI phân tích lỗi</span>
+                            <span th:case="*" class="pt-status pt-status-pending" th:text="${record.status}">-</span>
+                        </span>
+                    </td>
+                    <td>
+                        <span class="small" th:if="${record.doctorConclusion != null}"
+                              th:title="${record.doctorConclusion}"
+                              th:text="${#strings.abbreviate(record.doctorConclusion, 50)}">Kết luận</span>
+                        <span class="small text-muted" th:if="${record.doctorConclusion == null}">Chưa có kết luận cuối</span>
+                    </td>
+                    <td class="text-end">
+                        <a th:href="@{/patient/results}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-2">
+                            <i class="bi bi-eye me-1"></i> Xem
+                        </a>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(records)}">
+                    <td colspan="7" class="text-center text-muted py-5">
+                        <i class="bi bi-folder2-open fs-1 d-block mb-2 opacity-50"></i>
+                        <p class="fw-semibold text-dark mb-1">Chưa có hồ sơ chụp nào.</p>
+                        <p class="small mb-3">Hồ sơ sẽ xuất hiện sau khi bạn đến khám và chụp X-quang tại phòng khám.</p>
+                        <a th:href="@{/home#booking}" class="btn ms-btn ms-btn-primary text-white">Đặt lịch khám ngay</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

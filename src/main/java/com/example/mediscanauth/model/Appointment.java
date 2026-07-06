@@ -28,10 +28,6 @@ public class Appointment {
     @JoinColumn(name = "receptionist_id")
     private User receptionist;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "department_id")
-    private Department department;
-
     @Column(name = "appointment_code", nullable = false, unique = true, length = 50)
     private String appointmentCode;
 
@@ -47,7 +43,7 @@ public class Appointment {
     @Column(name = "body_part", length = 100)
     private String bodyPart;
 
-    @Column(name = "status", columnDefinition = "enum('PENDING','CONFIRMED','SCHEDULED','CHECKED_IN','TRIAGED','REFERRED','IN_PROGRESS','COMPLETED','CANCELLED','MISSED')")
+    @Column(name = "status", columnDefinition = "enum('PENDING','CONFIRMED','SCHEDULED','CHECKED_IN','TRIAGED','IN_PROGRESS','COMPLETED','CANCELLED','MISSED')")
     private String status = "SCHEDULED";
 
     @Column(name = "note", columnDefinition = "text")
@@ -90,14 +86,6 @@ public class Appointment {
 
     public void setReceptionist(User receptionist) {
         this.receptionist = receptionist;
-    }
-
-    public Department getDepartment() {
-        return department;
-    }
-
-    public void setDepartment(Department department) {
-        this.department = department;
     }
 
     public String getAppointmentCode() {
