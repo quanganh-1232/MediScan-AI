@@ -2,70 +2,94 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Patient Results - MediScan AI</title>
+    <title>Kết quả chẩn đoán - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
 </head>
 <body>
-<div class="ms-shell">
-    <div th:replace="~{common/fragments/app-header :: header('Patient Portal', 'Bệnh nhân', 'ms-avatar-orange')}"></div>
-    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
-        <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3"><div th:replace="~{common/fragments/app-sidebar :: sidebar('patient', 'Patient Portal', 'Bệnh nhân', 'ms-avatar-orange', 'results')}"></div></div>
-            <div class="col-12 col-xl-9">
-                <section class="ms-page-hero mb-4"><div><span class="ms-pill ms-pill-success mb-3">Patient results</span><h1 class="ms-display display-6 mb-2">Kết quả gần nhất</h1></div></section>
-                <section class="ms-card-solid rounded-5 p-4 p-lg-5">
-                    <div th:if="${latestRecord != null}">
-                        <div class="ms-result-preview mb-3">
-                            <div class="ms-result-preview-mark">AI</div>
-                            <div>
-                                <div class="fw-bold" th:text="${latestRecord.recordCode}">XR-2026-0001</div>
-                                <div class="small text-muted" th:text="${'Độ tin cậy AI ' + (latestRecord.aiConfidence != null ? latestRecord.aiConfidence : 0) + '%'}">Độ tin cậy AI 0%</div>
-                            </div>
-                        </div>
-                        <div class="mb-4 text-center" th:if="${latestRecord.fileName != null}">
-                            <img th:src="@{'/uploads/' + ${latestRecord.fileName}}" class="img-fluid rounded border" alt="Annotated X-Ray Image" style="max-height: 400px; width: auto;"/>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <div class="card shadow-sm rounded-4 border-0">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start mb-3">
-                                            <div>
-                                                <h2 class="h5 mb-1">Tóm tắt chẩn đoán AI</h2>
-                                                <p class="text-muted mb-0">AI phân tích ban đầu dựa trên ảnh chụp và mô hình ANFIS.</p>
-                                            </div>
-                                            <div class="d-flex flex-column align-items-end gap-2">
-                                                <span class="badge bg-success" style="font-size: 0.9rem;">Độ tin cậy: <span th:text="${latestRecord.aiConfidence != null ? latestRecord.aiConfidence : 0}">0</span>%</span>
-                                                <span th:if="${latestRecord.riskLevel != null && latestRecord.riskLevel != ''}"
-                                                      th:class="'badge ' + (${latestRecord.riskLevel == 'high' || latestRecord.riskLevel == 'very_high'} ? 'bg-danger' : (${latestRecord.riskLevel == 'moderate'} ? 'bg-warning text-dark' : 'bg-info'))"
-                                                      style="font-size: 0.85rem;"
-                                                      th:text="'Mức nguy cơ: ' + (${latestRecord.riskLevel == 'very_high' ? 'Rất cao' : (latestRecord.riskLevel == 'high' ? 'Cao' : (latestRecord.riskLevel == 'moderate' ? 'Trung bình' : (latestRecord.riskLevel == 'low' ? 'Thấp' : 'Rất thấp')))})">
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <p class="mb-0 text-dark" style="white-space: pre-line;" th:utext="${latestRecord.aiPrediction != null ? latestRecord.aiPrediction : 'Chưa có kết luận AI.'}">Chờ kết quả</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="card shadow-sm rounded-4 border-0">
-                                    <div class="card-body">
-                                        <h2 class="h5 mb-2">Khuyến nghị tiếp theo</h2>
-                                        <p class="mb-0 text-dark" style="white-space: pre-line;" th:utext="${latestRecord.recommendation != null ? latestRecord.recommendation : 'Chưa có khuyến nghị. Vui lòng chờ bác sĩ đánh giá thêm.'}">Chưa có khuyến nghị.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div th:if="${latestRecord == null}" class="text-muted">Chưa có kết quả nào.</div>
-                </section>
-            </div>
+
+<div th:replace="~{patient/fragments/patient-shell :: nav('results')}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-clipboard2-pulse text-primary me-2"></i>Kết quả chẩn đoán</h1>
+            <p class="text-secondary mb-0">Kết quả mới nhất từ hệ thống AI và kết luận của bác sĩ chuyên khoa.</p>
         </div>
-    </main>
-</div>
+        <a th:href="@{/patient/records}" class="btn ms-btn ms-btn-ghost border text-primary">
+            <i class="bi bi-folder2-open me-1"></i> Xem tất cả hồ sơ
+        </a>
+    </div>
+
+    <div th:if="${latestRecord != null}" class="row g-4">
+        <!-- X-ray image -->
+        <div class="col-12 col-lg-5">
+            <section class="pt-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="pt-card-title"><i class="bi bi-image"></i> Ảnh X-quang</div>
+                    <span class="fw-bold text-primary" th:text="${latestRecord.recordCode}">XR-2026-0001</span>
+                </div>
+                <div class="text-center rounded-3 p-2" style="background:#0e1524;" th:if="${latestRecord.fileName != null}">
+                    <img th:src="@{'/uploads/' + ${latestRecord.fileName}}" class="img-fluid rounded" alt="Ảnh X-quang" style="max-height: 420px; width: auto;"/>
+                </div>
+                <div class="text-center text-muted py-5" th:if="${latestRecord.fileName == null}">
+                    <i class="bi bi-image fs-1 d-block mb-2 opacity-50"></i>
+                    Chưa có ảnh chụp.
+                </div>
+                <div class="d-flex flex-wrap gap-3 mt-3 small text-muted">
+                    <span><i class="bi bi-body-text me-1"></i>Vùng chụp: <span class="fw-semibold text-dark" th:text="${latestRecord.bodyPart}">Cẳng tay</span></span>
+                    <span><i class="bi bi-calendar3 me-1"></i>Ngày chụp: <span class="fw-semibold text-dark" th:text="${latestRecord.capturedAt != null ? #temporals.format(latestRecord.capturedAt, 'dd/MM/yyyy') : '-'}">21/05/2026</span></span>
+                </div>
+            </section>
+        </div>
+
+        <!-- Result details -->
+        <div class="col-12 col-lg-7">
+            <section class="pt-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="pt-card-title"><i class="bi bi-cpu"></i> Kết quả AI tham khảo</div>
+                    <span class="pt-status pt-status-confirmed" th:text="${'Độ tin cậy ' + (latestRecord.aiConfidence != null ? latestRecord.aiConfidence : 0) + '%'}">Độ tin cậy 92%</span>
+                </div>
+                <p class="mb-0" style="white-space: pre-line;" th:text="${latestRecord.aiPrediction != null ? latestRecord.aiPrediction : 'Chưa có kết luận AI.'}">Chờ kết quả AI.</p>
+                <div class="small text-muted mt-3">
+                    <i class="bi bi-info-circle me-1"></i>AI chỉ hỗ trợ tham khảo, kết luận cuối cùng thuộc về bác sĩ.
+                </div>
+            </section>
+
+            <section class="pt-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="pt-card-title"><i class="bi bi-person-badge"></i> Kết luận của bác sĩ</div>
+                    <span th:if="${latestRecord.doctor != null}" class="small text-muted" th:text="${'BS. ' + latestRecord.doctor.fullName}">BS. Trần Minh Đức</span>
+                </div>
+                <p class="mb-0" style="white-space: pre-line;"
+                   th:text="${latestRecord.doctorConclusion != null ? latestRecord.doctorConclusion : 'Bác sĩ chưa đưa ra kết luận cuối. Vui lòng chờ thêm.'}">Chưa có kết luận.</p>
+            </section>
+
+            <section class="pt-card p-4">
+                <div class="pt-card-title mb-3"><i class="bi bi-journal-check"></i> Khuyến nghị tiếp theo</div>
+                <p class="mb-0" style="white-space: pre-line;"
+                   th:text="${latestRecord.recommendation != null ? latestRecord.recommendation : 'Chưa có khuyến nghị. Vui lòng chờ bác sĩ đánh giá thêm.'}">Chưa có khuyến nghị.</p>
+            </section>
+        </div>
+    </div>
+
+    <div th:if="${latestRecord == null}" class="pt-card p-5 text-center text-muted">
+        <i class="bi bi-clipboard2-x fs-1 d-block mb-3 opacity-50"></i>
+        <p class="fw-semibold text-dark mb-1">Chưa có kết quả chẩn đoán nào.</p>
+        <p class="small mb-3">Kết quả sẽ xuất hiện sau khi bạn hoàn thành chụp X-quang và bác sĩ xác nhận.</p>
+        <a th:href="@{/home#booking}" class="btn ms-btn ms-btn-primary text-white">Đặt lịch khám ngay</a>
+    </div>
+</main>
+
+<div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
