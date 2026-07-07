@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -168,6 +169,22 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         appointment.setStatus("MISSED");
         appointmentRepository.save(appointment);
         logStatusChange(appointment, "MISSED", receptionist, "Bệnh nhân không đến khám theo lịch hẹn.");
+        return appointment;
+    }
+
+    @Override
+    @Transactional
+    public Appointment callNextPatient(String receptionistEmail) {
+        List<Appointment> waiting = appointmentRepository.findByStatusOrderByScheduledTimeAsc("CHECKED_IN");
+        if (waiting.isEmpty()) {
+            throw new IllegalStateException("Không có bệnh nhân nào đang chờ.");
+        }
+        Appointment appointment = waiting.get(0);
+        User receptionist = findReceptionist(receptionistEmail);
+        appointment.setReceptionist(receptionist);
+        appointment.setStatus("IN_PROGRESS");
+        appointmentRepository.save(appointment);
+        logStatusChange(appointment, "IN_PROGRESS", receptionist, "Lễ tân gọi số, mời bệnh nhân vào phòng khám.");
         return appointment;
     }
 
