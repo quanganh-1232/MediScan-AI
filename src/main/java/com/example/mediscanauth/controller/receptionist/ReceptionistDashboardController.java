@@ -7,6 +7,7 @@ import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.ReceptionistService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -23,6 +26,8 @@ import java.util.List;
 
 @Controller
 public class ReceptionistDashboardController {
+
+    private static final List<String> DOCTOR_ROLE_NAMES = List.of("DOCTOR", "ROLE_DOCTOR");
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentStatusHistoryRepository appointmentStatusHistoryRepository;
@@ -39,41 +44,53 @@ public class ReceptionistDashboardController {
         this.receptionistService = receptionistService;
     }
 
+    /**
+     * Overview: numbers only, no actions — so a receptionist can never end up on a page
+     * where a button does nothing.
+     */
     @GetMapping("/receptionist/dashboard")
-    public String dashboard(@RequestParam(required = false) String keyword,
-                            @RequestParam(required = false)
-                            @org.springframework.format.annotation.DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
-                            @RequestParam(required = false) String status,
-                            @RequestParam(defaultValue = "0") int page,
-                            Model model) {
+    public String dashboard(Model model) {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
 
-        List<Appointment> todayAppointments =
-                appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay);
+        model.addAttribute("todayCount", appointmentRepository.countByScheduledTimeBetween(startOfDay, endOfDay));
+        model.addAttribute("waitingCheckinCount", appointmentRepository.countByStatusIn(List.of("PENDING", "CONFIRMED", "SCHEDULED")));
+        model.addAttribute("receivedCount", appointmentRepository.countByStatusIn(List.of("CHECKED_IN", "TRIAGED", "IN_PROGRESS", "COMPLETED")));
+        model.addAttribute("waitingCount", appointmentRepository.countByStatus("CHECKED_IN"));
+        model.addAttribute("doctorsOnDutyCount", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
+                DOCTOR_ROLE_NAMES, "ACTIVE").size());
+        model.addAttribute("todayAppointments",
+                appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay));
+        model.addAttribute("today", LocalDate.now());
+        return "receptionist/dashboard";
+    }
 
+    /**
+     * Tiếp nhận lịch hẹn & check-in: search/filter table with the confirm/check-in/
+     * cancel/no-show actions.
+     */
+    @GetMapping("/receptionist/appointments")
+    public String appointments(@RequestParam(required = false) String keyword,
+                               @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+                               @RequestParam(required = false) String status,
+                               @RequestParam(defaultValue = "0") int page,
+                               Model model) {
         LocalDateTime dateFrom = date != null ? date.atStartOfDay() : null;
         LocalDateTime dateTo = date != null ? date.plusDays(1).atStartOfDay() : null;
         Page<Appointment> appointmentsPage = appointmentRepository.searchAppointments(
                 keyword, dateFrom, dateTo, status, PageRequest.of(Math.max(page, 0), 10));
 
-        model.addAttribute("todayCount", appointmentRepository.countByScheduledTimeBetween(startOfDay, endOfDay));
-        model.addAttribute("waitingCheckinCount", appointmentRepository.countByStatusIn(List.of("PENDING", "CONFIRMED", "SCHEDULED")));
-        model.addAttribute("receivedCount", appointmentRepository.countByStatusIn(List.of("CHECKED_IN", "TRIAGED", "IN_PROGRESS", "COMPLETED")));
-        model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
-                List.of("DOCTOR", "ROLE_DOCTOR"), "ACTIVE"));
-        model.addAttribute("todayAppointments", todayAppointments);
-        model.addAttribute("waitingList", appointmentRepository.findByStatusOrderByScheduledTimeAsc("CHECKED_IN"));
         model.addAttribute("appointmentsPage", appointmentsPage);
         model.addAttribute("keyword", keyword == null ? "" : keyword);
         model.addAttribute("filterDate", date);
         model.addAttribute("selectedStatus", status == null ? "" : status);
-        model.addAttribute("today", LocalDate.now());
-        return "receptionist/dashboard";
+        model.addAttribute("backUrl", buildBackUrl(keyword, date, status, appointmentsPage.getNumber()));
+        return "receptionist/appointments";
     }
 
     @PostMapping("/receptionist/appointments/{id}/confirm")
     public String confirmAppointment(@PathVariable("id") Long appointmentId,
+                                     @RequestParam(required = false) String redirectTo,
                                      Authentication authentication,
                                      RedirectAttributes redirectAttributes) {
         try {
@@ -82,11 +99,12 @@ public class ReceptionistDashboardController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/receptionist/dashboard";
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
     }
 
     @PostMapping("/receptionist/appointments/{id}/checkin")
     public String checkInAppointment(@PathVariable("id") Long appointmentId,
+                                     @RequestParam(required = false) String redirectTo,
                                      Authentication authentication,
                                      RedirectAttributes redirectAttributes) {
         try {
@@ -95,7 +113,7 @@ public class ReceptionistDashboardController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/receptionist/dashboard";
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
     }
 
     @GetMapping("/receptionist/appointments/{id}")
@@ -105,7 +123,7 @@ public class ReceptionistDashboardController {
         model.addAttribute("appointment", appointment);
         model.addAttribute("history", appointmentStatusHistoryRepository.findByAppointmentOrderByCreatedAtAsc(appointment));
         model.addAttribute("doctors", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
-                List.of("DOCTOR", "ROLE_DOCTOR"), "ACTIVE"));
+                DOCTOR_ROLE_NAMES, "ACTIVE"));
         return "receptionist/appointment-detail";
     }
 
@@ -127,7 +145,7 @@ public class ReceptionistDashboardController {
     @PostMapping("/receptionist/appointments/{id}/cancel")
     public String cancelAppointment(@PathVariable("id") Long appointmentId,
                                     @RequestParam(required = false) String reason,
-                                    @RequestParam(required = false, defaultValue = "/receptionist/dashboard") String redirectTo,
+                                    @RequestParam(required = false) String redirectTo,
                                     Authentication authentication,
                                     RedirectAttributes redirectAttributes) {
         try {
@@ -136,12 +154,12 @@ public class ReceptionistDashboardController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:" + safeRedirect(redirectTo, appointmentId);
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
     }
 
     @PostMapping("/receptionist/appointments/{id}/missed")
     public String markMissed(@PathVariable("id") Long appointmentId,
-                             @RequestParam(required = false, defaultValue = "/receptionist/dashboard") String redirectTo,
+                             @RequestParam(required = false) String redirectTo,
                              Authentication authentication,
                              RedirectAttributes redirectAttributes) {
         try {
@@ -150,19 +168,16 @@ public class ReceptionistDashboardController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:" + safeRedirect(redirectTo, appointmentId);
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
     }
 
     /**
-     * Only allow redirecting back to the receptionist dashboard or this appointment's own
-     * detail page, to avoid an open-redirect via the redirectTo request parameter.
+     * Danh sách chờ: full CHECKED_IN queue + "call next" action.
      */
-    private String safeRedirect(String redirectTo, Long appointmentId) {
-        String detailPath = "/receptionist/appointments/" + appointmentId;
-        if (detailPath.equals(redirectTo)) {
-            return detailPath;
-        }
-        return "/receptionist/dashboard";
+    @GetMapping("/receptionist/waiting")
+    public String waitingList(Model model) {
+        model.addAttribute("waitingList", appointmentRepository.findByStatusOrderByScheduledTimeAsc("CHECKED_IN"));
+        return "receptionist/waiting";
     }
 
     @PostMapping("/receptionist/appointments/call-next")
@@ -175,7 +190,17 @@ public class ReceptionistDashboardController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/receptionist/dashboard";
+        return "redirect:/receptionist/waiting";
+    }
+
+    /**
+     * Tạo lịch mới: walk-in quick registration form.
+     */
+    @GetMapping("/receptionist/appointments/new")
+    public String newWalkInForm(Model model) {
+        model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
+                DOCTOR_ROLE_NAMES, "ACTIVE"));
+        return "receptionist/new-appointment";
     }
 
     @PostMapping("/receptionist/appointments/walk-in")
@@ -183,8 +208,7 @@ public class ReceptionistDashboardController {
                                           @RequestParam String phone,
                                           @RequestParam(required = false) String symptom,
                                           @RequestParam(required = false) Long doctorId,
-                                          @RequestParam(required = false)
-                                          @org.springframework.format.annotation.DateTimeFormat(pattern = "HH:mm") LocalTime scheduledTime,
+                                          @RequestParam(required = false) @DateTimeFormat(pattern = "HH:mm") LocalTime scheduledTime,
                                           Authentication authentication,
                                           RedirectAttributes redirectAttributes) {
         try {
@@ -195,6 +219,41 @@ public class ReceptionistDashboardController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/receptionist/dashboard";
+        return "redirect:/receptionist/appointments/new";
+    }
+
+    /**
+     * Bác sĩ trực: view-only.
+     */
+    @GetMapping("/receptionist/doctors")
+    public String doctorsOnDuty(Model model) {
+        model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
+                DOCTOR_ROLE_NAMES, "ACTIVE"));
+        return "receptionist/doctors";
+    }
+
+    /**
+     * Only allow redirecting back within the receptionist module, to avoid an open-redirect
+     * via the redirectTo request parameter.
+     */
+    private String safeRedirect(String redirectTo, String fallback) {
+        if (redirectTo != null && redirectTo.startsWith("/receptionist/") && !redirectTo.contains("://")) {
+            return redirectTo;
+        }
+        return fallback;
+    }
+
+    private String buildBackUrl(String keyword, LocalDate date, String status, int page) {
+        StringBuilder url = new StringBuilder("/receptionist/appointments?page=").append(page);
+        if (keyword != null && !keyword.isBlank()) {
+            url.append("&keyword=").append(URLEncoder.encode(keyword, StandardCharsets.UTF_8));
+        }
+        if (date != null) {
+            url.append("&date=").append(date);
+        }
+        if (status != null && !status.isBlank()) {
+            url.append("&status=").append(status);
+        }
+        return url.toString();
     }
 }
