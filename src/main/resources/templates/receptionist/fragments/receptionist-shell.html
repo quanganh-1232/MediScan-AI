@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- ============ Admin top navbar ============ -->
+<!-- ============ Receptionist top navbar ============ -->
 <nav class="pt-navbar" th:fragment="nav">
     <div class="container-fluid px-3 px-lg-4">
         <div class="pt-navbar-inner">
@@ -10,7 +10,7 @@
                 <div class="ms-brand-mark ms-brand-mark-solid"><i class="bi bi-activity"></i></div>
                 <div>
                     <div class="fw-bold">MediScan AI</div>
-                    <div class="small text-muted">Quản trị hệ thống</div>
+                    <div class="small text-muted">Chăm sóc xương khớp toàn diện</div>
                 </div>
             </a>
 
@@ -23,10 +23,10 @@
                 <div class="dropdown">
                     <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="ms-avatar ms-avatar-primary"
-                              th:text="${currentUser != null ? #strings.substring(currentUser.fullName, 0, 1).toUpperCase() : 'A'}">A</span>
+                              th:text="${currentUser != null ? #strings.substring(currentUser.fullName, 0, 1).toUpperCase() : 'L'}">L</span>
                         <span class="d-none d-md-block text-start">
-                            <span class="d-block fw-bold" th:text="${currentUser != null ? currentUser.fullName : ''}">Quản trị viên</span>
-                            <span class="d-block small text-muted">Quản trị viên</span>
+                            <span class="d-block fw-bold" th:text="${currentUser != null ? currentUser.fullName : ''}">Lễ tân</span>
+                            <span class="d-block small text-muted">Lễ tân</span>
                         </span>
                         <i class="bi bi-chevron-down small text-muted"></i>
                     </button>
@@ -46,14 +46,16 @@
     </div>
 </nav>
 
-<!-- ============ Admin sidebar ============ -->
+<!-- ============ Receptionist sidebar ============ -->
 <div class="rc-sidebar" th:fragment="sidebar(active)">
     <div class="d-grid gap-1">
-        <a class="rc-nav-item" th:classappend="${active == 'overview'} ? ' active'" th:href="@{/admin/dashboard}"><i class="bi bi-house"></i> Tổng quan</a>
-        <a class="rc-nav-item" th:classappend="${active == 'users'} ? ' active'" th:href="@{/admin/users}"><i class="bi bi-people"></i> Quản lý người dùng</a>
-        <a class="rc-nav-item" th:classappend="${active == 'metrics'} ? ' active'" th:href="@{/admin/metrics}"><i class="bi bi-bar-chart"></i> Chỉ số hệ thống</a>
-        <a class="rc-nav-item" th:classappend="${active == 'recent-records'} ? ' active'" th:href="@{/admin/recent-records}"><i class="bi bi-images"></i> Hồ sơ chụp gần đây</a>
+        <a class="rc-nav-item" th:classappend="${active == 'dashboard'} ? ' active'" th:href="@{/receptionist/dashboard}"><i class="bi bi-house"></i> Tổng quan</a>
+        <a class="rc-nav-item" th:href="@{/receptionist/dashboard(_anchor='intake')}"><i class="bi bi-calendar2-check"></i> Tiếp nhận lịch hẹn</a>
+        <a class="rc-nav-item" th:href="@{/receptionist/dashboard(_anchor='intake')}"><i class="bi bi-person-check"></i> Check-in bệnh nhân</a>
+        <a class="rc-nav-item" th:href="@{/receptionist/dashboard(_anchor='waiting')}"><i class="bi bi-people"></i> Danh sách chờ</a>
+        <a class="rc-nav-item" th:href="@{/receptionist/dashboard(_anchor='quick-register')}"><i class="bi bi-calendar2-plus"></i> Tạo lịch mới</a>
         <hr class="my-2">
+        <a class="rc-nav-item" th:href="@{/receptionist/dashboard(_anchor='doctors')}"><i class="bi bi-person-badge"></i> Bác sĩ trực</a>
         <a class="rc-nav-item" th:href="@{/notifications}"><i class="bi bi-bell"></i> Thông báo</a>
     </div>
 </div>

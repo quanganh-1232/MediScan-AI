@@ -81,7 +81,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
             // 3. Process AI Result and create ImagingRecord
             ImagingRecord record = new ImagingRecord();
-            record.setRecordCode(nextCode("IMG", imagingRecordRepository.count() + 1));
+            record.setRecordCode(nextCode("IMG"));
             record.setPatient(patientUser);
             record.setBodyPart(bodyPart);
 
@@ -116,14 +116,14 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
                     try (FileOutputStream fos = new FileOutputStream(annotatedFilePath.toFile())) {
                         fos.write(decodedBytes);
                     }
-                    finalFileName = annotatedFileName;
+
                 }
                 
                 String clinicalText = !diagnosisImpression.isBlank() ? diagnosisImpression : diagnosisSummary;
                 String aiPredictionText = buildAiPrediction(fractureDetected, confidence, bodyPart, clinicalText, riskLevel, fractureScore);
                 String aiRecommendationText = buildAiRecommendation(fractureDetected, confidence, riskLevel);
 
-                record.setFileName(finalFileName);
+                record.setFileName(originalFileName);
                 record.setAiPrediction(limitText(aiPredictionText, LEGACY_TEXT_COLUMN_LIMIT));
                 record.setAiConfidence(confidence);
                 record.setRiskLevel(riskLevel);
@@ -146,7 +146,6 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
 
     private String buildAiPrediction(boolean fractureDetected, int confidence, String bodyPart, String clinicalText, String riskLevel, double fractureScore) {
         StringBuilder builder = new StringBuilder();
-
         if (!clinicalText.isBlank()) {
             String formattedText = cleanSentence(clinicalText)
                     .replaceAll("(?i)(RẤT CAO|CAO|TRUNG BÌNH|THẤP|RẤT THẤP)", "<b>$1</b>");
@@ -211,7 +210,8 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
         return value.substring(0, Math.max(0, maxLength - 3)).trim() + "...";
     }
 
-    private String nextCode(String prefix, long next) {
-        return prefix + "-" + LocalDate.now().getYear() + "-" + String.format("%05d", next);
+    private String nextCode(String prefix) {
+        String shortId = java.util.UUID.randomUUID().toString().substring(0, 5).toUpperCase();
+        return prefix + "-" + LocalDate.now().getYear() + "-" + shortId;
     }
 }

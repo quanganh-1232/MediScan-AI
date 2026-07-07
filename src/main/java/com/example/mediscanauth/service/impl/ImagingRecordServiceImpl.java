@@ -216,6 +216,32 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         );
     }
 
+    @Override
+    public Page<ImagingRecord> searchForPatient(User patient, String keyword, String bodyPart, Pageable pageable) {
+        return imagingRecordRepository.searchForPatient(patient, keyword, bodyPart, pageable);
+    }
+
+    @Override
+    @Transactional
+    public void deleteRecordForPatient(Long recordId, User patient) {
+        ImagingRecord record = imagingRecordRepository.findById(recordId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hồ sơ."));
+        
+        if (!record.getPatient().getUserId().equals(patient.getUserId())) {
+            throw new IllegalArgumentException("Bạn không có quyền xóa hồ sơ này.");
+        }
+
+        if (record.getFileName() != null && !record.getFileName().isEmpty()) {
+            try {
+                Path filePath = Paths.get("src/main/resources/static/uploads/" + record.getFileName());
+                Files.deleteIfExists(filePath);
+            } catch (IOException e) {
+            }
+        }
+
+        imagingRecordRepository.delete(record);
+    }
+
     private StoredImage selectRandomUploadImage(Path uploadPath) throws IOException {
         List<Path> imageFiles = Files.list(uploadPath)
                 .filter(Files::isRegularFile)

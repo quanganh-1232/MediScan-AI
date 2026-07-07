@@ -40,8 +40,15 @@ public class MedicalRecord {
     @Column(name = "status", columnDefinition = "enum('DRAFT','UPLOADED','AI_PROCESSING','AI_ANALYZED','DOCTOR_REVIEWING','COMPLETED','REJECTED','NEED_REUPLOAD','AI_FAILED')")
     private String status = "DRAFT";
 
+    @Column(name = "ai_prediction", columnDefinition = "text")
+    private String aiPrediction;
+
+    @Column(name = "ai_confidence")
+    private Double aiConfidence;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
+
 
     public Long getRecordId() {
         return recordId;
@@ -114,4 +121,21 @@ public class MedicalRecord {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    public String getAiPrediction() {
+        return aiPrediction;
+    }
+
+    public void setAiPrediction(String aiPrediction) {
+        this.aiPrediction = aiPrediction;
+    }
+
+    public Double getAiConfidence() {
+        return aiConfidence;
+    }
+
+    public void setAiConfidence(Double aiConfidence) {
+        this.aiConfidence = aiConfidence;
+    }
 }
+
