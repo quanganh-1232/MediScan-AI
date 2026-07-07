@@ -22,6 +22,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     private static final Set<String> CONFIRMABLE_STATUSES = Set.of("PENDING", "SCHEDULED");
     private static final Set<String> TERMINAL_STATUSES = Set.of("COMPLETED", "CANCELLED", "MISSED");
+    private static final Set<String> MISSABLE_STATUSES = Set.of("PENDING", "SCHEDULED", "CONFIRMED");
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentStatusHistoryRepository historyRepository;
@@ -132,6 +133,41 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         appointmentRepository.save(appointment);
 
         logStatusChange(appointment, "CONFIRMED", receptionist, "Đăng ký nhanh tại quầy lễ tân cho khách vãng lai.");
+        return appointment;
+    }
+
+    @Override
+    @Transactional
+    public Appointment cancelAppointment(Long appointmentId, String reason, String receptionistEmail) {
+        Appointment appointment = getAppointmentOrThrow(appointmentId);
+        if (TERMINAL_STATUSES.contains(appointment.getStatus())) {
+            throw new IllegalStateException("Lịch hẹn đã kết thúc, không thể hủy.");
+        }
+        User receptionist = findReceptionist(receptionistEmail);
+        appointment.setReceptionist(receptionist);
+        appointment.setStatus("CANCELLED");
+        appointmentRepository.save(appointment);
+
+        String note = "Lễ tân hủy lịch hẹn.";
+        if (reason != null && !reason.isBlank()) {
+            note += " Lý do: " + reason.trim();
+        }
+        logStatusChange(appointment, "CANCELLED", receptionist, note);
+        return appointment;
+    }
+
+    @Override
+    @Transactional
+    public Appointment markMissed(Long appointmentId, String receptionistEmail) {
+        Appointment appointment = getAppointmentOrThrow(appointmentId);
+        if (!MISSABLE_STATUSES.contains(appointment.getStatus())) {
+            throw new IllegalStateException("Chỉ có thể đánh dấu vắng mặt cho lịch hẹn chưa check-in.");
+        }
+        User receptionist = findReceptionist(receptionistEmail);
+        appointment.setReceptionist(receptionist);
+        appointment.setStatus("MISSED");
+        appointmentRepository.save(appointment);
+        logStatusChange(appointment, "MISSED", receptionist, "Bệnh nhân không đến khám theo lịch hẹn.");
         return appointment;
     }
 

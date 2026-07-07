@@ -123,6 +123,47 @@ public class ReceptionistDashboardController {
         return "redirect:/receptionist/appointments/" + appointmentId;
     }
 
+    @PostMapping("/receptionist/appointments/{id}/cancel")
+    public String cancelAppointment(@PathVariable("id") Long appointmentId,
+                                    @RequestParam(required = false) String reason,
+                                    @RequestParam(required = false, defaultValue = "/receptionist/dashboard") String redirectTo,
+                                    Authentication authentication,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            receptionistService.cancelAppointment(appointmentId, reason, authentication.getName());
+            redirectAttributes.addFlashAttribute("success", "Đã hủy lịch hẹn.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:" + safeRedirect(redirectTo, appointmentId);
+    }
+
+    @PostMapping("/receptionist/appointments/{id}/missed")
+    public String markMissed(@PathVariable("id") Long appointmentId,
+                             @RequestParam(required = false, defaultValue = "/receptionist/dashboard") String redirectTo,
+                             Authentication authentication,
+                             RedirectAttributes redirectAttributes) {
+        try {
+            receptionistService.markMissed(appointmentId, authentication.getName());
+            redirectAttributes.addFlashAttribute("success", "Đã đánh dấu bệnh nhân vắng mặt.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:" + safeRedirect(redirectTo, appointmentId);
+    }
+
+    /**
+     * Only allow redirecting back to the receptionist dashboard or this appointment's own
+     * detail page, to avoid an open-redirect via the redirectTo request parameter.
+     */
+    private String safeRedirect(String redirectTo, Long appointmentId) {
+        String detailPath = "/receptionist/appointments/" + appointmentId;
+        if (detailPath.equals(redirectTo)) {
+            return detailPath;
+        }
+        return "/receptionist/dashboard";
+    }
+
     @PostMapping("/receptionist/appointments/walk-in")
     public String createWalkInAppointment(@RequestParam String fullName,
                                           @RequestParam String phone,

@@ -158,6 +158,29 @@
                                         <button type="submit" class="btn btn-sm ms-btn ms-btn-primary text-white px-2">Check-in</button>
                                     </form>
                                     <a th:href="@{/receptionist/appointments/{id}(id=${a.appointmentId})}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-2">Chi tiết</a>
+                                    <div class="dropdown" th:if="${a.status != 'COMPLETED' and a.status != 'CANCELLED' and a.status != 'MISSED'}">
+                                        <button type="button" class="btn btn-sm ms-btn ms-btn-ghost border px-2" data-bs-toggle="dropdown" aria-expanded="false" title="Thêm">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li th:if="${a.status == 'PENDING' or a.status == 'SCHEDULED' or a.status == 'CONFIRMED'}">
+                                                <form th:action="@{/receptionist/appointments/{id}/missed(id=${a.appointmentId})}" method="post">
+                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                                    <button type="submit" class="dropdown-item text-warning">
+                                                        <i class="bi bi-person-x me-1"></i> Đánh dấu vắng mặt
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form th:action="@{/receptionist/appointments/{id}/cancel(id=${a.appointmentId})}" method="post">
+                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="bi bi-x-circle me-1"></i> Hủy lịch hẹn
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
