@@ -81,25 +81,32 @@
                         <i class="bi bi-plus-lg me-1"></i> Tạo lịch mới
                     </a>
                 </div>
-                <div class="row g-2 mb-3">
-                    <div class="col-12 col-md-5">
+                <form th:action="@{/receptionist/dashboard}" method="get" class="row g-2 mb-3">
+                    <div class="col-12 col-md-4">
                         <div class="ms-input-group position-relative">
-                            <input type="text" class="form-control ms-input" placeholder="Tìm tên/SĐT bệnh nhân" style="padding-left:2.4rem;">
+                            <input type="text" name="keyword" class="form-control ms-input" placeholder="Tìm tên/SĐT/mã lịch hẹn" th:value="${keyword}" style="padding-left:2.4rem;">
                             <i class="bi bi-search position-absolute" style="left:0.9rem; top:50%; transform:translateY(-50%); color:var(--ms-muted);"></i>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
-                        <input type="date" class="form-control ms-input" th:value="${today}">
+                        <input type="date" name="date" class="form-control ms-input" th:value="${filterDate}">
                     </div>
-                    <div class="col-6 col-md-4">
-                        <select class="form-select ms-input">
-                            <option>Tất cả trạng thái</option>
-                            <option>Chờ xác nhận</option>
-                            <option>Đã xác nhận</option>
-                            <option>Đã check-in</option>
+                    <div class="col-6 col-md-3">
+                        <select name="status" class="form-select ms-input">
+                            <option value="" th:selected="${selectedStatus == ''}">Tất cả trạng thái</option>
+                            <option value="PENDING" th:selected="${selectedStatus == 'PENDING'}">Chờ xác nhận</option>
+                            <option value="CONFIRMED" th:selected="${selectedStatus == 'CONFIRMED'}">Đã xác nhận</option>
+                            <option value="CHECKED_IN" th:selected="${selectedStatus == 'CHECKED_IN'}">Đã check-in</option>
+                            <option value="COMPLETED" th:selected="${selectedStatus == 'COMPLETED'}">Hoàn thành</option>
+                            <option value="CANCELLED" th:selected="${selectedStatus == 'CANCELLED'}">Đã hủy</option>
+                            <option value="MISSED" th:selected="${selectedStatus == 'MISSED'}">Vắng mặt</option>
                         </select>
                     </div>
-                </div>
+                    <div class="col-12 col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn ms-btn ms-btn-primary text-white flex-grow-1"><i class="bi bi-funnel me-1"></i>Lọc</button>
+                        <a th:href="@{/receptionist/dashboard}" class="btn ms-btn ms-btn-ghost border text-primary" title="Đặt lại"><i class="bi bi-x-lg"></i></a>
+                    </div>
+                </form>
                 <div class="table-responsive">
                     <table class="pt-table">
                         <thead>
@@ -113,7 +120,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="a : ${recentAppointments}">
+                        <tr th:each="a : ${appointmentsPage.content}">
                             <td><span class="fw-bold text-primary" th:text="${a.appointmentCode}">APT-001</span></td>
                             <td>
                                 <div class="fw-semibold" th:text="${a.patient != null ? a.patient.fullName : 'Không rõ'}">Nguyễn Văn An</div>
@@ -154,16 +161,38 @@
                                 </div>
                             </td>
                         </tr>
-                        <tr th:if="${#lists.isEmpty(recentAppointments)}">
+                        <tr th:if="${#lists.isEmpty(appointmentsPage.content)}">
                             <td colspan="6" class="text-center text-muted py-4">
                                 <i class="bi bi-calendar2-x fs-3 d-block mb-2 opacity-50"></i>
-                                Chưa có lịch hẹn nào trong hệ thống.
+                                Không tìm thấy lịch hẹn nào phù hợp.
                             </td>
                         </tr>
                         </tbody>
                     </table>
                 </div>
-                <div id="rcNotice" class="alert alert-info mt-3 mb-0 d-none">Chức năng xử lý lịch hẹn đang được hoàn thiện.</div>
+                <nav th:if="${appointmentsPage.totalPages > 1}" class="mt-2">
+                    <ul class="pagination justify-content-center gap-1 mb-0">
+                        <li class="page-item" th:classappend="${appointmentsPage.first} ? 'disabled'">
+                            <a class="page-link rounded-3"
+                               th:href="@{/receptionist/dashboard(keyword=${keyword}, date=${filterDate}, status=${selectedStatus}, page=${appointmentsPage.number - 1})}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item"
+                            th:each="pageNum : ${#numbers.sequence(0, appointmentsPage.totalPages - 1)}"
+                            th:classappend="${pageNum == appointmentsPage.number} ? 'active'">
+                            <a class="page-link rounded-3"
+                               th:href="@{/receptionist/dashboard(keyword=${keyword}, date=${filterDate}, status=${selectedStatus}, page=${pageNum})}"
+                               th:text="${pageNum + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${appointmentsPage.last} ? 'disabled'">
+                            <a class="page-link rounded-3"
+                               th:href="@{/receptionist/dashboard(keyword=${keyword}, date=${filterDate}, status=${selectedStatus}, page=${appointmentsPage.number + 1})}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
             </section>
 
             <!-- Bottom row -->
@@ -261,6 +290,7 @@
 <script>
     function actionNotice() {
         const el = document.getElementById('rcNotice');
+        if (!el) return;
         el.classList.remove('d-none');
         el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
         setTimeout(function () { el.classList.add('d-none'); }, 4000);
