@@ -18,4 +18,8 @@ public interface ReceptionistService {
                                         Long doctorId,
                                         LocalTime scheduledTime,
                                         String receptionistEmail);
+
+    Appointment cancelAppointment(Long appointmentId, String reason, String receptionistEmail);
+
+    Appointment markMissed(Long appointmentId, String receptionistEmail);
 }
