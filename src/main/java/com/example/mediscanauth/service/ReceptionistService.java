@@ -22,4 +22,6 @@ public interface ReceptionistService {
     Appointment cancelAppointment(Long appointmentId, String reason, String receptionistEmail);
 
     Appointment markMissed(Long appointmentId, String receptionistEmail);
+
+    Appointment callNextPatient(String receptionistEmail);
 }

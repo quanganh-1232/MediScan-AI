@@ -63,6 +63,7 @@ public class ReceptionistDashboardController {
         model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
                 List.of("DOCTOR", "ROLE_DOCTOR"), "ACTIVE"));
         model.addAttribute("todayAppointments", todayAppointments);
+        model.addAttribute("waitingList", appointmentRepository.findByStatusOrderByScheduledTimeAsc("CHECKED_IN"));
         model.addAttribute("appointmentsPage", appointmentsPage);
         model.addAttribute("keyword", keyword == null ? "" : keyword);
         model.addAttribute("filterDate", date);
@@ -162,6 +163,19 @@ public class ReceptionistDashboardController {
             return detailPath;
         }
         return "/receptionist/dashboard";
+    }
+
+    @PostMapping("/receptionist/appointments/call-next")
+    public String callNextPatient(Authentication authentication, RedirectAttributes redirectAttributes) {
+        try {
+            Appointment appointment = receptionistService.callNextPatient(authentication.getName());
+            String patientName = appointment.getPatient() != null ? appointment.getPatient().getFullName() : "bệnh nhân";
+            redirectAttributes.addFlashAttribute("success",
+                    "Đã gọi " + patientName + " (" + appointment.getAppointmentCode() + ") vào phòng khám.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/receptionist/dashboard";
     }
 
     @PostMapping("/receptionist/appointments/walk-in")
