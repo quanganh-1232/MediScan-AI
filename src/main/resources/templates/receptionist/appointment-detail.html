@@ -21,14 +21,14 @@
 
         <!-- ============ Sidebar ============ -->
         <div class="col-12 col-xl-2">
-            <div th:replace="~{receptionist/fragments/receptionist-shell :: sidebar('dashboard')}"></div>
+            <div th:replace="~{receptionist/fragments/receptionist-shell :: sidebar('appointments')}"></div>
         </div>
 
         <!-- ============ Main ============ -->
         <div class="col-12 col-xl-10">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                 <div>
-                    <a th:href="@{/receptionist/dashboard}" class="small fw-semibold text-decoration-none"><i class="bi bi-chevron-left"></i> Quay lại tổng quan</a>
+                    <a th:href="@{/receptionist/appointments}" class="small fw-semibold text-decoration-none"><i class="bi bi-chevron-left"></i> Quay lại tiếp nhận lịch hẹn</a>
                     <h1 class="fw-bold mb-0 fs-3 mt-1"><i class="bi bi-calendar2-check text-primary me-2"></i>Chi tiết lịch hẹn</h1>
                 </div>
                 <span class="fw-bold text-primary fs-5" th:text="${appointment.appointmentCode}">APT-001</span>
