@@ -5,6 +5,8 @@ import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.AppointmentStatusHistoryRepository;
 import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.ReceptionistService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -38,12 +40,22 @@ public class ReceptionistDashboardController {
     }
 
     @GetMapping("/receptionist/dashboard")
-    public String dashboard(Model model) {
+    public String dashboard(@RequestParam(required = false) String keyword,
+                            @RequestParam(required = false)
+                            @org.springframework.format.annotation.DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+                            @RequestParam(required = false) String status,
+                            @RequestParam(defaultValue = "0") int page,
+                            Model model) {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
 
         List<Appointment> todayAppointments =
                 appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay);
+
+        LocalDateTime dateFrom = date != null ? date.atStartOfDay() : null;
+        LocalDateTime dateTo = date != null ? date.plusDays(1).atStartOfDay() : null;
+        Page<Appointment> appointmentsPage = appointmentRepository.searchAppointments(
+                keyword, dateFrom, dateTo, status, PageRequest.of(Math.max(page, 0), 10));
 
         model.addAttribute("todayCount", appointmentRepository.countByScheduledTimeBetween(startOfDay, endOfDay));
         model.addAttribute("waitingCheckinCount", appointmentRepository.countByStatusIn(List.of("PENDING", "CONFIRMED", "SCHEDULED")));
@@ -51,7 +63,10 @@ public class ReceptionistDashboardController {
         model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
                 List.of("DOCTOR", "ROLE_DOCTOR"), "ACTIVE"));
         model.addAttribute("todayAppointments", todayAppointments);
-        model.addAttribute("recentAppointments", appointmentRepository.findTop10ByOrderByScheduledTimeDesc());
+        model.addAttribute("appointmentsPage", appointmentsPage);
+        model.addAttribute("keyword", keyword == null ? "" : keyword);
+        model.addAttribute("filterDate", date);
+        model.addAttribute("selectedStatus", status == null ? "" : status);
         model.addAttribute("today", LocalDate.now());
         return "receptionist/dashboard";
     }
