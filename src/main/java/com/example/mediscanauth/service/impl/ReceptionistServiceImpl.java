@@ -16,6 +16,7 @@ import java.util.Set;
 public class ReceptionistServiceImpl implements ReceptionistService {
 
     private static final Set<String> CONFIRMABLE_STATUSES = Set.of("PENDING", "SCHEDULED");
+    private static final Set<String> TERMINAL_STATUSES = Set.of("COMPLETED", "CANCELLED", "MISSED");
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentStatusHistoryRepository historyRepository;
@@ -56,6 +57,32 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         appointment.setStatus("CHECKED_IN");
         appointmentRepository.save(appointment);
         logStatusChange(appointment, "CHECKED_IN", receptionist, "Bệnh nhân đã check-in tại quầy lễ tân.");
+        return appointment;
+    }
+
+    @Override
+    @Transactional
+    public Appointment assignDoctor(Long appointmentId, Long doctorId, String note, String receptionistEmail) {
+        Appointment appointment = getAppointmentOrThrow(appointmentId);
+        if (TERMINAL_STATUSES.contains(appointment.getStatus())) {
+            throw new IllegalStateException("Không thể đổi bác sĩ cho lịch hẹn đã kết thúc.");
+        }
+        User receptionist = findReceptionist(receptionistEmail);
+        User doctor = userRepository.findById(doctorId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bác sĩ."));
+
+        User previousDoctor = appointment.getDoctor();
+        appointment.setDoctor(doctor);
+        appointment.setReceptionist(receptionist);
+        appointmentRepository.save(appointment);
+
+        String historyNote = previousDoctor != null
+                ? "Chuyển từ BS. " + previousDoctor.getFullName() + " sang BS. " + doctor.getFullName() + "."
+                : "Điều hướng đến BS. " + doctor.getFullName() + ".";
+        if (note != null && !note.isBlank()) {
+            historyNote += " Ghi chú: " + note.trim();
+        }
+        logStatusChange(appointment, appointment.getStatus(), receptionist, historyNote);
         return appointment;
     }
 
