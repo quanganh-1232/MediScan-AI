@@ -7,4 +7,6 @@ public interface ReceptionistService {
     Appointment confirmAppointment(Long appointmentId, String receptionistEmail);
 
     Appointment checkInAppointment(Long appointmentId, String receptionistEmail);
+
+    Appointment assignDoctor(Long appointmentId, Long doctorId, String note, String receptionistEmail);
 }
