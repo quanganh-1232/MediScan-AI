@@ -2,14 +2,19 @@ package com.example.mediscanauth.service.impl;
 
 import com.example.mediscanauth.model.Appointment;
 import com.example.mediscanauth.model.AppointmentStatusHistory;
+import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.AppointmentStatusHistoryRepository;
+import com.example.mediscanauth.repository.PatientRepository;
 import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.ReceptionistService;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Set;
 
 @Service
@@ -21,13 +26,16 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     private final AppointmentRepository appointmentRepository;
     private final AppointmentStatusHistoryRepository historyRepository;
     private final UserRepository userRepository;
+    private final PatientRepository patientRepository;
 
     public ReceptionistServiceImpl(AppointmentRepository appointmentRepository,
                                    AppointmentStatusHistoryRepository historyRepository,
-                                   UserRepository userRepository) {
+                                   UserRepository userRepository,
+                                   PatientRepository patientRepository) {
         this.appointmentRepository = appointmentRepository;
         this.historyRepository = historyRepository;
         this.userRepository = userRepository;
+        this.patientRepository = patientRepository;
     }
 
     @Override
@@ -84,6 +92,51 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         }
         logStatusChange(appointment, appointment.getStatus(), receptionist, historyNote);
         return appointment;
+    }
+
+    @Override
+    @Transactional
+    public Appointment createWalkInAppointment(String fullName,
+                                               String phone,
+                                               String symptom,
+                                               Long doctorId,
+                                               LocalTime scheduledTime,
+                                               String receptionistEmail) {
+        if (fullName == null || fullName.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng nhập họ và tên bệnh nhân.");
+        }
+        if (phone == null || phone.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng nhập số điện thoại.");
+        }
+        User receptionist = findReceptionist(receptionistEmail);
+        User doctor = doctorId != null
+                ? userRepository.findById(doctorId).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bác sĩ."))
+                : null;
+
+        Patient patient = new Patient();
+        patient.setFullName(fullName.trim());
+        patient.setPhone(phone.trim());
+        patient = patientRepository.save(patient);
+
+        LocalTime time = scheduledTime != null ? scheduledTime : LocalTime.now();
+
+        Appointment appointment = new Appointment();
+        appointment.setAppointmentCode(nextCode("APT", appointmentRepository.count() + 1));
+        appointment.setPatient(patient);
+        appointment.setDoctor(doctor);
+        appointment.setReceptionist(receptionist);
+        appointment.setAppointmentType("DOCTOR_CONSULTATION");
+        appointment.setScheduledTime(LocalDateTime.of(LocalDate.now(), time));
+        appointment.setBodyPart(symptom != null && !symptom.isBlank() ? symptom.trim() : null);
+        appointment.setStatus("CONFIRMED");
+        appointmentRepository.save(appointment);
+
+        logStatusChange(appointment, "CONFIRMED", receptionist, "Đăng ký nhanh tại quầy lễ tân cho khách vãng lai.");
+        return appointment;
+    }
+
+    private String nextCode(String prefix, long next) {
+        return prefix + "-" + LocalDate.now().getYear() + "-" + String.format("%05d", next);
     }
 
     private Appointment getAppointmentOrThrow(Long appointmentId) {
