@@ -18,7 +18,7 @@
                 <section class="ms-page-hero mb-4"><div><span class="ms-pill ms-pill-warning mb-3">Technician workflow</span><h1 class="ms-display display-6 mb-2">Chụp ảnh và gửi bác sĩ</h1></div></section>
                 <section class="ms-card-solid rounded-5 p-4 p-lg-5">
                     <div th:if="${error}" class="alert alert-danger" th:text="${error}">Lỗi</div>
-                    <form id="technicianCaptureForm" th:action="@{/technician/xray-upload}" method="post">
+                    <form id="technicianCaptureForm" th:action="@{/technician/xray-upload}" method="post" enctype="multipart/form-data">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -38,8 +38,21 @@
                         </div>
 
                         <div class="mt-4 text-muted">
-                            <p class="mb-1">Hệ thống sẽ tự động chọn một ảnh X-Ray ngẫu nhiên từ kho ảnh đã tải lên và gửi cho bác sĩ.</p>
-                            <p class="mb-0">Không cần chọn file hay cấu hình tư thế chụp.</p>
+                            <label class="ms-label" for="xrayImage">
+                                Chọn ảnh X-Ray
+                            </label>
+
+                            <input
+                                    type="file"
+                                    id="xrayImage"
+                                    name="image"
+                                    class="form-control ms-input"
+                                    accept=".png,.jpg,.jpeg,.dcm"
+                                    required>
+
+                            <small class="text-muted">
+                                Hỗ trợ PNG, JPG, JPEG và DICOM (.dcm)
+                            </small>
                         </div>
 
                         <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100 mt-4">Chụp và gửi</button>
@@ -56,7 +69,7 @@
                     </div>
                     <div th:if="${#lists.isEmpty(historyRecords)}" class="text-center text-muted py-4">Chưa có hồ sơ nào được tạo.</div>
                     <div th:if="${!#lists.isEmpty(historyRecords)}" class="table-responsive">
-                        <table class="table table-borderless align-middle mb-0">
+                        <table id="historyTable" class="table table-borderless align-middle mb-0">
                             <thead>
                                 <tr>
                                     <th>Mã</th>
@@ -76,6 +89,9 @@
                                 </tr>
                             </tbody>
                         </table>
+                        <div class="d-flex justify-content-center mt-3">
+                            <ul class="pagination" id="historyPagination"></ul>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -108,6 +124,100 @@
                 window.location.href = '/technician/xray-upload';
             });
         }
+    });
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const rowsPerPage = 6;
+
+        const table = document.querySelector("#historyTable tbody");
+        const pagination = document.getElementById("historyPagination");
+
+        if (!table || !pagination) {
+            return;
+        }
+
+        const dataRows = Array.from(table.querySelectorAll("tr"));
+
+        if (dataRows.length <= rowsPerPage) {
+            pagination.style.display = "none";
+            return;
+        }
+
+        const pageCount = Math.ceil(dataRows.length / rowsPerPage);
+        let currentPage = 1;
+
+        function showPage(page) {
+            currentPage = page;
+
+            dataRows.forEach((row, index) => {
+                row.style.display =
+                    (index >= (page - 1) * rowsPerPage &&
+                        index < page * rowsPerPage)
+                        ? ""
+                        : "none";
+            });
+
+            updatePagination();
+        }
+
+        function updatePagination() {
+
+            pagination.innerHTML = "";
+
+            // Previous button
+            const prev = document.createElement("li");
+            prev.className = "page-item" + (currentPage === 1 ? " disabled" : "");
+
+            prev.innerHTML =
+                '<a class="page-link" href="#">Previous</a>';
+
+            prev.addEventListener("click", function (e) {
+                e.preventDefault();
+                if (currentPage > 1) {
+                    showPage(currentPage - 1);
+                }
+            });
+
+            pagination.appendChild(prev);
+
+            // Page numbers
+            for (let i = 1; i <= pageCount; i++) {
+
+                const li = document.createElement("li");
+                li.className = "page-item" + (i === currentPage ? " active" : "");
+
+                li.innerHTML =
+                    `<a class="page-link" href="#">${i}</a>`;
+
+                li.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    showPage(i);
+                });
+
+                pagination.appendChild(li);
+            }
+
+            // Next button
+            const next = document.createElement("li");
+            next.className = "page-item" + (currentPage === pageCount ? " disabled" : "");
+
+            next.innerHTML =
+                '<a class="page-link" href="#">Next</a>';
+
+            next.addEventListener("click", function (e) {
+                e.preventDefault();
+                if (currentPage < pageCount) {
+                    showPage(currentPage + 1);
+                }
+            });
+
+            pagination.appendChild(next);
+        }
+
+        showPage(1);
+
     });
 </script>
 </body>
