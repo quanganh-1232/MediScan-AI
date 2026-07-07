@@ -16,6 +16,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Controller
@@ -105,5 +106,25 @@ public class ReceptionistDashboardController {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/receptionist/appointments/" + appointmentId;
+    }
+
+    @PostMapping("/receptionist/appointments/walk-in")
+    public String createWalkInAppointment(@RequestParam String fullName,
+                                          @RequestParam String phone,
+                                          @RequestParam(required = false) String symptom,
+                                          @RequestParam(required = false) Long doctorId,
+                                          @RequestParam(required = false)
+                                          @org.springframework.format.annotation.DateTimeFormat(pattern = "HH:mm") LocalTime scheduledTime,
+                                          Authentication authentication,
+                                          RedirectAttributes redirectAttributes) {
+        try {
+            Appointment appointment = receptionistService.createWalkInAppointment(
+                    fullName, phone, symptom, doctorId, scheduledTime, authentication.getName());
+            redirectAttributes.addFlashAttribute("success",
+                    "Đã đăng ký lịch hẹn " + appointment.getAppointmentCode() + " cho khách vãng lai.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/receptionist/dashboard";
     }
 }
