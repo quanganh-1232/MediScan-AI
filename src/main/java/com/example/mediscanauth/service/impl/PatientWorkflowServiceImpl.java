@@ -3,6 +3,11 @@ package com.example.mediscanauth.service.impl;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.repository.ImagingRecordRepository;
+import com.example.mediscanauth.model.Appointment;
+import com.example.mediscanauth.model.Patient;
+import com.example.mediscanauth.repository.AppointmentRepository;
+import com.example.mediscanauth.repository.PatientRepository;
+import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.PatientWorkflowService;
 import com.example.mediscanauth.service.UserAccountService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -34,6 +39,9 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
 
     private final ImagingRecordRepository imagingRecordRepository;
     private final UserAccountService userAccountService;
+    private final AppointmentRepository appointmentRepository;
+    private final PatientRepository patientRepository;
+    private final UserRepository userRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
@@ -43,9 +51,15 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     private static final int LEGACY_TEXT_COLUMN_LIMIT = 900;
 
     public PatientWorkflowServiceImpl(ImagingRecordRepository imagingRecordRepository,
-                                      UserAccountService userAccountService) {
+                                      UserAccountService userAccountService,
+                                      AppointmentRepository appointmentRepository,
+                                      PatientRepository patientRepository,
+                                      UserRepository userRepository) {
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
+        this.appointmentRepository = appointmentRepository;
+        this.patientRepository = patientRepository;
+        this.userRepository = userRepository;
         this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
     }
@@ -213,5 +227,28 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     private String nextCode(String prefix) {
         String shortId = java.util.UUID.randomUUID().toString().substring(0, 5).toUpperCase();
         return prefix + "-" + LocalDate.now().getYear() + "-" + shortId;
+    }
+
+    @Override
+    @Transactional
+    public Appointment bookAppointment(String patientEmail, Long doctorId, String date, String time) {
+        User user = userAccountService.findByEmail(patientEmail);
+        Patient patient = patientRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ bệnh nhân"));
+
+        User doctor = null;
+        if (doctorId != null) {
+            doctor = userRepository.findById(doctorId).orElse(null);
+        }
+
+        Appointment appointment = new Appointment();
+        appointment.setAppointmentCode(nextCode("APT"));
+        appointment.setPatient(patient);
+        appointment.setDoctor(doctor);
+        appointment.setScheduledTime(java.time.LocalDateTime.parse(date + "T" + time));
+        appointment.setStatus("SCHEDULED");
+        appointment.setAppointmentType("DOCTOR_CONSULTATION");
+
+        return appointmentRepository.save(appointment);
     }
 }

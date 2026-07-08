@@ -163,6 +163,27 @@ public class PatientDashboardController {
         return "patient/results";
     }
 
+    @PostMapping("/patient/book-appointment")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> bookAppointment(
+            Authentication authentication,
+            @RequestParam(required = false) Long doctorId,
+            @RequestParam String date,
+            @RequestParam String time) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            com.example.mediscanauth.model.Appointment appointment = 
+                patientWorkflowService.bookAppointment(authentication.getName(), doctorId, date, time);
+            result.put("success", true);
+            result.put("message", "Đặt lịch khám thành công!");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "Lỗi: " + e.getMessage());
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
+
     @GetMapping("/patient/support")
     public String support(Authentication authentication, Model model) {
         addBaseModel(authentication, model);
