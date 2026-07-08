@@ -81,10 +81,10 @@
             <div class="chat-row bot">
                 <span class="chat-avatar"><i class="bi bi-robot"></i></span>
                 <div class="chat-bubble">
-                    Xin chao! Toi la tro ly ao cua <strong>MediScan AI</strong>. Toi co the giup ban:<br>
-                    - Tu van trieu chung xuong khop<br>
-                    - Phan tich anh X-quang so bo (upload anh)<br>
-                    - Ho tro dat lich va tra cuu ho so
+                    Xin chào! Tôi là trợ lý ảo của <strong>MediScan AI</strong>. Tôi có thể giúp bạn:<br>
+                    - Tư vấn triệu chứng xương khớp<br>
+                    - Phân tích ảnh X-quang sơ bộ (upload ảnh)<br>
+                    - Hỗ trợ đặt lịch và tra cứu hồ sơ
                 </div>
             </div>
         </div>
@@ -142,7 +142,7 @@
         }
         function clearChat(){
             document.getElementById('chatBody').innerHTML='';
-            appendBotHTML('Da xoa lich su. Toi co the giup gi them cho ban?');
+            appendBotHTML('Đã xóa lịch sử. Tôi có thể giúp gì thêm cho bạn?');
         }
         function nowTime(){return new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});}
         function appendMessage(text,who){
@@ -172,19 +172,19 @@
         function hideTyping(){const t=document.getElementById('typingRow');if(t)t.remove();}
 
         const REPLIES=[
-            {keys:['dat lich','hen kham','lich kham','book'],reply:'De dat lich kham, vao <strong>Trang chu &rarr; Dat lich kham</strong> chon bac si + ngay gio.',link:['/home#booking','Dat lich ngay']},
-            {keys:['ho so','xem ho so','x-quang','anh chup'],reply:'Toan bo ho so X-quang co tai <strong>Ho so y te</strong>. Moi ho so co trang thai va ket luan bac si.',link:['/patient/records','Xem ho so y te']},
-            {keys:['ket qua','chan doan','ket luan','moi nhat'],reply:'Ket qua chan doan moi nhat (phan tich AI + ket luan bac si) co tai:',link:['/patient/results','Xem ket qua']},
-            {keys:['tong quan','dashboard','tien trinh'],reply:'Trang Tong quan cho thay tien do ho so: chup anh &rarr; AI phan tich &rarr; bac si xem xet &rarr; hoan thanh.',link:['/patient/dashboard','Xem tong quan']},
-            {keys:['dau lung','lung','cot song','that lung'],reply:'Dau lung thuong do: thoat vi dia dem, thoai hoa cot song, cang co.<br>Neu dau keo dai &gt;2 tuan hoac lan xuong chan, nen chup X-quang de chan doan chinh xac.'},
-            {keys:['vai','vai gay','co','dau vai'],reply:'Dau vai/Co co the do thoai hoa dot song co, viem gan, hoi chung co vai gay.<br>Nghi ngoi, tranh nhin man hinh lau, gap bac si neu dau khong giam sau 1 tuan.'},
-            {keys:['goi','khop goi','dau goi','dau chan'],reply:'Dau khop goi thuong do viem khop, thoai hoa san, chan thuong day chang.<br>Han che leo cau thang. Chup X-quang de kiem tra san khop.'},
-            {keys:['co tay','ban tay','ngon tay','tay'],reply:'Dau co tay/Ban tay co the do hoi chung ong co tay, viem gan, gay xuong nho.<br>Nghi tay, chuom lanh, chup X-quang neu sung hoac bam tim.'},
-            {keys:['ban chan','got chan','mat ca','chan'],reply:'Dau ban chan/Got chan co the do viem can gan ban chan, gai got chan, bong gan.<br>Nghi ngoi, mang giay de mem. Chup X-quang neu nghi gay xuong.'},
-            {keys:['gay','gay xuong','vo xuong'],reply:'CANH BAO: Trieu chung gay xuong: dau du doi, sung, bien dang, khong van dong duoc.<br>Can den co so y te NGAY de chup X-quang va co dinh xuong.'},
-            {keys:['sung','bam tim','tu mau'],reply:'Sung va bam tim sau chan thuong: Chuom lanh 20 phut/gio trong 48h dau. Neu dau tang hoac mat cam giac, den kham ngay.'},
-            {keys:['mat khau','tai khoan','profile','thong tin'],reply:'Chinh sua thong tin ca nhan va doi mat khau tai:',link:['/profile','Ho so ca nhan']},
-            {keys:['cam on','thanks','ok','hieu roi','duoc roi'],reply:'Khong co gi! Neu can ho tro them, cu nhan cho toi nhe.'},
+            {keys:['dat lich','hen kham','lich kham','book'],reply:'Để đặt lịch khám, vào <strong>Trang chủ &rarr; Đặt lịch khám</strong> chọn bác sĩ + ngày giờ.',link:['/home#booking','Đặt lịch ngay']},
+            {keys:['ho so','xem ho so','x-quang','anh chup'],reply:'Toàn bộ hồ sơ X-quang có tại <strong>Hồ sơ y tế</strong>. Mỗi hồ sơ có trạng thái và kết luận bác sĩ.',link:['/patient/records','Xem hồ sơ y tế']},
+            {keys:['ket qua','chan doan','ket luan','moi nhat'],reply:'Kết quả chẩn đoán mới nhất (phân tích AI + kết luận bác sĩ) có tại:',link:['/patient/results','Xem kết quả']},
+            {keys:['tong quan','dashboard','tien trinh'],reply:'Trang Tổng quan cho thấy tiến độ hồ sơ: chụp ảnh &rarr; AI phân tích &rarr; bác sĩ xem xét &rarr; hoàn thành.',link:['/patient/dashboard','Xem tổng quan']},
+            {keys:['dau lung','lung','cot song','that lung'],reply:'Đau lưng thường do: thoát vị đĩa đệm, thoái hóa cột sống, căng cơ.<br>Nếu đau kéo dài &gt;2 tuần hoặc lan xuống chân, nên chụp X-quang để chẩn đoán chính xác.'},
+            {keys:['vai','vai gay','co','dau vai'],reply:'Đau vai/Cổ có thể do thoái hóa đốt sống cổ, viêm gân, hội chứng cổ vai gáy.<br>Nghỉ ngơi, tránh nhìn màn hình lâu, gặp bác sĩ nếu đau không giảm sau 1 tuần.'},
+            {keys:['goi','khop goi','dau goi','dau chan'],reply:'Đau khớp gối thường do viêm khớp, thoái hóa sụn, chấn thương dây chằng.<br>Hạn chế leo cầu thang. Chụp X-quang để kiểm tra sụn khớp.'},
+            {keys:['co tay','ban tay','ngon tay','tay'],reply:'Đau cổ tay/Bàn tay có thể do hội chứng ống cổ tay, viêm gân, gãy xương nhỏ.<br>Nghỉ tay, chườm lạnh, chụp X-quang nếu sưng hoặc bầm tím.'},
+            {keys:['ban chan','got chan','mat ca','chan'],reply:'Đau bàn chân/Gót chân có thể do viêm cân gan bàn chân, gai gót chân, bong gân.<br>Nghỉ ngơi, mang giày đế mềm. Chụp X-quang nếu nghi gãy xương.'},
+            {keys:['gay','gay xuong','vo xuong'],reply:'CẢNH BÁO: Triệu chứng gãy xương: đau dữ dội, sưng, biến dạng, không vận động được.<br>Cần đến cơ sở y tế NGAY để chụp X-quang và cố định xương.'},
+            {keys:['sung','bam tim','tu mau'],reply:'Sưng và bầm tím sau chấn thương: Chườm lạnh 20 phút/giờ trong 48h đầu. Nếu đau tăng hoặc mất cảm giác, đến khám ngay.'},
+            {keys:['mat khau','tai khoan','profile','thong tin'],reply:'Chỉnh sửa thông tin cá nhân và đổi mật khẩu tại:',link:['/profile','Hồ sơ cá nhân']},
+            {keys:['cam on','thanks','ok','hieu roi','duoc roi'],reply:'Không có gì! Nếu cần hỗ trợ thêm, cứ nhắn cho tôi nhé.'},
         ];
 
         function botReply(userText){
@@ -198,7 +198,7 @@
                     if(match.link)html+=`<br><a class="chat-link-btn" href="${match.link[0]}">${match.link[1]}</a>`;
                     appendBotHTML(html);
                 } else {
-                    appendBotHTML('Cam on ban da chia se! Toi chua co cau tra loi cu the cho van de nay.<br>Ban nen dat lich de bac si chuyen khoa kham truc tiep.<br><a class="chat-link-btn" href="/home#booking">Dat lich ngay</a>');
+                    appendBotHTML('Cảm ơn bạn đã chia sẻ! Tôi chưa có câu trả lời cụ thể cho vấn đề này.<br>Bạn nên đặt lịch để bác sĩ chuyên khoa khám trực tiếp.<br><a class="chat-link-btn" href="/home#booking">Đặt lịch ngay</a>');
                 }
             },700+Math.random()*400);
         }
@@ -230,7 +230,7 @@
 
             // Bot typing
             showTyping();
-            appendBotHTML('Dang gui anh len AI phan tich... Vui long cho trong giay lat.');
+            appendBotHTML('Đang gửi ảnh lên AI phân tích... Vui lòng chờ trong giây lát.');
 
             // Send XHR
             const fd=new FormData();
@@ -247,23 +247,26 @@
                     const res=JSON.parse(xhr.responseText);
                     if(res.success){
                         const risk=res.riskLevel||'NONE';
-                        const em=risk==='HIGH'?'':'risk==='MEDIUM'?'':'risk==='LOW'?'':'';
-                        const txt=risk==='HIGH'?'Nguy co cao - Can kham ngay':risk==='MEDIUM'?'Nguy co trung binh - Theo doi them':risk==='LOW'?'Nguy co thap - Khong co dau hieu nghiem trong':'Chua xac dinh';
+                        let em = '';
+                        if(risk==='HIGH') em='<i class="bi bi-exclamation-octagon-fill text-danger"></i>';
+                        else if(risk==='MEDIUM') em='<i class="bi bi-exclamation-triangle-fill text-warning"></i>';
+                        else if(risk==='LOW') em='<i class="bi bi-check-circle-fill text-success"></i>';
+                        const txt=risk==='HIGH'?'Nguy cơ cao - Cần khám ngay':risk==='MEDIUM'?'Nguy cơ trung bình - Theo dõi thêm':risk==='LOW'?'Nguy cơ thấp - Không có dấu hiệu nghiêm trọng':'Chưa xác định';
                         appendBotHTML(
-                            'Phan tich AI hoan tat!'+
+                            'Phân tích AI hoàn tất!'+
                             '<div class="chat-result-card '+risk+'">'+
                             em+' <strong>'+txt+'</strong><br>'+
-                            'Do tin cay: <strong>'+(res.aiConfidence||'-')+'%</strong><br>'+
-                            'Ma ho so: <strong>'+(res.recordCode||'-')+'</strong>'+
+                            'Độ tin cậy: <strong>'+(res.aiConfidence||'-')+'%</strong><br>'+
+                            'Mã hồ sơ: <strong>'+(res.recordCode||'-')+'</strong>'+
                             '</div>'+
-                            '<a class="chat-link-btn" href="/patient/records/'+res.recordId+'">Xem chi tiet ho so</a>'
+                            '<a class="chat-link-btn" href="/patient/records/'+res.recordId+'">Xem chi tiết hồ sơ</a>'
                         );
                     } else {
-                        appendBotHTML('Khong the phan tich anh: '+(res.message||'Loi khong xac dinh.')+'<br>Vui long thu lai hoac lien he phong kham.');
+                        appendBotHTML('Không thể phân tích ảnh: '+(res.message||'Lỗi không xác định.')+'<br>Vui lòng thử lại hoặc liên hệ phòng khám.');
                     }
-                }catch(e){appendBotHTML('Loi ket noi. Vui long thu lai.');}
+                }catch(e){appendBotHTML('Lỗi kết nối. Vui lòng thử lại.');}
             };
-            xhr.onerror=()=>{hideTyping();appendBotHTML('Khong ket noi duoc voi may chu. Kiem tra mang va thu lai.');};
+            xhr.onerror=()=>{hideTyping();appendBotHTML('Không kết nối được với máy chủ. Kiểm tra mạng và thử lại.');};
             xhr.send(fd);
         }
     </script>
