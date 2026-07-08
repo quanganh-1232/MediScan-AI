@@ -1,0 +1,532 @@
+/* Shared styles for role portals (patient home, receptionist, doctor) */
+
+body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #f4f7fc;
+}
+
+/* ---------- Top navbar (patient) ---------- */
+.pt-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #ffffff;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.04);
+}
+
+.pt-navbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 4.25rem;
+}
+
+.pt-navlinks {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.pt-navlink {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 10px;
+    color: var(--ms-muted);
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.pt-navlink:hover {
+    color: var(--ms-primary);
+    background: rgba(26, 110, 244, 0.06);
+}
+
+.pt-navlink.active {
+    color: var(--ms-primary);
+    background: rgba(26, 110, 244, 0.08);
+}
+
+/* ---------- Cards ---------- */
+.pt-card {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.05);
+}
+
+.pt-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-weight: 700;
+    color: var(--ms-text);
+}
+
+.pt-card-title i {
+    color: var(--ms-primary);
+}
+
+/* ---------- Upcoming appointment ---------- */
+.pt-datebox {
+    flex: 0 0 auto;
+    width: 5.2rem;
+    border-radius: 14px;
+    border: 1px solid rgba(26, 110, 244, 0.25);
+    background: rgba(26, 110, 244, 0.06);
+    text-align: center;
+    padding: 0.6rem 0.4rem;
+    color: var(--ms-primary-strong);
+}
+
+.pt-datebox .day {
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--ms-primary);
+}
+
+/* ---------- Quick actions ---------- */
+.pt-quick-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 14px;
+    border: 1px solid rgba(15, 23, 42, 0.05);
+    background: #fbfcfe;
+    color: var(--ms-text);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.pt-quick-item:hover {
+    border-color: rgba(26, 110, 244, 0.3);
+    background: rgba(26, 110, 244, 0.05);
+    color: var(--ms-primary-strong);
+    transform: translateX(2px);
+}
+
+.pt-quick-icon {
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(26, 110, 244, 0.1);
+    color: var(--ms-primary);
+    font-size: 1.15rem;
+}
+
+/* ---------- Hero ---------- */
+.pt-hero {
+    border-radius: 22px;
+    border: 1px solid rgba(26, 110, 244, 0.12);
+    background:
+        radial-gradient(circle at 88% 20%, rgba(26, 110, 244, 0.14), transparent 42%),
+        linear-gradient(135deg, #f6f9ff 0%, #eaf1ff 100%);
+    padding: clamp(1.5rem, 3vw, 2.6rem);
+}
+
+.pt-hero-feature {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.pt-hero-feature .icon {
+    flex: 0 0 auto;
+    width: 2.4rem;
+    height: 2.4rem;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid rgba(26, 110, 244, 0.18);
+    color: var(--ms-primary);
+}
+
+/* ---------- Stat cards (receptionist / doctor) ---------- */
+.pt-stat {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: 18px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.05);
+    height: 100%;
+}
+
+.pt-stat-icon {
+    flex: 0 0 auto;
+    width: 3.2rem;
+    height: 3.2rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(26, 110, 244, 0.1);
+    color: var(--ms-primary);
+    font-size: 1.3rem;
+}
+
+.pt-stat-icon.warn { background: rgba(180, 83, 9, 0.12); color: var(--ms-warning); }
+.pt-stat-icon.ok { background: rgba(21, 128, 61, 0.12); color: var(--ms-success); }
+.pt-stat-icon.danger { background: rgba(185, 28, 28, 0.1); color: var(--ms-danger); }
+
+.pt-stat-number {
+    font-size: 1.7rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--ms-text);
+}
+
+.pt-stat-label {
+    font-size: 0.85rem;
+    color: var(--ms-muted);
+    font-weight: 600;
+}
+
+/* ---------- Status badges ---------- */
+.pt-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.pt-status-pending { background: rgba(180, 83, 9, 0.12); color: #92400e; }
+.pt-status-confirmed { background: rgba(26, 110, 244, 0.12); color: var(--ms-primary-strong); }
+.pt-status-checkedin { background: rgba(13, 148, 136, 0.14); color: #0f766e; }
+.pt-status-done { background: rgba(21, 128, 61, 0.12); color: var(--ms-success); }
+.pt-status-cancelled { background: rgba(185, 28, 28, 0.1); color: var(--ms-danger); }
+.pt-status-priority { background: rgba(185, 28, 28, 0.1); color: var(--ms-danger); }
+
+/* ---------- Chatbot ---------- */
+.chatbot-panel {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.1);
+    overflow: hidden;
+    min-height: 34rem;
+    max-height: calc(100vh - 8rem);
+    position: sticky;
+    top: 5.5rem;
+}
+
+.chatbot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.9rem 1.1rem;
+    background: linear-gradient(135deg, var(--ms-primary), var(--ms-primary-strong));
+    color: #ffffff;
+}
+
+.chatbot-status {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.82rem;
+    color: var(--ms-muted);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.chatbot-status .dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: #22c55e;
+}
+
+.chatbot-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: #f8fafd;
+}
+
+.chat-row {
+    display: flex;
+    gap: 0.55rem;
+    align-items: flex-end;
+}
+
+.chat-row.user { justify-content: flex-end; }
+
+.chat-avatar {
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(26, 110, 244, 0.12);
+    color: var(--ms-primary);
+    font-size: 1rem;
+}
+
+.chat-bubble {
+    max-width: 82%;
+    padding: 0.65rem 0.9rem;
+    border-radius: 16px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    color: var(--ms-text);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.chat-row.user .chat-bubble {
+    background: var(--ms-primary);
+    border-color: var(--ms-primary);
+    color: #ffffff;
+    border-bottom-right-radius: 6px;
+}
+
+.chat-row.bot .chat-bubble {
+    border-bottom-left-radius: 6px;
+}
+
+.chat-time {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.68rem;
+    opacity: 0.65;
+}
+
+.chatbot-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    padding: 0.65rem 1rem 0.25rem;
+}
+
+.chat-chip {
+    border: 1px solid rgba(26, 110, 244, 0.3);
+    background: #ffffff;
+    color: var(--ms-primary-strong);
+    border-radius: 999px;
+    padding: 0.32rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.chat-chip:hover {
+    background: rgba(26, 110, 244, 0.08);
+}
+
+.chatbot-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+
+.chatbot-input input {
+    flex: 1 1 auto;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 999px;
+    padding: 0.55rem 1rem;
+    font-size: 0.88rem;
+    background: #f8fafc;
+}
+
+.chatbot-input input:focus {
+    outline: none;
+    border-color: var(--ms-primary);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(26, 110, 244, 0.12);
+}
+
+.chatbot-send {
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: none;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: var(--ms-primary);
+    color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.chatbot-send:hover { background: var(--ms-primary-strong); }
+
+.chatbot-disclaimer {
+    padding: 0 1rem 0.85rem;
+    font-size: 0.72rem;
+    color: var(--ms-muted);
+    text-align: center;
+}
+
+/* ---------- Sidebar layout (receptionist / doctor) ---------- */
+.rc-sidebar {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.05);
+    padding: 0.9rem;
+    position: sticky;
+    top: 5.5rem;
+}
+
+.rc-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
+    color: var(--ms-muted);
+    font-weight: 600;
+    font-size: 0.93rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.rc-nav-item:hover {
+    background: rgba(26, 110, 244, 0.06);
+    color: var(--ms-primary);
+}
+
+.rc-nav-item.active {
+    background: rgba(26, 110, 244, 0.1);
+    color: var(--ms-primary);
+}
+
+.rc-nav-item i { font-size: 1.05rem; }
+
+/* ---------- Day schedule (right rail) ---------- */
+.rc-slot {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.4rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.rc-slot:last-child { border-bottom: none; }
+
+.rc-slot-time {
+    flex: 0 0 3.2rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--ms-muted);
+}
+
+/* ---------- Tables ---------- */
+.pt-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.pt-table thead th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ms-muted);
+    font-weight: 700;
+    padding: 0.7rem 0.85rem;
+    background: #f6f8fc;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    white-space: nowrap;
+}
+
+.pt-table tbody td {
+    padding: 0.85rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+    vertical-align: middle;
+    font-size: 0.92rem;
+}
+
+.pt-table tbody tr:hover { background: rgba(26, 110, 244, 0.03); }
+
+/* ---------- Floating chatbot (icon + popup) ---------- */
+.chat-fab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1060;
+    width: 3.6rem;
+    height: 3.6rem;
+    border: none;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--ms-primary), var(--ms-primary-strong));
+    color: #ffffff;
+    font-size: 1.5rem;
+    box-shadow: 0 10px 30px rgba(26, 110, 244, 0.4);
+    transition: all 0.2s ease;
+}
+
+.chat-fab:hover {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 14px 36px rgba(26, 110, 244, 0.5);
+}
+
+.chat-fab .chat-fab-dot {
+    position: absolute;
+    top: 0.2rem;
+    right: 0.2rem;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 999px;
+    background: #22c55e;
+    border: 2px solid #ffffff;
+}
+
+.chatbot-panel.chat-popup {
+    position: fixed;
+    bottom: 5.8rem;
+    right: 1.5rem;
+    z-index: 1059;
+    width: min(23rem, calc(100vw - 2rem));
+    height: min(32rem, calc(100vh - 8rem));
+    min-height: 0;
+    max-height: none;
+    display: none;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.25);
+}
+
+.chatbot-panel.chat-popup.open {
+    display: flex;
+    animation: chatPopIn 0.22s ease;
+}
+
+@keyframes chatPopIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 1199.98px) {
+    .chatbot-panel { min-height: 28rem; }
+    .rc-sidebar { position: static; }
+}

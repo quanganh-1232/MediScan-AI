@@ -45,6 +45,10 @@ public class DoctorDashboardController {
     @GetMapping("/doctor/records/pending")
     public String pendingList(Model model) {
         model.addAttribute("pendingRecords", imagingRecordService.findQueue());
+        model.addAttribute("todayRecordCount", imagingRecordService.countToday());
+        model.addAttribute("totalRecordCount", imagingRecordService.countAll());
+        model.addAttribute("libraryPreview", imagingRecordService.searchConfirmedLibrary(null, null,
+                PageRequest.of(0, 3, Sort.by(Sort.Order.desc("confirmedAt")))).getContent());
         return "doctor/pending-list";
     }
 

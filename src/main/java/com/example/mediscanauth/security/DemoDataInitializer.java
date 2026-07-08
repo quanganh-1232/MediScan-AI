@@ -39,12 +39,14 @@ public class DemoDataInitializer implements CommandLineRunner {
         Role doctorRole = roleService.getOrCreateRole("DOCTOR", "Doctor who reviews AI results");
         Role technicianRole = roleService.getOrCreateRole("TECHNICIAN", "Technician who creates imaging records");
         Role patientRole = roleService.getOrCreateRole("PATIENT", "Patient who views medical records");
+        Role receptionistRole = roleService.getOrCreateRole("RECEPTIONIST", "Receptionist who confirms bookings and routes patients to a doctor");
 
         List<DemoUser> demoUsers = List.of(
                 new DemoUser("admin@mediscan.com", "System Admin", adminRole),
                 new DemoUser("doctor@mediscan.com", "Doctor Nguyen Van A", doctorRole),
                 new DemoUser("tech@mediscan.com", "Technician Tran Van B", technicianRole),
-                new DemoUser("patient@mediscan.com", "Patient Le Van C", patientRole)
+                new DemoUser("patient@mediscan.com", "Patient Le Van C", patientRole),
+                new DemoUser("reception@mediscan.com", "Receptionist Pham Thi D", receptionistRole)
         );
 
         for (DemoUser demoUser : demoUsers) {

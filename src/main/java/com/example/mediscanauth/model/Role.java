@@ -59,6 +59,7 @@ public class Role {
             case "DOCTOR", "ROLE_DOCTOR" -> "Bác sĩ";
             case "TECHNICIAN", "ROLE_TECHNICIAN" -> "Kỹ thuật viên";
             case "PATIENT", "ROLE_PATIENT" -> "Bệnh nhân";
+            case "RECEPTIONIST", "ROLE_RECEPTIONIST" -> "Lễ tân";
             default -> "Người dùng";
         };
     }
