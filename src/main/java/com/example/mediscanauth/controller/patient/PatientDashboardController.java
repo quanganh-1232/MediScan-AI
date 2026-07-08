@@ -119,13 +119,11 @@ public class PatientDashboardController {
         return "patient/record-detail";
     }
 
-    // ── KAN-29: Patient Upload ─────────────────────────────────────────────
+    // Patient self-upload page disabled — only technicians upload X-rays.
+    // POST /patient/upload still active for chatbot image analysis.
     @GetMapping("/patient/upload")
-    public String uploadForm(Authentication authentication, Model model) {
-        User patient = getUser(authentication);
-        model.addAttribute("currentUser", patient);
-        model.addAttribute("unreadCount", notificationService.countUnread(patient));
-        return "patient/upload";
+    public String uploadForm() {
+        return "redirect:/home";
     }
 
     @PostMapping("/patient/upload")

@@ -17,7 +17,6 @@
             <ul class="pt-navlinks d-none d-lg-flex">
                 <li><a class="pt-navlink" th:classappend="${active == 'home'} ? ' active'" th:href="@{/home}"><i class="bi bi-house"></i> Trang chủ</a></li>
                 <li><a class="pt-navlink" th:classappend="${active == 'dashboard'} ? ' active'" th:href="@{/patient/dashboard}"><i class="bi bi-speedometer2"></i> Tổng quan</a></li>
-                <li><a class="pt-navlink" th:classappend="${active == 'upload'} ? ' active'" th:href="@{/patient/upload}"><i class="bi bi-cloud-upload"></i> Tải ảnh lên</a></li>
                 <li><a class="pt-navlink" th:classappend="${active == 'records'} ? ' active'" th:href="@{/patient/records}"><i class="bi bi-folder2-open"></i> Hồ sơ y tế</a></li>
                 <li><a class="pt-navlink" th:classappend="${active == 'results'} ? ' active'" th:href="@{/patient/results}"><i class="bi bi-clipboard2-pulse"></i> Kết quả chẩn đoán</a></li>
                 <li><a class="pt-navlink" th:classappend="${active == 'support'} ? ' active'" th:href="@{/patient/support}"><i class="bi bi-life-preserver"></i> Hỗ trợ</a></li>
@@ -57,7 +56,11 @@
 
 <!-- ============ Floating chatbot (icon + popup) ============ -->
 <div th:fragment="chatbot">
-    <button class="chat-fab" id="chatFab" onclick="toggleChatPopup()" title="Chatbot hỗ trợ" aria-label="Mở chatbot hỗ trợ">
+    <!-- CSRF token for XHR image upload -->
+    <span id="csrfToken"  th:attr="data-token=${_csrf.token}"  style="display:none"></span>
+    <span id="csrfHeader" th:attr="data-header=${_csrf.headerName}" style="display:none"></span>
+
+    <button class="chat-fab" id="chatFab" onclick="toggleChatPopup()" title="Chatbot hỗ trợ" aria-label="Mo chatbot">
         <i class="bi bi-chat-dots-fill" id="chatFabIcon"></i>
         <span class="chat-fab-dot"></span>
     </button>
@@ -65,89 +68,203 @@
     <div class="chatbot-panel chat-popup" id="chatbotPanel">
         <div class="chatbot-header">
             <div class="d-flex align-items-center gap-2 fw-bold">
-                <i class="bi bi-robot"></i> Chatbot hỗ trợ
+                <i class="bi bi-robot"></i> Tro ly MediScan AI
             </div>
-            <button class="btn btn-sm text-white p-0" onclick="toggleChatPopup()" title="Đóng"><i class="bi bi-x-lg"></i></button>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm text-white p-0 opacity-75" onclick="clearChat()" title="Xoa lich su" style="font-size:.75rem;"><i class="bi bi-trash3"></i></button>
+                <button class="btn btn-sm text-white p-0" onclick="toggleChatPopup()" title="Dong"><i class="bi bi-x-lg"></i></button>
+            </div>
         </div>
-        <div class="chatbot-status"><span class="dot"></span> AI Assistant đang trực tuyến</div>
+        <div class="chatbot-status"><span class="dot"></span> AI Assistant dang truc tuyen</div>
+
         <div class="chatbot-body" id="chatBody">
             <div class="chat-row bot">
                 <span class="chat-avatar"><i class="bi bi-robot"></i></span>
-                <div class="chat-bubble">Xin chào! Tôi là trợ lý ảo của MediScan AI. Tôi có thể giúp gì cho bạn hôm nay?</div>
+                <div class="chat-bubble">
+                    Xin chao! Toi la tro ly ao cua <strong>MediScan AI</strong>. Toi co the giup ban:<br>
+                    - Tu van trieu chung xuong khop<br>
+                    - Phan tich anh X-quang so bo (upload anh)<br>
+                    - Ho tro dat lich va tra cuu ho so
+                </div>
             </div>
         </div>
-        <div class="chatbot-chips">
-            <button class="chat-chip" onclick="sendChip(this)">Đau lưng</button>
-            <button class="chat-chip" onclick="sendChip(this)">Đau vai gáy</button>
-            <button class="chat-chip" onclick="sendChip(this)">Đau khớp gối</button>
-            <button class="chat-chip" onclick="sendChip(this)">Khác</button>
+
+        <!-- Quick chips -->
+        <div class="chatbot-chips" id="chipArea">
+            <button class="chat-chip" onclick="sendChip(this)">Dat lich kham</button>
+            <button class="chat-chip" onclick="sendChip(this)">Xem ho so</button>
+            <button class="chat-chip" onclick="sendChip(this)">Ket qua moi nhat</button>
+            <button class="chat-chip" onclick="sendChip(this)">Dau lung</button>
+            <button class="chat-chip" onclick="sendChip(this)">Dau vai gay</button>
+            <button class="chat-chip" onclick="sendChip(this)">Dau khop goi</button>
+            <button class="chat-chip" onclick="sendChip(this)">Dau co tay</button>
+            <button class="chat-chip" onclick="sendChip(this)">Gap xuong</button>
+            <button class="chat-chip" onclick="chatImageUpload()" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;">
+                <i class="bi bi-image me-1"></i>Gui anh X-quang
+            </button>
         </div>
+
         <div class="chatbot-input">
-            <input type="text" id="chatInput" placeholder="Nhập tin nhắn của bạn..." onkeydown="if(event.key==='Enter'){sendChat();}">
-            <button class="chatbot-send" onclick="sendChat()" title="Gửi"><i class="bi bi-send"></i></button>
+            <button class="btn p-0 me-1" onclick="chatImageUpload()" title="Gui anh X-quang" style="color:#2563eb;font-size:1.1rem;flex-shrink:0;">
+                <i class="bi bi-image"></i>
+            </button>
+            <input type="text" id="chatInput" placeholder="Nhap tin nhan..." onkeydown="if(event.key==='Enter'){sendChat();}">
+            <button class="chatbot-send" onclick="sendChat()" title="Gui"><i class="bi bi-send"></i></button>
         </div>
-        <div class="chatbot-disclaimer">Chatbot chỉ mang tính chất tham khảo, không thay thế chẩn đoán của bác sĩ.</div>
+        <input type="file" id="chatFileInput" accept="image/*" style="display:none" onchange="handleChatImage(this)">
+        <div class="chatbot-disclaimer"><i class="bi bi-shield-check me-1"></i>Chatbot chi mang tinh tham khao, khong thay the chan doan bac si.</div>
     </div>
 
-    <script>
-        function toggleChatPopup() {
-            const panel = document.getElementById('chatbotPanel');
-            const icon = document.getElementById('chatFabIcon');
-            const open = panel.classList.toggle('open');
-            icon.className = open ? 'bi bi-x-lg' : 'bi bi-chat-dots-fill';
-            if (open) document.getElementById('chatInput').focus();
-        }
+    <style>
+        .chat-bubble img.chat-xray-thumb { max-width:160px; border-radius:8px; display:block; margin-top:.4rem; }
+        .chat-typing { display:flex; gap:4px; align-items:center; padding:.4rem 0; }
+        .chat-typing span { width:7px; height:7px; border-radius:50%; background:#2563eb; animation:typingBounce 1.2s infinite; }
+        .chat-typing span:nth-child(2){animation-delay:.2s} .chat-typing span:nth-child(3){animation-delay:.4s}
+        @keyframes typingBounce{0%,80%,100%{transform:scale(.7);opacity:.4}40%{transform:scale(1);opacity:1}}
+        .chat-result-card{background:#f8faff;border:1px solid #c7d7ff;border-radius:10px;padding:.6rem .8rem;margin-top:.5rem;font-size:.8rem;line-height:1.6}
+        .chat-result-card.HIGH{border-color:#fca5a5;background:#fff5f5}
+        .chat-result-card.MEDIUM{border-color:#fde68a;background:#fffbeb}
+        .chat-result-card.LOW{border-color:#86efac;background:#f0fdf4}
+        .chat-link-btn{display:inline-block;margin-top:.4rem;padding:.25rem .7rem;border-radius:8px;background:#2563eb;color:#fff;font-size:.75rem;text-decoration:none}
+        .chat-link-btn:hover{background:#1d4ed8;color:#fff}
+    </style>
 
-        function chatFocus() {
-            const panel = document.getElementById('chatbotPanel');
-            if (!panel.classList.contains('open')) toggleChatPopup();
+    <script>
+        function toggleChatPopup(){
+            const p=document.getElementById('chatbotPanel'),i=document.getElementById('chatFabIcon');
+            const o=p.classList.toggle('open');
+            i.className=o?'bi bi-x-lg':'bi bi-chat-dots-fill';
+            if(o)document.getElementById('chatInput').focus();
+        }
+        function chatFocus(){
+            if(!document.getElementById('chatbotPanel').classList.contains('open'))toggleChatPopup();
             document.getElementById('chatInput').focus();
         }
+        function clearChat(){
+            document.getElementById('chatBody').innerHTML='';
+            appendBotHTML('Da xoa lich su. Toi co the giup gi them cho ban?');
+        }
+        function nowTime(){return new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});}
+        function appendMessage(text,who){
+            const body=document.getElementById('chatBody');
+            const row=document.createElement('div'); row.className='chat-row '+who;
+            if(who==='bot'){const av=document.createElement('span');av.className='chat-avatar';av.innerHTML='<i class="bi bi-robot"></i>';row.appendChild(av);}
+            const bub=document.createElement('div'); bub.className='chat-bubble'; bub.textContent=text;
+            const t=document.createElement('span'); t.className='chat-time'; t.textContent=nowTime(); bub.appendChild(t);
+            row.appendChild(bub); body.appendChild(row); body.scrollTop=body.scrollHeight; return bub;
+        }
+        function appendBotHTML(html){
+            const body=document.getElementById('chatBody');
+            const row=document.createElement('div'); row.className='chat-row bot';
+            const av=document.createElement('span'); av.className='chat-avatar'; av.innerHTML='<i class="bi bi-robot"></i>'; row.appendChild(av);
+            const bub=document.createElement('div'); bub.className='chat-bubble';
+            bub.innerHTML=html+'<span class="chat-time">'+nowTime()+'</span>';
+            row.appendChild(bub); body.appendChild(row); body.scrollTop=body.scrollHeight; return bub;
+        }
+        function showTyping(){
+            const body=document.getElementById('chatBody');
+            const row=document.createElement('div'); row.className='chat-row bot'; row.id='typingRow';
+            const av=document.createElement('span'); av.className='chat-avatar'; av.innerHTML='<i class="bi bi-robot"></i>'; row.appendChild(av);
+            const bub=document.createElement('div'); bub.className='chat-bubble';
+            bub.innerHTML='<div class="chat-typing"><span></span><span></span><span></span></div>';
+            row.appendChild(bub); body.appendChild(row); body.scrollTop=body.scrollHeight;
+        }
+        function hideTyping(){const t=document.getElementById('typingRow');if(t)t.remove();}
 
-        function nowTime() {
-            return new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
+        const REPLIES=[
+            {keys:['dat lich','hen kham','lich kham','book'],reply:'De dat lich kham, vao <strong>Trang chu &rarr; Dat lich kham</strong> chon bac si + ngay gio.',link:['/home#booking','Dat lich ngay']},
+            {keys:['ho so','xem ho so','x-quang','anh chup'],reply:'Toan bo ho so X-quang co tai <strong>Ho so y te</strong>. Moi ho so co trang thai va ket luan bac si.',link:['/patient/records','Xem ho so y te']},
+            {keys:['ket qua','chan doan','ket luan','moi nhat'],reply:'Ket qua chan doan moi nhat (phan tich AI + ket luan bac si) co tai:',link:['/patient/results','Xem ket qua']},
+            {keys:['tong quan','dashboard','tien trinh'],reply:'Trang Tong quan cho thay tien do ho so: chup anh &rarr; AI phan tich &rarr; bac si xem xet &rarr; hoan thanh.',link:['/patient/dashboard','Xem tong quan']},
+            {keys:['dau lung','lung','cot song','that lung'],reply:'Dau lung thuong do: thoat vi dia dem, thoai hoa cot song, cang co.<br>Neu dau keo dai &gt;2 tuan hoac lan xuong chan, nen chup X-quang de chan doan chinh xac.'},
+            {keys:['vai','vai gay','co','dau vai'],reply:'Dau vai/Co co the do thoai hoa dot song co, viem gan, hoi chung co vai gay.<br>Nghi ngoi, tranh nhin man hinh lau, gap bac si neu dau khong giam sau 1 tuan.'},
+            {keys:['goi','khop goi','dau goi','dau chan'],reply:'Dau khop goi thuong do viem khop, thoai hoa san, chan thuong day chang.<br>Han che leo cau thang. Chup X-quang de kiem tra san khop.'},
+            {keys:['co tay','ban tay','ngon tay','tay'],reply:'Dau co tay/Ban tay co the do hoi chung ong co tay, viem gan, gay xuong nho.<br>Nghi tay, chuom lanh, chup X-quang neu sung hoac bam tim.'},
+            {keys:['ban chan','got chan','mat ca','chan'],reply:'Dau ban chan/Got chan co the do viem can gan ban chan, gai got chan, bong gan.<br>Nghi ngoi, mang giay de mem. Chup X-quang neu nghi gay xuong.'},
+            {keys:['gay','gay xuong','vo xuong'],reply:'CANH BAO: Trieu chung gay xuong: dau du doi, sung, bien dang, khong van dong duoc.<br>Can den co so y te NGAY de chup X-quang va co dinh xuong.'},
+            {keys:['sung','bam tim','tu mau'],reply:'Sung va bam tim sau chan thuong: Chuom lanh 20 phut/gio trong 48h dau. Neu dau tang hoac mat cam giac, den kham ngay.'},
+            {keys:['mat khau','tai khoan','profile','thong tin'],reply:'Chinh sua thong tin ca nhan va doi mat khau tai:',link:['/profile','Ho so ca nhan']},
+            {keys:['cam on','thanks','ok','hieu roi','duoc roi'],reply:'Khong co gi! Neu can ho tro them, cu nhan cho toi nhe.'},
+        ];
+
+        function botReply(userText){
+            showTyping();
+            const lower=userText.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
+            const match=REPLIES.find(r=>r.keys.some(k=>lower.includes(k)));
+            setTimeout(()=>{
+                hideTyping();
+                if(match){
+                    let html=match.reply;
+                    if(match.link)html+=`<br><a class="chat-link-btn" href="${match.link[0]}">${match.link[1]}</a>`;
+                    appendBotHTML(html);
+                } else {
+                    appendBotHTML('Cam on ban da chia se! Toi chua co cau tra loi cu the cho van de nay.<br>Ban nen dat lich de bac si chuyen khoa kham truc tiep.<br><a class="chat-link-btn" href="/home#booking">Dat lich ngay</a>');
+                }
+            },700+Math.random()*400);
         }
 
-        function appendMessage(text, who) {
-            const body = document.getElementById('chatBody');
-            const row = document.createElement('div');
-            row.className = 'chat-row ' + who;
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-bubble';
-            bubble.textContent = text;
-            const time = document.createElement('span');
-            time.className = 'chat-time';
-            time.textContent = nowTime();
-            bubble.appendChild(time);
-            if (who === 'bot') {
-                const avatar = document.createElement('span');
-                avatar.className = 'chat-avatar';
-                avatar.innerHTML = '<i class="bi bi-robot"></i>';
-                row.appendChild(avatar);
-            }
-            row.appendChild(bubble);
-            body.appendChild(row);
-            body.scrollTop = body.scrollHeight;
+        function sendChat(){
+            const input=document.getElementById('chatInput');
+            const text=input.value.trim(); if(!text)return;
+            appendMessage(text,'user'); input.value=''; botReply(text);
         }
+        function sendChip(btn){appendMessage(btn.textContent,'user');botReply(btn.textContent);}
 
-        function botReply(userText) {
-            setTimeout(function () {
-                appendMessage('Cảm ơn bạn đã chia sẻ. Với triệu chứng "' + userText + '", bạn nên đặt lịch khám để bác sĩ chuyên khoa kiểm tra trực tiếp và chụp X-quang nếu cần. Bạn có muốn đặt lịch ngay không?', 'bot');
-            }, 700);
+        // Image upload to AI
+        function chatImageUpload(){
+            if(!document.getElementById('chatbotPanel').classList.contains('open'))toggleChatPopup();
+            document.getElementById('chatFileInput').click();
         }
+        function handleChatImage(input){
+            const file=input.files[0]; if(!file)return; input.value='';
+            // Preview
+            const body=document.getElementById('chatBody');
+            const row=document.createElement('div'); row.className='chat-row user';
+            const bub=document.createElement('div'); bub.className='chat-bubble';
+            const reader=new FileReader();
+            reader.onload=ev=>{
+                bub.innerHTML='<i class="bi bi-image me-1"></i>Anh X-quang<br><img class="chat-xray-thumb" src="'+ev.target.result+'" alt="X-quang"><span class="chat-time">'+nowTime()+'</span>';
+            };
+            reader.readAsDataURL(file);
+            row.appendChild(bub); body.appendChild(row); body.scrollTop=body.scrollHeight;
 
-        function sendChat() {
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if (!text) return;
-            appendMessage(text, 'user');
-            input.value = '';
-            botReply(text);
-        }
+            // Bot typing
+            showTyping();
+            appendBotHTML('Dang gui anh len AI phan tich... Vui long cho trong giay lat.');
 
-        function sendChip(btn) {
-            appendMessage(btn.textContent, 'user');
-            botReply(btn.textContent);
+            // Send XHR
+            const fd=new FormData();
+            fd.append('xrayImage',file);
+            fd.append('bodyPart','Chua xac dinh');
+            const token=document.getElementById('csrfToken').dataset.token;
+            const header=document.getElementById('csrfHeader').dataset.header;
+            const xhr=new XMLHttpRequest();
+            xhr.open('POST','/patient/upload');
+            if(token)xhr.setRequestHeader(header,token);
+            xhr.onload=()=>{
+                hideTyping();
+                try{
+                    const res=JSON.parse(xhr.responseText);
+                    if(res.success){
+                        const risk=res.riskLevel||'NONE';
+                        const em=risk==='HIGH'?'':'risk==='MEDIUM'?'':'risk==='LOW'?'':'';
+                        const txt=risk==='HIGH'?'Nguy co cao - Can kham ngay':risk==='MEDIUM'?'Nguy co trung binh - Theo doi them':risk==='LOW'?'Nguy co thap - Khong co dau hieu nghiem trong':'Chua xac dinh';
+                        appendBotHTML(
+                            'Phan tich AI hoan tat!'+
+                            '<div class="chat-result-card '+risk+'">'+
+                            em+' <strong>'+txt+'</strong><br>'+
+                            'Do tin cay: <strong>'+(res.aiConfidence||'-')+'%</strong><br>'+
+                            'Ma ho so: <strong>'+(res.recordCode||'-')+'</strong>'+
+                            '</div>'+
+                            '<a class="chat-link-btn" href="/patient/records/'+res.recordId+'">Xem chi tiet ho so</a>'
+                        );
+                    } else {
+                        appendBotHTML('Khong the phan tich anh: '+(res.message||'Loi khong xac dinh.')+'<br>Vui long thu lai hoac lien he phong kham.');
+                    }
+                }catch(e){appendBotHTML('Loi ket noi. Vui long thu lai.');}
+            };
+            xhr.onerror=()=>{hideTyping();appendBotHTML('Khong ket noi duoc voi may chu. Kiem tra mang va thu lai.');};
+            xhr.send(fd);
         }
     </script>
 </div>
