@@ -16,7 +16,8 @@
 
             <ul class="pt-navlinks d-none d-lg-flex">
                 <li><a class="pt-navlink" th:classappend="${active == 'home'} ? ' active'" th:href="@{/home}"><i class="bi bi-house"></i> Trang chủ</a></li>
-                <li><a class="pt-navlink" th:classappend="${active == 'booking'} ? ' active'" th:href="@{/home#booking}"><i class="bi bi-calendar2-plus"></i> Đặt lịch khám</a></li>
+                <li><a class="pt-navlink" th:classappend="${active == 'dashboard'} ? ' active'" th:href="@{/patient/dashboard}"><i class="bi bi-speedometer2"></i> Tổng quan</a></li>
+                <li><a class="pt-navlink" th:classappend="${active == 'upload'} ? ' active'" th:href="@{/patient/upload}"><i class="bi bi-cloud-upload"></i> Tải ảnh lên</a></li>
                 <li><a class="pt-navlink" th:classappend="${active == 'records'} ? ' active'" th:href="@{/patient/records}"><i class="bi bi-folder2-open"></i> Hồ sơ y tế</a></li>
                 <li><a class="pt-navlink" th:classappend="${active == 'results'} ? ' active'" th:href="@{/patient/results}"><i class="bi bi-clipboard2-pulse"></i> Kết quả chẩn đoán</a></li>
                 <li><a class="pt-navlink" th:classappend="${active == 'support'} ? ' active'" th:href="@{/patient/support}"><i class="bi bi-life-preserver"></i> Hỗ trợ</a></li>
