@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Chi tiết lịch hẹn - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+</head>
+<body>
+
+<div th:replace="~{receptionist/fragments/receptionist-shell :: nav}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+    <div class="row g-4">
+
+        <!-- ============ Sidebar ============ -->
+        <div class="col-12 col-xl-2">
+            <div th:replace="~{receptionist/fragments/receptionist-shell :: sidebar('appointments')}"></div>
+        </div>
+
+        <!-- ============ Main ============ -->
+        <div class="col-12 col-xl-10">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <div>
+                    <a th:href="@{/receptionist/appointments}" class="small fw-semibold text-decoration-none"><i class="bi bi-chevron-left"></i> Quay lại tiếp nhận lịch hẹn</a>
+                    <h1 class="fw-bold mb-0 fs-3 mt-1"><i class="bi bi-calendar2-check text-primary me-2"></i>Chi tiết lịch hẹn</h1>
+                </div>
+                <span class="fw-bold text-primary fs-5" th:text="${appointment.appointmentCode}">APT-001</span>
+            </div>
+
+            <div th:if="${success}" class="alert alert-success ms-auth-alert mb-3"><i class="bi bi-check-circle-fill"></i><span th:text="${success}"></span></div>
+            <div th:if="${error}" class="alert alert-danger ms-auth-alert mb-3"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
+
+            <div class="row g-4">
+                <div class="col-12 col-lg-7">
+                    <!-- Appointment info -->
+                    <section class="pt-card p-4 mb-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="pt-card-title"><i class="bi bi-info-circle"></i> Thông tin lịch hẹn</div>
+                            <span th:switch="${appointment.status}">
+                                <span th:case="'PENDING'" class="pt-status pt-status-pending">Chờ xác nhận</span>
+                                <span th:case="'CONFIRMED'" class="pt-status pt-status-confirmed">Đã xác nhận</span>
+                                <span th:case="'SCHEDULED'" class="pt-status pt-status-confirmed">Đã đặt lịch</span>
+                                <span th:case="'CHECKED_IN'" class="pt-status pt-status-checkedin">Đã check-in</span>
+                                <span th:case="'TRIAGED'" class="pt-status pt-status-checkedin">Đã khám sơ bộ</span>
+                                <span th:case="'IN_PROGRESS'" class="pt-status pt-status-confirmed">Đang khám</span>
+                                <span th:case="'COMPLETED'" class="pt-status pt-status-done">Hoàn thành</span>
+                                <span th:case="'CANCELLED'" class="pt-status pt-status-cancelled">Đã hủy</span>
+                                <span th:case="'MISSED'" class="pt-status pt-status-cancelled">Vắng mặt</span>
+                                <span th:case="*" class="pt-status pt-status-pending" th:text="${appointment.status}">-</span>
+                            </span>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-6 col-md-4">
+                                <span class="small text-muted d-block">Bệnh nhân</span>
+                                <span class="fw-semibold" th:text="${appointment.patient != null ? appointment.patient.fullName : 'Không rõ'}">Bệnh nhân</span>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <span class="small text-muted d-block">Số điện thoại</span>
+                                <span class="fw-semibold" th:text="${appointment.patient != null and appointment.patient.phone != null ? appointment.patient.phone : 'Chưa có'}">-</span>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <span class="small text-muted d-block">Giờ hẹn</span>
+                                <span class="fw-semibold" th:text="${#temporals.format(appointment.scheduledTime, 'HH:mm dd/MM/yyyy')}">08:30</span>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <span class="small text-muted d-block">Loại lịch hẹn</span>
+                                <span th:switch="${appointment.appointmentType}">
+                                    <span th:case="'XRAY_SCAN'" class="fw-semibold">Chụp X-quang</span>
+                                    <span th:case="'DOCTOR_CONSULTATION'" class="fw-semibold">Khám bác sĩ</span>
+                                    <span th:case="'FOLLOW_UP'" class="fw-semibold">Tái khám</span>
+                                    <span th:case="*" class="fw-semibold" th:text="${appointment.appointmentType}">-</span>
+                                </span>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <span class="small text-muted d-block">Vùng khám / triệu chứng</span>
+                                <span class="fw-semibold" th:text="${appointment.bodyPart != null ? appointment.bodyPart : 'Chưa cập nhật'}">-</span>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <span class="small text-muted d-block">Bác sĩ phụ trách</span>
+                                <span class="fw-semibold" th:text="${appointment.doctor != null ? 'BS. ' + appointment.doctor.fullName : 'Chưa gán'}">-</span>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <span class="small text-muted d-block">Lễ tân xử lý</span>
+                                <span class="fw-semibold" th:text="${appointment.receptionist != null ? appointment.receptionist.fullName : 'Chưa có'}">-</span>
+                            </div>
+                            <div class="col-6 col-md-4" th:if="${appointment.location != null}">
+                                <span class="small text-muted d-block">Địa điểm</span>
+                                <span class="fw-semibold" th:text="${appointment.location}">-</span>
+                            </div>
+                            <div class="col-12" th:if="${appointment.note != null}">
+                                <span class="small text-muted d-block">Ghi chú</span>
+                                <span class="fw-semibold" th:text="${appointment.note}">-</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Assign doctor -->
+                    <section class="pt-card p-4">
+                        <div class="pt-card-title mb-3"><i class="bi bi-person-badge"></i> Điều hướng đến bác sĩ</div>
+                        <form th:action="@{/receptionist/appointments/{id}/assign-doctor(id=${appointment.appointmentId})}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <div class="row g-2">
+                                <div class="col-12 col-md-6">
+                                    <label class="ms-label">Bác sĩ phụ trách</label>
+                                    <select name="doctorId" class="form-select ms-input" required>
+                                        <option value="">Chọn bác sĩ</option>
+                                        <option th:each="d : ${doctors}" th:value="${d.userId}"
+                                                th:selected="${appointment.doctor != null and appointment.doctor.userId == d.userId}"
+                                                th:text="${'BS. ' + d.fullName}">BS. A</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="ms-label">Ghi chú (không bắt buộc)</label>
+                                    <input type="text" name="note" class="form-control ms-input" placeholder="Lý do điều hướng...">
+                                </div>
+                                <div class="col-12 d-grid mt-2">
+                                    <button type="submit" class="btn ms-btn ms-btn-primary text-white">
+                                        <i class="bi bi-send me-1"></i> Điều hướng
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </section>
+
+                    <!-- Cancel / no-show -->
+                    <section class="pt-card p-4 mt-4"
+                             th:if="${appointment.status != 'COMPLETED' and appointment.status != 'CANCELLED' and appointment.status != 'MISSED'}">
+                        <div class="pt-card-title mb-3 text-danger"><i class="bi bi-exclamation-triangle"></i> Hủy lịch / Vắng mặt</div>
+                        <form th:action="@{/receptionist/appointments/{id}/cancel(id=${appointment.appointmentId})}" method="post" class="row g-2">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <input type="hidden" name="redirectTo" th:value="@{/receptionist/appointments/{id}(id=${appointment.appointmentId})}"/>
+                            <div class="col-12">
+                                <label class="ms-label">Lý do hủy (không bắt buộc)</label>
+                                <input type="text" name="reason" class="form-control ms-input" placeholder="Bệnh nhân xin đổi lịch...">
+                            </div>
+                            <div class="col-12 col-md-6 d-grid">
+                                <button type="submit" class="btn btn-outline-danger">
+                                    <i class="bi bi-x-circle me-1"></i> Hủy lịch hẹn
+                                </button>
+                            </div>
+                            <div class="col-12 col-md-6 d-grid"
+                                 th:if="${appointment.status == 'PENDING' or appointment.status == 'SCHEDULED' or appointment.status == 'CONFIRMED'}">
+                                <button type="submit" formaction="#"
+                                        th:formaction="@{/receptionist/appointments/{id}/missed(id=${appointment.appointmentId})}"
+                                        class="btn btn-outline-warning">
+                                    <i class="bi bi-person-x me-1"></i> Đánh dấu vắng mặt
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+
+                <!-- Status history -->
+                <div class="col-12 col-lg-5">
+                    <section class="pt-card p-4">
+                        <div class="pt-card-title mb-3"><i class="bi bi-clock-history"></i> Lịch sử xử lý</div>
+                        <div th:if="${#lists.isEmpty(history)}" class="text-center text-muted py-4 small">
+                            Chưa có lịch sử xử lý nào.
+                        </div>
+                        <div class="d-grid gap-2">
+                            <div th:each="h : ${history}" class="p-2 rounded-3" style="background:#f8fafd;">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <span class="pt-status pt-status-confirmed" th:text="${h.status}">CONFIRMED</span>
+                                    <span class="small text-muted" th:text="${h.createdAt != null ? #temporals.format(h.createdAt, 'HH:mm dd/MM/yyyy') : '-'}">-</span>
+                                </div>
+                                <div class="small mt-1" th:if="${h.note != null}" th:text="${h.note}">Ghi chú</div>
+                                <div class="small text-muted mt-1" th:if="${h.actor != null}" th:text="${'Thực hiện bởi: ' + h.actor.fullName}">Thực hiện bởi</div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
