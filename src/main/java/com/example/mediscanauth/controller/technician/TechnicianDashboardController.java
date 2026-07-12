@@ -30,8 +30,10 @@ public class TechnicianDashboardController {
     }
 
     @GetMapping("/technician/dashboard")
-    public String dashboard() {
-        return "redirect:/technician/xray-upload";
+    public String dashboard(Model model,
+                            Authentication authentication) {
+        addDashboardData(model, authentication);
+        return "/technician/dashboard";
     }
 
     @GetMapping("/technician/overview")
@@ -40,7 +42,9 @@ public class TechnicianDashboardController {
     }
 
     @GetMapping("/technician/appointments")
-    public String appointments() {
+    public String appointments(Model model,
+                               Authentication authentication) {
+        addDashboardData(model, authentication);
         return "redirect:/technician/xray-upload";
     }
 
