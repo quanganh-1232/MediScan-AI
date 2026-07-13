@@ -13,6 +13,8 @@ import com.example.mediscanauth.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,10 +31,13 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
     private static final String STATUS_LOCKED = "LOCKED";
 
     private final RoleRepository roleRepository;
+    private final UserRepository userRepository = (UserRepository) this.repository;
+    private final PasswordEncoder passwordEncoder;
 
     public UserAdminService(UserRepository repository, RoleRepository roleRepository) {
         super(repository);
         this.roleRepository = roleRepository;
+        this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
     @Autowired
@@ -94,6 +99,69 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + normalizedRoleName));
         user.setRole(role);
         return update(user);
+    }
+
+    @Transactional
+    public User createStaff(String fullName, String email, String phone, String rawPassword, String roleName) {
+        String normalizedEmail = normalizeText(email).toLowerCase(Locale.ROOT);
+        validateStaffInput(fullName, normalizedEmail, rawPassword);
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new IllegalArgumentException("Email đã tồn tại trong hệ thống.");
+        }
+
+        String normalizedRole = requireStaffRole(roleName);
+        Role role = roleRepository.findByRoleName(normalizedRole)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy vai trò " + normalizedRole));
+        User user = new User();
+        user.setFullName(normalizeText(fullName));
+        user.setEmail(normalizedEmail);
+        user.setPhone(normalizeText(phone));
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        user.setRole(role);
+        user.setStatus(STATUS_ACTIVE);
+        user.setAuthProvider("LOCAL");
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User updateStaff(Long userId, String fullName, String email, String phone, String expectedRole) {
+        User user = getUserDetail(userId);
+        requireUserRole(user, expectedRole);
+        String normalizedEmail = normalizeText(email).toLowerCase(Locale.ROOT);
+        if (normalizeText(fullName).isBlank() || normalizedEmail.isBlank()) {
+            throw new IllegalArgumentException("Họ tên và email không được để trống.");
+        }
+        userRepository.findByEmail(normalizedEmail)
+                .filter(existing -> !existing.getUserId().equals(userId))
+                .ifPresent(existing -> { throw new IllegalArgumentException("Email đã tồn tại trong hệ thống."); });
+        user.setFullName(normalizeText(fullName));
+        user.setEmail(normalizedEmail);
+        user.setPhone(normalizeText(phone));
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User updateStaffStatus(Long userId, String status, String expectedRole) {
+        User user = getUserDetail(userId);
+        requireUserRole(user, expectedRole);
+        String normalizedStatus = normalizeText(status).toUpperCase(Locale.ROOT);
+        if (!List.of(STATUS_ACTIVE, STATUS_LOCKED).contains(normalizedStatus)) {
+            throw new IllegalArgumentException("Trạng thái không hợp lệ.");
+        }
+        user.setStatus(normalizedStatus);
+        return userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public List<User> findStaffByRole(String roleName, String keyword) {
+        return filterUsers(keyword, roleName, null, 0, 100).getContent();
+    }
+
+    @Transactional
+    public void deleteStaff(Long userId, String expectedRole) {
+        User user = getUserDetail(userId);
+        requireUserRole(user, expectedRole);
+        userRepository.delete(user);
     }
 
     private BaseFilterRequest buildUserFilterRequest(String keyword,
@@ -173,6 +241,30 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
         return normalizeText(roleName).toUpperCase(Locale.ROOT);
     }
 
+    private void validateStaffInput(String fullName, String email, String rawPassword) {
+        if (normalizeText(fullName).isBlank() || email.isBlank()) {
+            throw new IllegalArgumentException("Họ tên và email không được để trống.");
+        }
+        if (rawPassword == null || rawPassword.length() < 6) {
+            throw new IllegalArgumentException("Mật khẩu phải có ít nhất 6 ký tự.");
+        }
+    }
+
+    private String requireStaffRole(String roleName) {
+        String normalizedRole = normalizeRoleName(roleName);
+        if (!List.of("DOCTOR", "TECHNICIAN").contains(normalizedRole)) {
+            throw new IllegalArgumentException("Vai trò nhân sự không hợp lệ.");
+        }
+        return normalizedRole;
+    }
+
+    private void requireUserRole(User user, String expectedRole) {
+        String normalizedRole = requireStaffRole(expectedRole);
+        if (user.getRole() == null || !normalizedRole.equals(user.getRole().getRoleName())) {
+            throw new IllegalArgumentException("Người dùng không thuộc nhóm " + normalizedRole + ".");
+        }
+    }
+
     private int safePage(Integer page) {
         return page == null || page < 0 ? 0 : page;
     }
@@ -201,5 +293,24 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
 
     private boolean isSameUser(User user, String email) {
         return user.getEmail() != null && user.getEmail().equalsIgnoreCase(normalizeText(email));
+    }
+
+    public User createUserFromImport(String fullName, String email, String phone,
+                                     String rawPassword, String roleName, String status) {
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("Email already exists: " + email);
+        }
+        Role role = roleRepository.findByRoleName(roleName)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid role: " + roleName));
+
+        User user = new User();
+        user.setFullName(fullName);
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        user.setRole(role);
+        user.setStatus(status);
+        user.setAuthProvider("LOCAL");
+        return userRepository.save(user);
     }
 }
