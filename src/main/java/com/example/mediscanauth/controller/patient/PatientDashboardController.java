@@ -1,7 +1,12 @@
 package com.example.mediscanauth.controller.patient;
 
 import com.example.mediscanauth.model.ImagingRecord;
+import com.example.mediscanauth.model.Notification;
+import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
+import com.example.mediscanauth.repository.AppointmentRepository;
+import com.example.mediscanauth.repository.NotificationRepository;
+import com.example.mediscanauth.repository.PatientRepository;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.NotificationService;
 import com.example.mediscanauth.service.PatientWorkflowService;
@@ -9,12 +14,14 @@ import com.example.mediscanauth.service.UserAccountService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.HashMap;
 import java.util.List;
@@ -27,15 +34,24 @@ public class PatientDashboardController {
     private final ImagingRecordService imagingRecordService;
     private final NotificationService notificationService;
     private final PatientWorkflowService patientWorkflowService;
+    private final PatientRepository patientRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final NotificationRepository notificationRepository;
 
     public PatientDashboardController(UserAccountService userAccountService,
                                       ImagingRecordService imagingRecordService,
                                       NotificationService notificationService,
-                                      PatientWorkflowService patientWorkflowService) {
+                                      PatientWorkflowService patientWorkflowService,
+                                      PatientRepository patientRepository,
+                                      AppointmentRepository appointmentRepository,
+                                      NotificationRepository notificationRepository) {
         this.userAccountService = userAccountService;
         this.imagingRecordService = imagingRecordService;
         this.notificationService = notificationService;
         this.patientWorkflowService = patientWorkflowService;
+        this.patientRepository = patientRepository;
+        this.appointmentRepository = appointmentRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     // ── KAN-28: Patient Dashboard ──────────────────────────────────────────
@@ -188,6 +204,92 @@ public class PatientDashboardController {
     public String support(Authentication authentication, Model model) {
         addBaseModel(authentication, model);
         return "patient/support";
+    }
+
+    // ── KAN-36: Patient Profile ─────────────────────────────────────────────
+    @GetMapping("/patient/profile")
+    public String profile(Authentication authentication, Model model) {
+        User user = getUser(authentication);
+        model.addAttribute("currentUser", user);
+        model.addAttribute("unreadCount", notificationService.countUnread(user));
+        patientRepository.findByUser(user).ifPresent(p -> model.addAttribute("profile", p));
+        return "patient/profile";
+    }
+
+    @PostMapping("/patient/profile")
+    public String updateProfile(Authentication authentication,
+                                @RequestParam String fullName,
+                                @RequestParam(required = false) String phone,
+                                @RequestParam(required = false) String gender,
+                                @RequestParam(required = false)
+                                @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate dateOfBirth,
+                                @RequestParam(required = false) String address,
+                                @RequestParam(required = false) String medicalHistory,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            patientWorkflowService.updatePatientProfile(
+                    authentication.getName(), fullName, phone, gender, dateOfBirth, address, medicalHistory);
+            redirectAttributes.addFlashAttribute("success", "Cập nhật thông tin thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Lỗi: " + e.getMessage());
+        }
+        return "redirect:/patient/profile";
+    }
+
+    // ── KAN-37: Cancel appointment ──────────────────────────────────────────
+    @PostMapping("/patient/appointments/{id}/cancel")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> cancelAppointment(
+            Authentication authentication,
+            @PathVariable Long id) {
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        try {
+            patientWorkflowService.cancelAppointment(authentication.getName(), id);
+            result.put("success", true);
+            result.put("message", "Đã hủy lịch hẹn thành công.");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
+
+    // ── KAN-38: Notifications page ──────────────────────────────────────────
+    @GetMapping("/patient/notifications")
+    public String notifications(Authentication authentication, Model model) {
+        User user = getUser(authentication);
+        model.addAttribute("currentUser", user);
+        model.addAttribute("unreadCount", notificationService.countUnread(user));
+        model.addAttribute("notifications", notificationService.findForUser(user));
+        return "patient/notifications";
+    }
+
+    @PostMapping("/patient/notifications/{id}/read")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> markNotificationRead(
+            @PathVariable Long id) {
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        try {
+            notificationService.markAsRead(id);
+            result.put("success", true);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            result.put("success", false);
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
+
+    @PostMapping("/patient/notifications/read-all")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> markAllRead(Authentication authentication) {
+        User user = getUser(authentication);
+        notificationRepository.findByUserOrderByCreatedAtDesc(user)
+                .stream().filter(n -> !n.isRead())
+                .forEach(n -> { n.setRead(true); notificationRepository.save(n); });
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("success", true);
+        return ResponseEntity.ok(result);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

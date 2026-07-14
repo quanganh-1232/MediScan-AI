@@ -19,14 +19,15 @@
                 <li><a class="pt-navlink" th:classappend="${active == 'dashboard'} ? ' active'" th:href="@{/patient/dashboard}"><i class="bi bi-speedometer2"></i> Tổng quan</a></li>
                 <li><a class="pt-navlink" th:classappend="${active == 'records'} ? ' active'" th:href="@{/patient/records}"><i class="bi bi-folder2-open"></i> Hồ sơ y tế</a></li>
                 <li><a class="pt-navlink" th:classappend="${active == 'results'} ? ' active'" th:href="@{/patient/results}"><i class="bi bi-clipboard2-pulse"></i> Kết quả chẩn đoán</a></li>
+                <li><a class="pt-navlink" th:classappend="${active == 'profile'} ? ' active'" th:href="@{/patient/profile}"><i class="bi bi-person-circle"></i> Hồ sơ cá nhân</a></li>
                 <li><a class="pt-navlink" th:classappend="${active == 'support'} ? ' active'" th:href="@{/patient/support}"><i class="bi bi-life-preserver"></i> Hỗ trợ</a></li>
             </ul>
 
             <div class="d-flex align-items-center gap-2">
-                <a th:href="@{/notifications}" class="btn ms-icon-btn" title="Thông báo">
+                <a th:href="@{/patient/notifications}" class="btn ms-icon-btn" title="Thông báo">
                     <i class="bi bi-bell"></i>
-                    <span class="ms-notification-count" th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
-                          th:text="${headerUnreadCount}">0</span>
+                    <span class="ms-notification-count" th:if="${unreadCount != null and unreadCount > 0}"
+                          th:text="${unreadCount}">0</span>
                 </a>
                 <div class="dropdown">
                     <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -39,10 +40,12 @@
                         <i class="bi bi-chevron-down small text-muted"></i>
                     </button>
                     <div class="dropdown-menu dropdown-menu-end ms-dropdown-panel">
-                        <a class="dropdown-item py-2" th:href="@{/home}"><i class="bi bi-house me-2"></i>Tổng quan</a>
-                        <a class="dropdown-item py-2" th:href="@{/profile}"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a>
-                        <a class="dropdown-item py-2" th:href="@{/profile/edit}"><i class="bi bi-pencil-square me-2"></i>Chỉnh sửa thông tin</a>
-                        <a class="dropdown-item py-2" th:href="@{/notifications}"><i class="bi bi-bell me-2"></i>Thông báo</a>
+                        <a class="dropdown-item py-2" th:href="@{/home}"><i class="bi bi-house me-2"></i>Trang chủ</a>
+                        <a class="dropdown-item py-2" th:href="@{/patient/profile}"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a>
+                        <a class="dropdown-item py-2" th:href="@{/patient/notifications}"><i class="bi bi-bell me-2"></i>Thông báo
+                            <span th:if="${unreadCount != null and unreadCount > 0}"
+                                  class="badge bg-danger ms-1" style="font-size:.65rem;" th:text="${unreadCount}"></span>
+                        </a>
                         <a class="dropdown-item py-2" th:href="@{/change-password}"><i class="bi bi-key me-2"></i>Đổi mật khẩu</a>
                         <form th:action="@{/logout}" method="post" class="px-3 pt-2 pb-2">
                             <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100">Đăng xuất</button>

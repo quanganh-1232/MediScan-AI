@@ -251,4 +251,55 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
 
         return appointmentRepository.save(appointment);
     }
+
+    @Override
+    @Transactional
+    public void cancelAppointment(String patientEmail, Long appointmentId) {
+        User user = userAccountService.findByEmail(patientEmail);
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn."));
+
+        // Security: only the patient who owns this appointment can cancel
+        if (appointment.getPatient() == null
+                || !appointment.getPatient().getUser().getUserId().equals(user.getUserId())) {
+            throw new RuntimeException("Bạn không có quyền hủy lịch hẹn này.");
+        }
+
+        // Only PENDING or SCHEDULED appointments can be cancelled by patient
+        if (!"PENDING".equals(appointment.getStatus()) && !"SCHEDULED".equals(appointment.getStatus())) {
+            throw new RuntimeException("Không thể hủy lịch hẹn đã được xác nhận hoặc hoàn tất.");
+        }
+
+        appointment.setStatus("CANCELLED");
+        appointmentRepository.save(appointment);
+    }
+
+    @Override
+    @Transactional
+    public Patient updatePatientProfile(String patientEmail, String fullName, String phone,
+                                        String gender, java.time.LocalDate dateOfBirth,
+                                        String address, String medicalHistory) {
+        User user = userAccountService.findByEmail(patientEmail);
+        Patient patient = patientRepository.findByUser(user)
+                .orElseGet(() -> {
+                    Patient p = new Patient();
+                    p.setUser(user);
+                    return p;
+                });
+
+        if (fullName != null && !fullName.isBlank()) patient.setFullName(fullName);
+        if (phone != null) patient.setPhone(phone);
+        if (gender != null) patient.setGender(gender);
+        if (dateOfBirth != null) patient.setDateOfBirth(dateOfBirth);
+        if (address != null) patient.setAddress(address);
+        if (medicalHistory != null) patient.setMedicalHistory(medicalHistory);
+
+        // Also update the User fullName to stay in sync
+        if (fullName != null && !fullName.isBlank()) {
+            user.setFullName(fullName);
+            userRepository.save(user);
+        }
+
+        return patientRepository.save(patient);
+    }
 }

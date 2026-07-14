@@ -91,6 +91,12 @@ public class HomeController {
         model.addAttribute("patientRecordCount", imagingRecordService.countForPatient(user));
         model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(user));
         model.addAttribute("unreadCount", notificationService.countUnread(user));
+        // KAN-39: Health summary stats
+        model.addAttribute("totalAppointments", myAppointments.size());
+        model.addAttribute("completedAppointments",
+                myAppointments.stream().filter(a -> "COMPLETED".equals(a.getStatus())).count());
+        model.addAttribute("pendingAppointments",
+                myAppointments.stream().filter(a -> "PENDING".equals(a.getStatus()) || "SCHEDULED".equals(a.getStatus())).count());
         return "patient/home";
     }
 
