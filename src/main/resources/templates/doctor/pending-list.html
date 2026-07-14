@@ -5,12 +5,72 @@
     <meta charset="UTF-8">
     <title>Ca chờ đọc ảnh - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link th:href="@{/css/portal.css}" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        }
+
+        .search-input-group {
+            position: relative;
+        }
+
+        .search-input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        .search-input-group .form-control {
+            padding-left: 40px;
+            border-radius: 10px;
+        }
+
+        .filter-select {
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .pagination .page-item .page-link {
+            color: #64748b;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin: 0 2px;
+            font-weight: 600;
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+        }
+
+        .pt-table th,
+        .pt-table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 12px 16px;
+            vertical-align: middle;
+        }
+
         .toast-success {
             position: fixed; bottom: 2rem; right: 2rem; z-index: 9999;
             min-width: 340px; border-radius: 16px;
@@ -31,8 +91,9 @@
             <div th:replace="~{doctor/fragments/doctor-shell :: sidebar('pending')}"></div>
         </div>
 
-        <!-- ============ Main ============ -->
+        <!-- ============ Main Content ============ -->
         <div class="col-12 col-xl-10">
+            
             <!-- Stat cards -->
             <div class="row g-3 mb-4">
                 <div class="col-6 col-lg-3">
@@ -40,7 +101,7 @@
                         <span class="pt-stat-icon warn"><i class="bi bi-hourglass-split"></i></span>
                         <span>
                             <span class="pt-stat-label d-block">Ca chờ đọc</span>
-                            <span class="pt-stat-number" th:text="${pendingRecords != null ? pendingRecords.size() : 0}">0</span>
+                            <span class="pt-stat-number" id="statsPendingCount" th:text="${pendingRecords != null ? pendingRecords.size() : 0}">0</span>
                             <span class="small text-muted"> ca bệnh</span>
                         </span>
                     </div>
@@ -77,110 +138,176 @@
                 </div>
             </div>
 
-            <!-- Pending queue -->
-            <section class="pt-card p-4 mb-4">
+            <!-- Pending queue Section -->
+            <section class="pt-card p-4 mb-4 bg-white rounded-3 shadow-sm border border-light">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                    <div class="pt-card-title fs-5"><i class="bi bi-images"></i> Danh sách ca chờ bác sĩ xác nhận</div>
-                    <span class="pt-status pt-status-pending" th:if="${pendingRecords != null and !#lists.isEmpty(pendingRecords)}"
+                    <div class="fw-bold fs-5 text-dark"><i class="bi bi-images me-2 text-warning"></i>Danh sách ca chờ bác sĩ xác nhận</div>
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle fs-6 px-3 py-2" id="pendingBadgeLabel"
+                          th:if="${pendingRecords != null and !#lists.isEmpty(pendingRecords)}"
                           th:text="${pendingRecords.size() + ' ca đang chờ'}">0 ca đang chờ</span>
                 </div>
-                <div class="table-responsive">
-                    <table class="pt-table">
-                        <thead>
+
+                <!-- Bộ lọc Tìm kiếm & Lọc Động cho hàng chờ đọc -->
+                <div th:if="${!#lists.isEmpty(pendingRecords)}" class="row g-3 mb-4">
+                    <div class="col-12 col-md-8 col-lg-9">
+                        <div class="search-input-group">
+                            <i class="bi bi-search fs-5"></i>
+                            <input type="text" id="pendingSearchInput" class="form-control form-control-lg"
+                                   placeholder="Tìm kiếm theo Mã hồ sơ, Bệnh nhân, Vùng chụp, Dự đoán..."
+                                   onkeyup="filterPendingTable()">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-3">
+                        <select id="pendingBodyPartFilter" class="form-select form-select-lg filter-select text-secondary fw-semibold" onchange="filterPendingTable()">
+                            <option value="">Tất cả vùng chụp</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Trạng thái trống cho Ca Chờ -->
+                <div id="emptyPendingState" th:class="${#lists.isEmpty(pendingRecords)} ? 'text-center py-5 text-muted' : 'text-center py-5 text-muted d-none'">
+                    <i class="bi bi-shield-check-fill display-4 d-block mb-3 text-success opacity-75"></i>
+                    <h5 class="fw-bold text-dark mb-1">Tuyệt vời! Sạch hàng đợi.</h5>
+                    <p class="small text-secondary mb-0">Hiện tại không còn hồ sơ nào cần duyệt lâm sàng hoặc không tìm thấy kết quả khớp.</p>
+                </div>
+
+                <!-- Bảng danh sách ca chờ duyệt -->
+                <div th:if="${!#lists.isEmpty(pendingRecords)}" class="table-responsive">
+                    <table class="table table-hover align-middle pt-table w-100" id="pendingTable">
+                        <thead class="table-light">
                         <tr>
-                            <th>Mã hồ sơ</th>
-                            <th>Bệnh nhân</th>
-                            <th>Kỹ thuật viên</th>
-                            <th>Thời gian chụp</th>
-                            <th>Vùng chụp</th>
-                            <th>Dự đoán AI</th>
-                            <th>Độ tin cậy</th>
-                            <th class="text-end">Thao tác</th>
+                            <th style="width: 12%">Mã hồ sơ</th>
+                            <th style="width: 18%">Bệnh nhân</th>
+                            <th style="width: 15%">Kỹ thuật viên</th>
+                            <th style="width: 15%">Thời gian chụp</th>
+                            <th style="width: 12%">Vùng chụp</th>
+                            <th style="width: 15%">Dự đoán AI</th>
+                            <th style="width: 13%">Độ tin cậy</th>
+                            <th style="width: 10%" class="text-end">Thao tác</th>
                         </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="pendingTableBody">
                         <tr th:each="record : ${pendingRecords}">
                             <td><span class="fw-bold text-primary" th:text="${record.recordCode}">XR-0001</span></td>
-                            <td><span class="fw-semibold" th:text="${record.patient.fullName}">Bệnh nhân</span></td>
-                            <td th:text="${record.technician != null ? record.technician.fullName : 'Không rõ'}">KTV Lan</td>
+                            <td><span class="fw-semibold text-dark" th:text="${record.patient.fullName}">Bệnh nhân</span></td>
+                            <td class="text-secondary" th:text="${record.technician != null ? record.technician.fullName : 'Không rõ'}">KTV Lan</td>
                             <td>
-                                <span class="small" th:text="${record.createdAt != null ? #temporals.format(record.createdAt, 'HH:mm dd/MM/yyyy') : #temporals.format(record.capturedAt, 'dd/MM/yyyy')}">09:25 23/05</span>
+                                <span class="small text-muted" th:text="${record.createdAt != null ? #temporals.format(record.createdAt, 'HH:mm dd/MM/yyyy') : #temporals.format(record.capturedAt, 'dd/MM/yyyy')}">09:25 23/05</span>
                             </td>
-                            <td class="fw-semibold text-secondary" th:text="${record.bodyPart}">Cột sống</td>
+                            <td><span class="fw-bold text-dark" th:text="${record.bodyPart}">Cột sống</span></td>
                             <td>
-                                <span class="pt-status pt-status-pending" th:title="${record.aiPrediction}"
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle" th:title="${record.aiPrediction}"
                                       th:text="${record.aiPrediction != null ? #strings.abbreviate(record.aiPrediction, 40) : 'Đang phân tích'}">Nghi ngờ tổn thương</span>
                             </td>
                             <td>
-                                <div class="ms-progress-bar">
-                                    <div class="ms-progress-fill" th:style="${'width:' + (record.aiConfidence != null ? record.aiConfidence : 0) + '%'}"></div>
+                                <div class="progress" style="height: 6px; max-width: 100px;">
+                                    <div class="progress-bar bg-danger" role="progressbar" th:style="${'width:' + (record.aiConfidence != null ? record.aiConfidence : 0) + '%'}" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
-                                <div class="small text-muted mt-1" th:text="${(record.aiConfidence != null ? record.aiConfidence : 0) + '%'}">92%</div>
+                                <div class="small text-muted mt-1" style="font-size: 0.75rem;" th:text="${(record.aiConfidence != null ? record.aiConfidence : 0) + '%'}">92%</div>
                             </td>
                             <td class="text-end">
                                 <a th:href="@{'/doctor/records/' + ${record.recordId} + '/review'}"
-                                   class="btn btn-sm ms-btn ms-btn-primary text-white px-3">
+                                   class="btn btn-sm btn-primary fw-bold rounded-2 px-3">
                                     <i class="bi bi-eye me-1"></i> Chi tiết
                                 </a>
-                            </td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(pendingRecords)}">
-                            <td colspan="8" class="text-center text-muted py-5">
-                                <i class="bi bi-shield-check-fill display-4 d-block mb-3 text-success opacity-50"></i>
-                                <p class="fw-semibold text-dark mb-1">Tuyệt vời! Sạch hàng đợi.</p>
-                                <p class="small ms-subtle mb-0">Hiện tại không còn hồ sơ nào cần duyệt lâm sàng.</p>
                             </td>
                         </tr>
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Thanh phân trang hàng chờ -->
+                <div class="pagination-container p-3 bg-light border-top rounded-bottom-3" id="pendingPaginationWrapper"
+                     th:if="${!#lists.isEmpty(pendingRecords)}">
+                    <div class="small text-muted fw-semibold" id="pendingPaginationInfo">
+                        Đang hiển thị từ <span id="pendingStartRange"></span> đến <span id="pendingEndRange"></span> của <span id="pendingTotalRecords"></span> ca chờ
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm mb-0" id="pendingPaginationContainer"></ul>
+                    </nav>
+                </div>
+
                 <div class="small text-muted mt-3">
-                    <i class="bi bi-info-circle me-1"></i>Bấm "Chi tiết" để mở ảnh X-quang, vùng AI khoanh nghi ngờ tổn thương và xác nhận chẩn đoán. AI chỉ hỗ trợ tham khảo, quyết định cuối cùng thuộc về bác sĩ.
+                    <i class="bi bi-info-circle me-1 text-primary"></i>Bấm "Chi tiết" để mở ảnh X-quang, vùng AI khoanh nghi ngờ tổn thương và xác nhận chẩn đoán. AI chỉ hỗ trợ tham khảo, quyết định cuối cùng thuộc về bác sĩ.
                 </div>
             </section>
 
-            <!-- Library preview -->
-            <section class="pt-card p-4">
+            <!-- Library Preview Section -->
+            <section class="pt-card p-4 bg-white rounded-3 shadow-sm border border-light">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                    <div class="pt-card-title fs-5"><i class="bi bi-collection"></i> Thư viện hồ sơ đã chẩn đoán</div>
-                    <a th:href="@{/doctor/library}" class="btn ms-btn ms-btn-ghost border text-primary btn-sm px-3">
-                        Xem tất cả thư viện <i class="bi bi-arrow-right ms-1"></i>
+                    <div class="fw-bold fs-5 text-dark"><i class="bi bi-collection me-2 text-primary"></i>Thư viện hồ sơ đã chẩn đoán gần đây</div>
+                    <a th:href="@{/doctor/library}" class="btn btn-sm btn-outline-primary fw-bold rounded-2 px-3">
+                        Xem toàn bộ thư viện <i class="bi bi-arrow-right ms-1"></i>
                     </a>
                 </div>
-                <div class="table-responsive">
-                    <table class="pt-table">
-                        <thead>
+
+                <!-- Bộ lọc Tìm kiếm & Lọc Động cho thư viện đã đọc -->
+                <div th:if="${libraryPreview != null and !#lists.isEmpty(libraryPreview)}" class="row g-3 mb-4">
+                    <div class="col-12 col-md-8 col-lg-9">
+                        <div class="search-input-group">
+                            <i class="bi bi-search fs-5"></i>
+                            <input type="text" id="librarySearchInput" class="form-control form-control-lg"
+                                   placeholder="Tìm kiếm theo Mã hồ sơ, Bệnh nhân, Vùng chụp, Kết luận..."
+                                   onkeyup="filterLibraryTable()">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-3">
+                        <select id="libraryBodyPartFilter" class="form-select form-select-lg filter-select text-secondary fw-semibold" onchange="filterLibraryTable()">
+                            <option value="">Tất cả vùng chụp</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Trạng thái trống cho thư viện -->
+                <div id="emptyLibraryState" th:class="${libraryPreview == null or #lists.isEmpty(libraryPreview)} ? 'text-center py-5 text-muted' : 'text-center py-5 text-muted d-none'">
+                    <i class="bi bi-folder-x display-4 d-block mb-3 opacity-50"></i>
+                    <p class="fw-semibold text-dark mb-1">Chưa có hồ sơ nào được xác nhận</p>
+                    <p class="small text-secondary mb-0">Hồ sơ sau khi được bạn xác nhận chuẩn đoán thành công sẽ hiển thị lịch sử ở đây.</p>
+                </div>
+
+                <!-- Bảng danh sách thư viện đã duyệt -->
+                <div th:if="${libraryPreview != null and !#lists.isEmpty(libraryPreview)}" class="table-responsive">
+                    <table class="table table-hover align-middle pt-table w-100" id="libraryTable">
+                        <thead class="table-light">
                         <tr>
-                            <th>Mã hồ sơ</th>
-                            <th>Bệnh nhân</th>
-                            <th>Vùng chụp</th>
-                            <th>Kết luận</th>
-                            <th>Ngày xác nhận</th>
-                            <th class="text-end"></th>
+                            <th style="width: 15%">Mã hồ sơ</th>
+                            <th style="width: 20%">Bệnh nhân</th>
+                            <th style="width: 15%">Vùng chụp</th>
+                            <th style="width: 30%">Kết luận</th>
+                            <th style="width: 15%">Ngày xác nhận</th>
+                            <th style="width: 5%" class="text-end"></th>
                         </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="libraryTableBody">
                         <tr th:each="r : ${libraryPreview}">
                             <td><span class="fw-bold text-primary" th:text="${r.recordCode}">XR-0098</span></td>
-                            <td th:text="${r.patient != null ? r.patient.fullName : 'Không rõ'}">Nguyễn Văn Hùng</td>
-                            <td th:text="${r.bodyPart}">Cẳng tay</td>
+                            <td><span class="fw-semibold text-dark" th:text="${r.patient != null ? r.patient.fullName : 'Không rõ'}">Nguyễn Văn Hùng</span></td>
+                            <td><span class="fw-bold text-dark" th:text="${r.bodyPart}">Cẳng tay</span></td>
                             <td>
-                                <span class="small" th:text="${r.doctorConclusion != null ? #strings.abbreviate(r.doctorConclusion, 60) : 'Đã kết luận'}">Kết luận</span>
+                                <span class="small text-secondary" th:text="${r.doctorConclusion != null ? #strings.abbreviate(r.doctorConclusion, 60) : 'Đã kết luận'}">Kết luận</span>
                             </td>
                             <td>
                                 <span class="small text-muted" th:text="${r.confirmedAt != null ? #temporals.format(r.confirmedAt, 'dd/MM/yyyy HH:mm') : '-'}">22/05/2026</span>
                             </td>
                             <td class="text-end">
-                                <a th:href="@{'/doctor/record/' + ${r.recordId}}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-2">
+                                <a th:href="@{'/doctor/record/' + ${r.recordId}}" class="btn btn-sm btn-outline-primary fw-bold rounded-2 px-2">
                                     <i class="bi bi-eye me-1"></i> Xem lại
                                 </a>
                             </td>
                         </tr>
-                        <tr th:if="${libraryPreview == null or #lists.isEmpty(libraryPreview)}">
-                            <td colspan="6" class="text-center text-muted py-4">Chưa có hồ sơ nào được xác nhận trong thư viện.</td>
-                        </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Thanh phân trang thư viện -->
+                <div class="pagination-container p-3 bg-light border-top rounded-bottom-3" id="libraryPaginationWrapper"
+                     th:if="${libraryPreview != null and !#lists.isEmpty(libraryPreview)}">
+                    <div class="small text-muted fw-semibold" id="libraryPaginationInfo">
+                        Đang hiển thị từ <span id="libraryStartRange"></span> đến <span id="libraryEndRange"></span> của <span id="libraryTotalRecords"></span> hồ sơ
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm mb-0" id="libraryPaginationContainer"></ul>
+                    </nav>
                 </div>
             </section>
         </div>
@@ -202,8 +329,264 @@
         <button type="button" class="btn-close ms-2" onclick="document.getElementById('successToast').remove()"></button>
     </div>
 </div>
+
 <script th:if="${diagnosisSuccess}">
-    setTimeout(function(){ var t=document.getElementById('successToast'); if(t) t.remove(); }, 5000);
+    setTimeout(function(){ 
+        var t = document.getElementById('successToast'); 
+        if(t) t.remove(); 
+    }, 5000);
+</script>
+
+<!-- ENGINE JAVASCRIPT XỬ LÝ LỌC VÀ PHÂN TRANG CHO CẢ 2 BẢNG -->
+<script>
+    const rowsPerPage = 5; // Giới hạn hiển thị 5 dòng mỗi trang cho tối ưu cấu trúc dọc
+
+    // State quản lý cho bảng Ca Chờ duyệt
+    let pendingCurrentPage = 1;
+    let pendingFilteredRows = [];
+
+    // State quản lý cho bảng Thư Viện
+    let libraryCurrentPage = 1;
+    let libraryFilteredRows = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+        initPendingTable();
+        initLibraryTable();
+    });
+
+    // --- XỬ LÝ BẢNG CA CHỜ DUYỆT (PENDING TABLE) ---
+    function initPendingTable() {
+        const body = document.getElementById("pendingTableBody");
+        if (!body) return;
+
+        pendingFilteredRows = Array.from(body.querySelectorAll("tr"));
+        generateDropdownOptions(pendingFilteredRows, "pendingBodyPartFilter", 4);
+        setupPagination("pending", pendingFilteredRows.length);
+        renderPage("pending", pendingCurrentPage);
+    }
+
+    function filterPendingTable() {
+        const searchVal = document.getElementById("pendingSearchInput").value.toLowerCase().trim();
+        const partVal = document.getElementById("pendingBodyPartFilter").value.toLowerCase().trim();
+
+        const body = document.getElementById("pendingTableBody");
+        if (!body) return;
+
+        const allRows = Array.from(body.getElementsByTagName("tr"));
+
+        pendingFilteredRows = allRows.filter(row => {
+            const cells = row.getElementsByTagName("td");
+            if (cells.length < 7) return false;
+
+            const codeText = cells[0].textContent.toLowerCase();
+            const patientText = cells[1].textContent.toLowerCase();
+            const technicianText = cells[2].textContent.toLowerCase();
+            const partText = cells[4].textContent.toLowerCase();
+            const aiText = cells[5].textContent.toLowerCase();
+
+            const matchSearch = codeText.includes(searchVal) || patientText.includes(searchVal) || 
+                                technicianText.includes(searchVal) || partText.includes(searchVal) || 
+                                aiText.includes(searchVal);
+            const matchPart = (partVal === "") || (partText.trim() === partVal);
+
+            return matchSearch && matchPart;
+        });
+
+        toggleTableState("pending", pendingFilteredRows.length);
+        pendingCurrentPage = 1;
+        setupPagination("pending", pendingFilteredRows.length);
+        renderPage("pending", pendingCurrentPage);
+    }
+
+
+    // --- XỬ LÝ BẢNG THƯ VIỆN ĐÃ CHẨN ĐOÁN (LIBRARY TABLE) ---
+    function initLibraryTable() {
+        const body = document.getElementById("libraryTableBody");
+        if (!body) return;
+
+        libraryFilteredRows = Array.from(body.querySelectorAll("tr"));
+        generateDropdownOptions(libraryFilteredRows, "libraryBodyPartFilter", 2);
+        setupPagination("library", libraryFilteredRows.length);
+        renderPage("library", libraryCurrentPage);
+    }
+
+    function filterLibraryTable() {
+        const searchVal = document.getElementById("librarySearchInput").value.toLowerCase().trim();
+        const partVal = document.getElementById("libraryBodyPartFilter").value.toLowerCase().trim();
+
+        const body = document.getElementById("libraryTableBody");
+        if (!body) return;
+
+        const allRows = Array.from(body.getElementsByTagName("tr"));
+
+        libraryFilteredRows = allRows.filter(row => {
+            const cells = row.getElementsByTagName("td");
+            if (cells.length < 5) return false;
+
+            const codeText = cells[0].textContent.toLowerCase();
+            const patientText = cells[1].textContent.toLowerCase();
+            const partText = cells[2].textContent.toLowerCase();
+            const conclusionText = cells[3].textContent.toLowerCase();
+
+            const matchSearch = codeText.includes(searchVal) || patientText.includes(searchVal) || 
+                                partText.includes(searchVal) || conclusionText.includes(searchVal);
+            const matchPart = (partVal === "") || (partText.trim() === partVal);
+
+            return matchSearch && matchPart;
+        });
+
+        toggleTableState("library", libraryFilteredRows.length);
+        libraryCurrentPage = 1;
+        setupPagination("library", libraryFilteredRows.length);
+        renderPage("library", libraryCurrentPage);
+    }
+
+
+    // --- HÀM BỔ TRỢ CHUNG (GENERIC UTILITIES) ---
+    
+    // Tự động gom nhóm thuộc tính (vùng chụp) làm option bộ lọc giống mẫu địa chỉ
+    function generateDropdownOptions(rows, selectId, cellIndex) {
+        const selectElement = document.getElementById(selectId);
+        if (!selectElement) return;
+
+        const uniqueValues = new Set();
+        rows.forEach(row => {
+            const cells = row.getElementsByTagName("td");
+            if (cells.length > cellIndex) {
+                const val = cells[cellIndex].textContent.trim();
+                if (val && val !== "—") {
+                    uniqueValues.add(val);
+                }
+            }
+        });
+
+        uniqueValues.forEach(val => {
+            const opt = document.createElement("option");
+            opt.value = val.toLowerCase();
+            opt.textContent = val;
+            selectElement.appendChild(opt);
+        });
+    }
+
+    function toggleTableState(prefix, length) {
+        const emptyState = document.getElementById(prefix === "pending" ? "emptyPendingState" : "emptyLibraryState");
+        const paginationWrapper = document.getElementById(prefix === "pending" ? "pendingPaginationWrapper" : "libraryPaginationWrapper");
+        const tableResponsive = document.querySelector(`#${prefix}Table`).parentElement;
+
+        if (length === 0) {
+            if (emptyState) emptyState.classList.remove("d-none");
+            if (tableResponsive) tableResponsive.classList.add("d-none");
+            if (paginationWrapper) paginationWrapper.style.setProperty("display", "none", "important");
+        } else {
+            if (emptyState) emptyState.classList.add("d-none");
+            if (tableResponsive) tableResponsive.classList.remove("d-none");
+            if (paginationWrapper) paginationWrapper.style.setProperty("display", "flex", "important");
+        }
+    }
+
+    function setupPagination(prefix, totalItems) {
+        const pageCount = Math.ceil(totalItems / rowsPerPage);
+        const container = document.getElementById(prefix === "pending" ? "pendingPaginationContainer" : "libraryPaginationContainer");
+        if (!container) return;
+        container.innerHTML = "";
+
+        if (pageCount <= 1) {
+            updatePaginationInfo(prefix, totalItems);
+            return;
+        }
+
+        const isPending = prefix === "pending";
+
+        createPageButton(container, "«", () => {
+            if (isPending) {
+                if (pendingCurrentPage > 1) { pendingCurrentPage--; renderPage("pending", pendingCurrentPage); }
+            } else {
+                if (libraryCurrentPage > 1) { libraryCurrentPage--; renderPage("library", libraryCurrentPage); }
+            }
+        }, (isPending ? pendingCurrentPage : libraryCurrentPage) === 1);
+
+        for (let i = 1; i <= pageCount; i++) {
+            const activeCondition = i === (isPending ? pendingCurrentPage : libraryCurrentPage);
+            createPageButton(container, i, () => {
+                if (isPending) {
+                    pendingCurrentPage = i;
+                    renderPage("pending", pendingCurrentPage);
+                } else {
+                    libraryCurrentPage = i;
+                    renderPage("library", libraryCurrentPage);
+                }
+            }, false, activeCondition);
+        }
+
+        createPageButton(container, "»", () => {
+            if (isPending) {
+                if (pendingCurrentPage < pageCount) { pendingCurrentPage++; renderPage("pending", pendingCurrentPage); }
+            } else {
+                if (libraryCurrentPage < pageCount) { libraryCurrentPage++; renderPage("library", libraryCurrentPage); }
+            }
+        }, (isPending ? pendingCurrentPage : libraryCurrentPage) === pageCount);
+
+        updatePaginationInfo(prefix, totalItems);
+    }
+
+    function createPageButton(parentContainer, text, onClickAction, isDisabled = false, isActive = false) {
+        const li = document.createElement("li");
+        li.className = `page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+
+        const a = document.createElement("a");
+        a.className = "page-link";
+        a.href = "javascript:void(0);";
+        a.textContent = text;
+        a.addEventListener("click", onClickAction);
+
+        li.appendChild(a);
+        parentContainer.appendChild(li);
+    }
+
+    function renderPage(prefix, page) {
+        const body = document.getElementById(prefix === "pending" ? "pendingTableBody" : "libraryTableBody");
+        if (!body) return;
+
+        const allRows = Array.from(body.querySelectorAll("tr"));
+        allRows.forEach(row => row.style.display = "none");
+
+        const targetList = prefix === "pending" ? pendingFilteredRows : libraryFilteredRows;
+        const start = (page - 1) * rowsPerPage;
+        const end = Math.min(start + rowsPerPage, targetList.length);
+
+        for (let i = start; i < end; i++) {
+            if (targetList[i]) targetList[i].style.display = "";
+        }
+
+        updatePaginationInfo(prefix, targetList.length);
+
+        const paginationItems = document.querySelectorAll(`#${prefix}PaginationContainer .page-item`);
+        paginationItems.forEach(item => {
+            if (parseInt(item.textContent) === page) {
+                item.classList.add("active");
+            } else if (item.textContent !== "«" && item.textContent !== "»") {
+                item.classList.remove("active");
+            }
+        });
+    }
+
+    function updatePaginationInfo(prefix, totalItems) {
+        const currPage = prefix === "pending" ? pendingCurrentPage : libraryCurrentPage;
+        const start = totalItems === 0 ? 0 : (currPage - 1) * rowsPerPage + 1;
+        const end = Math.min(currPage * rowsPerPage, totalItems);
+
+        if (document.getElementById(`${prefix}StartRange`)) document.getElementById(`${prefix}StartRange`).textContent = start;
+        if (document.getElementById(`${prefix}EndRange`)) document.getElementById(`${prefix}EndRange`).textContent = end;
+        if (document.getElementById(`${prefix}TotalRecords`)) document.getElementById(`${prefix}TotalRecords`).textContent = totalItems;
+
+        // Cập nhật số liệu badge ngoài tiêu đề tương ứng với bộ lọc tìm kiếm thực tế
+        if (prefix === "pending") {
+            const badge = document.getElementById("pendingBadgeLabel");
+            if (badge) badge.textContent = `${totalItems} ca đang chờ`;
+            const statPendingNum = document.getElementById("statsPendingCount");
+            if (statPendingNum) statPendingNum.textContent = totalItems;
+        }
+    }
 </script>
 </body>
 </html>

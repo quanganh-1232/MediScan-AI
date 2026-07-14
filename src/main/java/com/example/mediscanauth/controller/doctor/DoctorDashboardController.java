@@ -33,9 +33,9 @@ public class DoctorDashboardController {
     private final NotificationService notificationService;
 
     public DoctorDashboardController(ImagingRecordService imagingRecordService,
-                                     PatientRepository patientRepository,
-                                     UserRepository userRepository,
-                                     NotificationService notificationService) {
+            PatientRepository patientRepository,
+            UserRepository userRepository,
+            NotificationService notificationService) {
         this.imagingRecordService = imagingRecordService;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
@@ -79,13 +79,13 @@ public class DoctorDashboardController {
 
     @PostMapping("/doctor/records/{recordId}/conclusion")
     public String saveConclusion(Authentication authentication,
-                                 @PathVariable Long recordId,
-                                 @RequestParam(required = false) String conclusion,
-                                 @RequestParam(required = false) Integer bboxX,
-                                 @RequestParam(required = false) Integer bboxY,
-                                 @RequestParam(required = false) Integer bboxWidth,
-                                 @RequestParam(required = false) Integer bboxHeight,
-                                 RedirectAttributes redirectAttributes) {
+            @PathVariable Long recordId,
+            @RequestParam(required = false) String conclusion,
+            @RequestParam(required = false) Integer bboxX,
+            @RequestParam(required = false) Integer bboxY,
+            @RequestParam(required = false) Integer bboxWidth,
+            @RequestParam(required = false) Integer bboxHeight,
+            RedirectAttributes redirectAttributes) {
         if (bboxX != null || bboxY != null || bboxWidth != null || bboxHeight != null) {
             imagingRecordService.updateRecordCoordinates(recordId, bboxX, bboxY, bboxWidth, bboxHeight);
         }
@@ -96,9 +96,9 @@ public class DoctorDashboardController {
 
     @PostMapping("/doctor/records/reject")
     public String reject(Authentication authentication,
-                         @RequestParam Long recordId,
-                         @RequestParam(required = false) String conclusion,
-                         @RequestParam(required = false) String recommendation) {
+            @RequestParam Long recordId,
+            @RequestParam(required = false) String conclusion,
+            @RequestParam(required = false) String recommendation) {
         imagingRecordService.rejectDoctorReview(recordId, authentication.getName(), conclusion, recommendation);
         return "redirect:/doctor/records/pending";
     }
@@ -122,11 +122,11 @@ public class DoctorDashboardController {
     // ==================== LIBRARY ====================
     @GetMapping("/doctor/library")
     public String library(@RequestParam(required = false) String q,
-                          @RequestParam(required = false) String bodyPart,
-                          @RequestParam(defaultValue = "0") int page,
-                          @RequestParam(defaultValue = "8") int size,
-                          Model model,
-                          Principal principal) {
+            @RequestParam(required = false) String bodyPart,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size,
+            Model model,
+            Principal principal) {
 
         String email = principal.getName();
         Long doctorId = imagingRecordService.getDoctorIdByEmail(email);
@@ -137,20 +137,19 @@ public class DoctorDashboardController {
         if (q != null && !q.trim().isEmpty()) {
             String keyword = q.toLowerCase().trim();
             completedList = completedList.stream()
-                .filter(r -> 
-                    (r.getRecordCode() != null && r.getRecordCode().toLowerCase().contains(keyword)) ||
-                    (r.getPatient() != null && r.getPatient().getFullName() != null && 
-                     r.getPatient().getFullName().toLowerCase().contains(keyword)) ||
-                    (r.getBodyPart() != null && r.getBodyPart().toLowerCase().contains(keyword)) ||
-                    (r.getAiPrediction() != null && r.getAiPrediction().toLowerCase().contains(keyword))
-                )
-                .collect(Collectors.toList());
+                    .filter(r -> (r.getRecordCode() != null && r.getRecordCode().toLowerCase().contains(keyword)) ||
+                            (r.getPatient() != null && r.getPatient().getFullName() != null &&
+                                    r.getPatient().getFullName().toLowerCase().contains(keyword))
+                            ||
+                            (r.getBodyPart() != null && r.getBodyPart().toLowerCase().contains(keyword)) ||
+                            (r.getAiPrediction() != null && r.getAiPrediction().toLowerCase().contains(keyword)))
+                    .collect(Collectors.toList());
         }
 
         if (bodyPart != null && !bodyPart.isEmpty()) {
             completedList = completedList.stream()
-                .filter(r -> bodyPart.equals(r.getBodyPart()))
-                .collect(Collectors.toList());
+                    .filter(r -> bodyPart.equals(r.getBodyPart()))
+                    .collect(Collectors.toList());
         }
 
         model.addAttribute("completedRecords", completedList);
@@ -159,10 +158,9 @@ public class DoctorDashboardController {
         model.addAttribute("bodyPart", bodyPart == null ? "" : bodyPart);
 
         model.addAttribute("bodyPartFilters", java.util.List.of(
-                "Cẳng tay", "Cổ tay", "Bàn tay", "Cẳng chân", 
-                "Cổ chân", "Bàn chân", "Xương sườn", "Vai", 
-                "Khuỷu tay", "Đầu gối"
-        ));
+                "Cẳng tay", "Cổ tay", "Bàn tay", "Cẳng chân",
+                "Cổ chân", "Bàn chân", "Xương sườn", "Vai",
+                "Khuỷu tay", "Đầu gối"));
 
         return "doctor/library";
     }

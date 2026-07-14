@@ -5,13 +5,15 @@
     <meta charset="UTF-8">
     <title>Chi tiết duyệt hồ sơ - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         body {
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: #f8fafc;
         }
 
         .ms-xray-dark-panel {
@@ -24,7 +26,7 @@
         /* Đầu Header của Panel Ảnh */
         .panel-header {
             display: flex;
-            justify-content: flex-end; /* Đẩy khu vực công cụ sát hoàn toàn về góc phải */
+            justify-content: flex-end;
             align-items: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 12px;
@@ -34,12 +36,12 @@
 
         /* Container kiểm soát vị trí tuyệt đối cho menu ngang */
         .toolkit-wrapper {
+            position: relative;
             display: flex;
             align-items: center;
-            position: relative;
         }
 
-        /* Nút mở menu công cụ vuông vắn, gọn gàng ở góc phải */
+        /* Nút mở menu công cụ */
         .toolkit-dropdown-btn {
             background: #1e293b;
             color: #cbd5e1;
@@ -54,31 +56,32 @@
             transition: all 0.2s;
             z-index: 102;
         }
-        .toolkit-dropdown-btn:hover, .toolkit-dropdown-btn.active {
+
+        .toolkit-dropdown-btn:hover,
+        .toolkit-dropdown-btn.active {
             background: #334155;
             color: #fff;
             border-color: #475569;
         }
 
-        /* MENU CHIỀU NGANG - Neo cố định bên trái của nút bấm và không bao giờ lệch khung */
+        /* MENU CHIỀU NGANG */
         .toolkit-menu-horizontal {
             position: absolute;
-            right: 46px; /* Cách nút bấm đúng 1 khoảng vừa vặn */
+            right: 46px;
             top: 50%;
             transform: translateY(-50%);
             background: #1e293b;
             border: 1px solid #334155;
             border-radius: 8px;
             padding: 6px 14px;
-            display: none; 
+            display: none;
             align-items: center;
             gap: 14px;
-            box-shadow: -5px 5px 15px rgba(0,0,0,0.4);
+            box-shadow: -5px 5px 15px rgba(0, 0, 0, 0.4);
             z-index: 101;
-            animate: slideInLeft 0.2s ease;
+            animation: slideInLeft 0.2s ease;
         }
 
-        /* Khi kích hoạt hiển thị */
         .toolkit-menu-horizontal.show {
             display: flex;
         }
@@ -98,19 +101,18 @@
             height: 4px;
         }
 
-        /* Vách ngăn phân tách */
         .tool-divider {
             width: 1px;
             height: 18px;
             background: #334155;
         }
 
-        /* Kiểm soát diện tích vùng chứa ảnh không bị quá to */
+        /* Vùng chứa ảnh */
         .xray-viewport-box {
             background: #000;
             border-radius: 16px;
             padding: 12px;
-            max-height: 500px;
+            max-height: 550px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -118,7 +120,7 @@
         }
 
         .ms-xray-viewport {
-            max-height: 480px;
+            max-height: 520px;
             width: auto;
             max-width: 100%;
             display: block;
@@ -134,7 +136,7 @@
             border-radius: 8px;
             cursor: grab;
         }
-        
+
         .ms-xray-wrapper:active {
             cursor: grabbing;
         }
@@ -164,46 +166,82 @@
             border-radius: 4px;
         }
 
+        /* Sửa lỗi vỡ tràn/rớt dòng của Thanh Header */
+        .pt-navbar-inner {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
+            flex-wrap: nowrap !important;
+        }
+
+        /* Đảm bảo Logo và text đi liền một hàng */
+        .ms-brand {
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* Giữ cụm thông báo và avatar bác sĩ không bị bóp méo */
+        .pt-navbar-inner .d-flex.align-items-center.gap-2 {
+            flex-shrink: 0 !important;
+        }
+
         @keyframes slideInLeft {
-            from { opacity: 0; transform: translate(10px, -50%); }
-            to { opacity: 1; transform: translate(0, -50%); }
+            from {
+                opacity: 0;
+                transform: translate(10px, -50%);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(0, -50%);
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="ms-shell">
-        <div th:replace="~{common/fragments/app-header :: header('Review Workspace', 'Bác sĩ', 'ms-avatar-purple')}"></div>
+        <div th:replace="~{doctor/fragments/doctor-shell :: nav}"></div>
 
         <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
-            <div class="row g-4">
+            <div class="row g-4 justify-content-center">
 
                 <div class="col-12 col-xl-6">
                     <div class="ms-card-solid ms-xray-dark-panel rounded-5 p-3 p-lg-4 text-center">
-                        
+
                         <div class="panel-header">
                             <div class="toolkit-wrapper">
-                                
+
                                 <div class="toolkit-menu-horizontal" id="toolkitMenu">
                                     <div class="tool-item-horizontal">
                                         <span><i class="bi bi-brightness-high-fill text-warning"></i></span>
-                                        <input type="range" id="brightSlider" min="50" max="200" value="100" oninput="applyImageFilters()">
+                                        <input type="range" id="brightSlider" min="50" max="200" value="100"
+                                            oninput="applyImageFilters()">
                                     </div>
                                     <div class="tool-item-horizontal">
                                         <span><i class="bi bi-circle-half text-info"></i></span>
-                                        <input type="range" id="contrastSlider" min="50" max="200" value="110" oninput="applyImageFilters()">
+                                        <input type="range" id="contrastSlider" min="50" max="200" value="110"
+                                            oninput="applyImageFilters()">
                                     </div>
                                     <div class="tool-item-horizontal">
                                         <div class="form-check form-switch m-0 d-flex align-items-center gap-1">
-                                            <input class="form-check-input style-sm" type="checkbox" id="invertSwitch" onchange="toggleInvert()" style="cursor: pointer;">
-                                            <label class="form-check-label" for="invertSwitch" style="font-size: 11px; color:#cbd5e1;">Âm bản</label>
+                                            <input class="form-check-input style-sm" type="checkbox" id="invertSwitch"
+                                                onchange="toggleInvert()" style="cursor: pointer;">
+                                            <label class="form-check-label" for="invertSwitch"
+                                                style="font-size: 11px; color:#cbd5e1;">Âm bản</label>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="tool-divider"></div>
 
                                     <div class="tool-item-horizontal">
-                                        <select id="colorPicker" class="form-select form-select-sm bg-dark text-white border-secondary py-0" style="width: 85px; font-size: 11px; height: 22px;" onchange="changeBoxColor(this.value)">
+                                        <select id="colorPicker"
+                                            class="form-select form-select-sm bg-dark text-white border-secondary py-0"
+                                            style="width: 85px; font-size: 11px; height: 22px;"
+                                            onchange="changeBoxColor(this.value)">
                                             <option value="#ef4444" selected>Viền Đỏ</option>
                                             <option value="#3b82f6">Xanh</option>
                                             <option value="#eab308">Vàng</option>
@@ -212,18 +250,24 @@
 
                                     <div class="tool-item-horizontal">
                                         <div class="btn-group btn-group-sm" style="height: 22px;">
-                                            <button class="btn btn-secondary py-0 px-2 text-white" onclick="zoomImage(0.2)" style="font-size:10px;">+</button>
-                                            <button class="btn btn-secondary py-0 px-2 text-white" onclick="zoomImage(-0.2)" style="font-size:10px;">-</button>
+                                            <button class="btn btn-secondary py-0 px-2 text-white"
+                                                onclick="zoomImage(0.2)" style="font-size:10px;">+</button>
+                                            <button class="btn btn-secondary py-0 px-2 text-white"
+                                                onclick="zoomImage(-0.2)" style="font-size:10px;">-</button>
                                         </div>
-                                        <span id="zoomLabel" style="font-size: 11px; min-width: 30px;">100%</span>
+                                        <span id="zoomLabel"
+                                            style="font-size: 11px; min-width: 30px; color:#cbd5e1;">100%</span>
                                     </div>
 
                                     <div class="tool-divider"></div>
 
-                                    <button id="toggleAiBtn" class="btn btn-sm btn-info text-dark fw-semibold py-0 px-2" style="font-size: 11px; height: 22px;" onclick="toggleAiOverlay()">
+                                    <button id="toggleAiBtn" class="btn btn-sm btn-info text-dark fw-semibold py-0 px-2"
+                                        style="font-size: 11px; height: 22px;" onclick="toggleAiOverlay()">
                                         Ẩn AI
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size: 11px; height: 22px;" onclick="resetAllControls()" title="Khôi phục mặc định">
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-1"
+                                        style="font-size: 11px; height: 22px;" onclick="resetAllControls()"
+                                        title="Khôi phục mặc định">
                                         <i class="bi bi-arrow-counterclockwise"></i>
                                     </button>
                                 </div>
@@ -233,21 +277,20 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div class="xray-viewport-box">
                             <div class="ms-xray-wrapper" id="xrayWrapper">
                                 <div class="pan-zoom-container" id="panZoomContainer">
-                                    <img th:src="@{'/uploads/xray/' + ${record.fileName}}" id="xrayImage" class="ms-xray-viewport rounded-3" alt="X-ray DICOM">
-                                    
+                                    <img th:src="@{'/uploads/xray/' + ${record.fileName}}" id="xrayImage"
+                                        class="ms-xray-viewport rounded-3" alt="X-ray DICOM">
+
                                     <div class="ms-xray-overlay" id="overlayContainer">
-                                        <div th:each="region : ${aiRegions}" 
-                                             class="ai-box"
-                                             th:data-x="${region.xCoordinate}"
-                                             th:data-y="${region.yCoordinate}"
-                                             th:data-w="${region.width}"
-                                             th:data-h="${region.height}">
+                                        <div th:each="region : ${aiRegions}" class="ai-box"
+                                            th:data-x="${region.xCoordinate}" th:data-y="${region.yCoordinate}"
+                                            th:data-w="${region.width}" th:data-h="${region.height}">
                                         </div>
-                                        <div th:if="${#lists.isEmpty(aiRegions)}" class="ai-box" data-x="100" data-y="120" data-w="80" data-h="70"></div>
+                                        <div th:if="${#lists.isEmpty(aiRegions)}" class="ai-box" data-x="100"
+                                            data-y="120" data-w="80" data-h="70"></div>
                                     </div>
                                 </div>
                             </div>
@@ -260,24 +303,31 @@
                     <div class="ms-card-solid rounded-5 p-4 mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h2 class="ms-section-title h5 mb-0">Thông tin bệnh nhân</h2>
-                            <span class="ms-badge ms-badge-soft" th:text="'Mã ca: ' + ${record.recordCode}">XR-123</span>
+                            <span class="ms-badge ms-badge-soft"
+                                th:text="'Mã ca: ' + ${record.recordCode}">XR-123</span>
                         </div>
                         <div class="row g-3">
                             <div class="col-12">
-                                <span class="small text-muted text-uppercase fw-semibold d-block">Họ và tên bệnh nhân</span>
-                                <h4 class="fw-bold text-dark mb-0 mt-1" th:text="${record.patient != null ? record.patient.fullName : 'N/A'}">Nguyễn Văn A</h4>
+                                <span class="small text-muted text-uppercase fw-semibold d-block">Họ và tên bệnh
+                                    nhân</span>
+                                <h4 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${record.patient != null ? record.patient.fullName : 'N/A'}">Nguyễn Văn A
+                                </h4>
                             </div>
                             <div class="col-6">
                                 <span class="small text-muted text-uppercase fw-semibold d-block">Giới tính</span>
-                                <span class="fw-semibold text-dark" th:text="${profile != null ? profile.gender : 'N/A'}">N/A</span>
+                                <span class="fw-semibold text-dark"
+                                    th:text="${profile != null ? profile.gender : 'N/A'}">N/A</span>
                             </div>
                             <div class="col-6">
                                 <span class="small text-muted text-uppercase fw-semibold d-block">Ngày sinh</span>
-                                <span class="fw-semibold text-dark" th:text="${profile != null && profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
+                                <span class="fw-semibold text-dark"
+                                    th:text="${profile != null && profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
                             </div>
                             <div class="col-12">
                                 <span class="small text-muted text-uppercase fw-semibold d-block">Địa chỉ</span>
-                                <p class="mb-0 small ms-subtle" th:text="${profile != null ? profile.address : 'Chưa có thông tin'}"></p>
+                                <p class="mb-0 small ms-subtle"
+                                    th:text="${profile != null ? profile.address : 'Chưa có thông tin'}"></p>
                             </div>
                         </div>
                     </div>
@@ -288,24 +338,31 @@
                             <span class="ms-pill ms-pill-warning" th:text="${record.bodyPart}">Chest</span>
                         </div>
                         <div class="p-3 bg-light rounded-4 mt-2">
-                            <h4 class="text-danger fw-bold mb-2" th:text="${record.aiPrediction}">Phát hiện bất thường</h4>
+                            <h4 class="text-danger fw-bold mb-2" th:text="${record.aiPrediction}">Phát hiện bất thường
+                            </h4>
                             <div class="ms-progress-bar mb-2">
-                                <div class="ms-progress-fill bg-danger" th:style="'width: ' + ${record.aiConfidence} + '%'"></div>
+                                <div class="ms-progress-fill bg-danger"
+                                    th:style="'width: ' + ${record.aiConfidence} + '%'"></div>
                             </div>
-                            <span class="small text-muted" th:text="'Hệ số tin cậy thuật toán: ' + ${record.aiConfidence} + '%'">0%</span>
+                            <span class="small text-muted"
+                                th:text="'Hệ số tin cậy thuật toán: ' + ${record.aiConfidence} + '%'">0%</span>
                         </div>
                     </div>
 
                     <form th:action="@{'/doctor/records/' + ${record.recordId} + '/conclusion'}" method="POST">
                         <div class="ms-card-solid rounded-5 p-4">
                             <h2 class="ms-section-title h5 mb-3">Kết luận & Chẩn đoán lâm sàng</h2>
-                            <textarea name="conclusion" class="form-control border-0 bg-light rounded-4 p-3 mb-4 ms-subtle" rows="5" placeholder="Nhập nhận định chuyên môn tại đây..."></textarea>
+                            <textarea name="conclusion"
+                                class="form-control border-0 bg-light rounded-4 p-3 mb-4 ms-subtle" rows="5"
+                                placeholder="Nhập nhận định chuyên môn tại đây..."></textarea>
 
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn ms-btn ms-btn-primary text-white py-2 fw-bold">
                                     <i class="bi bi-file-earmark-check-fill me-1"></i> Hoàn tất & Ký số kết quả
                                 </button>
-                                <a th:href="@{/doctor/records/pending}" class="btn ms-btn ms-btn-ghost border-secondary bg-white py-2">Hủy bỏ và Quay lại</a>
+                                <a th:href="@{/doctor/records/pending}"
+                                    class="btn ms-btn ms-btn-ghost border-secondary bg-white py-2">Hủy bỏ và Quay
+                                    lại</a>
                             </div>
                         </div>
                     </form>
@@ -321,14 +378,14 @@
         let scale = 1.0;
         let isInverted = false;
         let isAiVisible = true;
-        
+
         let isDragging = false;
         let startX, startY, translateX = 0, translateY = 0;
 
         function toggleToolkitMenu() {
             const menu = document.getElementById('toolkitMenu');
             const btn = document.getElementById('toolkitBtn');
-            
+
             menu.classList.toggle('show');
             btn.classList.toggle('active');
         }
@@ -376,7 +433,7 @@
             const overlay = document.getElementById('overlayContainer');
             const btn = document.getElementById('toggleAiBtn');
             isAiVisible = !isAiVisible;
-            
+
             if (isAiVisible) {
                 overlay.style.display = 'block';
                 btn.innerText = 'Ẩn AI';
@@ -425,7 +482,7 @@
             document.getElementById('zoomLabel').innerText = "100%";
             document.getElementById('colorPicker').value = "#ef4444";
             document.getElementById('invertSwitch').checked = false;
-            
+
             isAiVisible = false; toggleAiOverlay();
             changeBoxColor("#ef4444");
             applyImageFilters();

@@ -39,7 +39,8 @@ import java.util.stream.Collectors;
 @Service
 public class ImagingRecordServiceImpl implements ImagingRecordService {
 
-    private static final List<String> ACTIVE_QUEUE_STATUSES = List.of("PENDING_AI", "AI_DONE", "AI_ANALYZED", "PENDING_DOCTOR");
+    private static final List<String> ACTIVE_QUEUE_STATUSES = List.of("PENDING_AI", "AI_DONE", "AI_ANALYZED",
+            "PENDING_DOCTOR");
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
     private static final String AI_SERVICE_URL = "http://localhost:8000/predict";
     private static final int LEGACY_TEXT_COLUMN_LIMIT = 490;
@@ -52,9 +53,9 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private final ObjectMapper objectMapper;
 
     public ImagingRecordServiceImpl(ImagingRecordRepository imagingRecordRepository,
-                                    UserAccountService userAccountService,
-                                    PatientRepository patientRepository,
-                                    UserRepository userRepository) {
+            UserAccountService userAccountService,
+            PatientRepository patientRepository,
+            UserRepository userRepository) {
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.patientRepository = patientRepository;
@@ -63,7 +64,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         this.objectMapper = new ObjectMapper();
     }
 
-    // ==================== DOCTOR DASHBOARD METHODS (từ code trên) ====================
+    // ==================== DOCTOR DASHBOARD METHODS (từ code trên)
+    // ====================
     @Override
     public DashboardDTO getDoctorDashboardStats(Long doctorId) {
         List<ImagingRecord> records = imagingRecordRepository
@@ -113,7 +115,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         return imagingRecordRepository.findAiRegionsByRecordId(recordId);
     }
 
-    // ==================== CORE METHODS (giữ logic từ code dưới) ====================
+    // ==================== CORE METHODS (giữ logic từ code dưới)
+    // ====================
     @Override
     public List<ImagingRecord> findForPatient(User patient) {
         return imagingRecordRepository.findByPatientOrderByCapturedAtDescCreatedAtDesc(patient);
@@ -156,7 +159,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
     @Override
     @Transactional
-    public ImagingRecord createFromTechnician(String technicianEmail, String patientEmail, String bodyPart, String fileName) {
+    public ImagingRecord createFromTechnician(String technicianEmail, String patientEmail, String bodyPart,
+            String fileName) {
         User technician = userAccountService.findByEmail(technicianEmail);
         User patient = userAccountService.findByEmail(patientEmail);
 
@@ -174,7 +178,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
     @Override
     @Transactional
-    public ImagingRecord captureAndAnalyzeFromTechnician(String technicianEmail, String patientEmail, String doctorEmail) {
+    public ImagingRecord captureAndAnalyzeFromTechnician(String technicianEmail, String patientEmail,
+            String doctorEmail) {
         User technician = userAccountService.findByEmail(technicianEmail);
         User patient = userAccountService.findByEmail(patientEmail);
         User doctor = isBlank(doctorEmail) ? null : userAccountService.findByEmail(doctorEmail);
@@ -229,7 +234,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
     @Override
     @Transactional
-    public ImagingRecord updateRecordCoordinates(Long recordId, Integer bboxX, Integer bboxY, Integer bboxWidth, Integer bboxHeight) {
+    public ImagingRecord updateRecordCoordinates(Long recordId, Integer bboxX, Integer bboxY, Integer bboxWidth,
+            Integer bboxHeight) {
         ImagingRecord record = getRecordById(recordId);
         record.setBboxX(bboxX);
         record.setBboxY(bboxY);
@@ -245,12 +251,15 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
     @Override
     @Transactional
-    public ImagingRecord confirmDoctorReview(Long recordId, String doctorEmail, String conclusion, String recommendation) {
+    public ImagingRecord confirmDoctorReview(Long recordId, String doctorEmail, String conclusion,
+            String recommendation) {
         ImagingRecord record = getRecordById(recordId);
         User doctor = userAccountService.findByEmail(doctorEmail);
         record.setDoctor(doctor);
         record.setDoctorConclusion(cleanSentence(isBlank(conclusion) ? record.getAiPrediction() : conclusion));
-        record.setRecommendation(cleanSentence(isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả. Theo dõi và điều trị theo chỉ định chuyên môn." : recommendation));
+        record.setRecommendation(cleanSentence(
+                isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả. Theo dõi và điều trị theo chỉ định chuyên môn."
+                        : recommendation));
         record.setStatus("COMPLETED");
         record.setConfirmedAt(LocalDateTime.now());
         return imagingRecordRepository.save(record);
@@ -258,12 +267,16 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
     @Override
     @Transactional
-    public ImagingRecord rejectDoctorReview(Long recordId, String doctorEmail, String conclusion, String recommendation) {
+    public ImagingRecord rejectDoctorReview(Long recordId, String doctorEmail, String conclusion,
+            String recommendation) {
         ImagingRecord record = getRecordById(recordId);
         User doctor = userAccountService.findByEmail(doctorEmail);
         record.setDoctor(doctor);
-        record.setDoctorConclusion(cleanSentence(isBlank(conclusion) ? "Bác sĩ chưa xác nhận kết quả AI; cần đánh giá lại." : conclusion));
-        record.setRecommendation(cleanSentence(isBlank(recommendation) ? "Cần chụp lại, bổ sung tư thế hoặc kiểm tra trực tiếp theo chỉ định bác sĩ." : recommendation));
+        record.setDoctorConclusion(
+                cleanSentence(isBlank(conclusion) ? "Bác sĩ chưa xác nhận kết quả AI; cần đánh giá lại." : conclusion));
+        record.setRecommendation(cleanSentence(
+                isBlank(recommendation) ? "Cần chụp lại, bổ sung tư thế hoặc kiểm tra trực tiếp theo chỉ định bác sĩ."
+                        : recommendation));
         record.setStatus("DOCTOR_REJECTED");
         return imagingRecordRepository.save(record);
     }
@@ -289,7 +302,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             try {
                 Path filePath = Paths.get("src/main/resources/static/uploads/" + record.getFileName());
                 Files.deleteIfExists(filePath);
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }
         imagingRecordRepository.delete(record);
     }
@@ -298,26 +312,25 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     @Transactional
     public void clearNonConfirmedRecords() {
         imagingRecordRepository.deleteByStatusIn(
-                List.of("PENDING_AI", "AI_DONE", "AI_ANALYZED", "PENDING_DOCTOR", "AI_FAILED", "DOCTOR_REJECTED")
-        );
+                List.of("PENDING_AI", "AI_DONE", "AI_ANALYZED", "PENDING_DOCTOR", "AI_FAILED", "DOCTOR_REJECTED"));
     }
 
     // ==================== HELPER METHODS ====================
     private DashboardDTO.QueueItemDTO toQueueItemDTO(ImagingRecord record) {
-    return DashboardDTO.QueueItemDTO.builder()
-            .recordId(record.getRecordId())
-            .recordCode(record.getRecordCode())
-            .capturedAt(record.getCreatedAt())
-            .patient(DashboardDTO.PatientDTO.builder()
-                    .fullName(record.getPatient() != null ? record.getPatient().getFullName() : "N/A")
-                    .build())
-            .bodyPart(record.getBodyPart())
-            .aiPrediction(record.getAiPrediction())
-            .aiConfidence(record.getAiConfidence() != null ? record.getAiConfidence() : 0.0)
-            .status(record.getStatus())
-            .fileName(record.getFileName())
-            .doctorConclusion(record.getDoctorConclusion())
-            .build();
+        return DashboardDTO.QueueItemDTO.builder()
+                .recordId(record.getRecordId())
+                .recordCode(record.getRecordCode())
+                .capturedAt(record.getCreatedAt())
+                .patient(DashboardDTO.PatientDTO.builder()
+                        .fullName(record.getPatient() != null ? record.getPatient().getFullName() : "N/A")
+                        .build())
+                .bodyPart(record.getBodyPart())
+                .aiPrediction(record.getAiPrediction())
+                .aiConfidence(record.getAiConfidence() != null ? record.getAiConfidence() : 0.0)
+                .status(record.getStatus())
+                .fileName(record.getFileName())
+                .doctorConclusion(record.getDoctorConclusion())
+                .build();
     }
 
     private String nextRecordCode() {
@@ -339,18 +352,20 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     }
 
     private String limitText(String value, int maxLength) {
-        if (value == null || value.length() <= maxLength) return value;
+        if (value == null || value.length() <= maxLength)
+            return value;
         return value.substring(0, Math.max(0, maxLength - 3)).trim() + "...";
     }
 
-    // ==================== AI & UPLOAD HELPERS (giữ nguyên từ code dưới) ====================
+    // ==================== AI & UPLOAD HELPERS (giữ nguyên từ code dưới)
+    // ====================
     private StoredImage selectRandomUploadImage(Path uploadPath) throws IOException {
         List<Path> imageFiles = Files.list(uploadPath)
                 .filter(Files::isRegularFile)
                 .filter(path -> {
                     String lowerName = path.getFileName().toString().toLowerCase();
-                    return (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || 
-                            lowerName.endsWith(".png") || lowerName.endsWith(".gif") || 
+                    return (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") ||
+                            lowerName.endsWith(".png") || lowerName.endsWith(".gif") ||
                             lowerName.endsWith(".bmp") || lowerName.endsWith(".dcm"))
                             && !lowerName.startsWith("annotated_");
                 })
@@ -431,12 +446,13 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         for (int i = 0; i < limit; i++) {
             String item = recommendationsNode.get(i).asText("").trim();
             if (!isBlank(item)) {
-                if (!sb.isEmpty()) sb.append(" ");
+                if (!sb.isEmpty())
+                    sb.append(" ");
                 sb.append(cleanSentence(item));
             }
         }
         return sb.isEmpty() ? "Chờ bác sĩ xác nhận kết quả và đưa ra hướng điều trị phù hợp." : sb.toString();
     }
-
-    private record StoredImage(String fileName, byte[] fileBytes) {}
+    private record StoredImage(String fileName, byte[] fileBytes) {
+    }
 }
