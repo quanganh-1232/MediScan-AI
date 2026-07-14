@@ -63,6 +63,11 @@
         <a class="rc-nav-item" th:classappend="${active == 'library'} ? ' active'" th:href="@{/doctor/library}">
             <i class="bi bi-collection"></i> Thư viện chẩn đoán
         </a>
+
+        <!-- Đường dẫn đến trang Lịch hẹn (appointments.html) -->
+        <a class="rc-nav-item" th:classappend="${active == 'appointments'} ? ' active'" th:href="@{/doctor/appointments}">
+            <i class="bi bi-calendar-check"></i> Lịch hẹn
+        </a>
         
         <hr class="my-2">
         
