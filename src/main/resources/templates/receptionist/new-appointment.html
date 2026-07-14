@@ -69,6 +69,13 @@
                             <div class="small text-muted mt-1">Bỏ trống nếu chưa rõ, lễ tân có thể điều hướng sau ở trang chi tiết.</div>
                         </div>
                         <div class="col-6">
+                            <label class="ms-label">Ngày khám</label>
+                            <input type="date" name="scheduledDate" class="form-control ms-input"
+                                   th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}"
+                                   th:value="${formScheduledDate != null ? formScheduledDate : #temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
+                            <div class="small text-muted mt-1">Mặc định là hôm nay, có thể chọn ngày trong tương lai.</div>
+                        </div>
+                        <div class="col-6">
                             <label class="ms-label">Giờ khám</label>
                             <input type="time" name="scheduledTime" class="form-control ms-input" min="06:00" max="21:00"
                                    th:value="${formScheduledTime != null ? formScheduledTime : #temporals.format(#temporals.createNow(), 'HH:mm')}">

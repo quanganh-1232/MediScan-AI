@@ -213,20 +213,21 @@ public class ReceptionistDashboardController {
                                           @RequestParam String phone,
                                           @RequestParam(required = false) String symptom,
                                           @RequestParam(required = false) Long doctorId,
+                                          @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate scheduledDate,
                                           @RequestParam(required = false) @DateTimeFormat(pattern = "HH:mm") LocalTime scheduledTime,
                                           Authentication authentication,
                                           RedirectAttributes redirectAttributes) {
         try {
             Appointment appointment = receptionistService.createWalkInAppointment(
-                    fullName, phone, symptom, doctorId, scheduledTime, authentication.getName());
+                    fullName, phone, symptom, doctorId, scheduledDate, scheduledTime, authentication.getName());
             redirectAttributes.addFlashAttribute("success",
                     "Đã đăng ký lịch hẹn " + appointment.getAppointmentCode() + " cho khách vãng lai.");
         } catch (DoctorScheduleConflictException ex) {
             redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
-            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledTime);
+            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledDate, scheduledTime);
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
-            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledTime);
+            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledDate, scheduledTime);
         }
         return "redirect:/receptionist/appointments/new";
     }
@@ -237,11 +238,12 @@ public class ReceptionistDashboardController {
      */
     private void addWalkInFormBackFill(RedirectAttributes redirectAttributes,
                                        String fullName, String phone, String symptom,
-                                       Long doctorId, LocalTime scheduledTime) {
+                                       Long doctorId, LocalDate scheduledDate, LocalTime scheduledTime) {
         redirectAttributes.addFlashAttribute("formFullName", fullName);
         redirectAttributes.addFlashAttribute("formPhone", phone);
         redirectAttributes.addFlashAttribute("formSymptom", symptom);
         redirectAttributes.addFlashAttribute("formDoctorId", doctorId);
+        redirectAttributes.addFlashAttribute("formScheduledDate", scheduledDate);
         redirectAttributes.addFlashAttribute("formScheduledTime", scheduledTime);
     }
 
