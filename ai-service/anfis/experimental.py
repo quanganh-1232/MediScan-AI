@@ -99,8 +99,12 @@ def calc_error(y_pred, y_actual):
     with torch.no_grad():
         tot_loss = F.mse_loss(y_pred, y_actual)
         rmse = torch.sqrt(tot_loss).item()
+        # Guard against divide-by-zero when a target value is exactly 0
+        # (a valid "very low risk" score), which would otherwise poison
+        # the mean with inf/nan.
+        safe_denom = torch.where(y_actual == 0, torch.ones_like(y_actual), y_actual)
         perc_loss = torch.mean(100. * torch.abs((y_pred - y_actual)
-                               / y_actual))
+                               / safe_denom))
     return(tot_loss, rmse, perc_loss)
 
 
