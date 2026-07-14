@@ -1,4 +1,11 @@
+import os
 from typing import Dict, List
+
+import torch
+
+from .fracture_model import INPUT_ORDER, build_fracture_anfis
+
+_WEIGHTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weights", "fracture_anfis.pt")
 
 
 def _clamp(value: float, minimum: float = 0.0, maximum: float = 1.0) -> float:
@@ -225,11 +232,53 @@ def _build_recommendations(level: str, inputs: Dict[str, float]) -> List[str]:
 # ── Main service class ────────────────────────────────────────────────────────
 
 class AnfisDiagnosisService:
-    """ANFIS-based fracture risk diagnostic support service."""
+    """ANFIS-based fracture risk diagnostic support service.
+
+    Scoring is done by a trained ANFIS network (anfis/fracture_model.py),
+    loaded once here instead of being rebuilt on every request. The network
+    was distilled from the original hand-written fuzzy rule system
+    (anfis/model.py) — see train_anfis.py — since no labelled clinical
+    dataset exists yet to train on directly. If the trained weights file is
+    missing for any reason, this falls back to running the original rule
+    system live so the service still degrades gracefully instead of
+    failing outright.
+    """
 
     def __init__(self):
-        from .model import build_diagnosis_control_system
-        self._build_simulation = build_diagnosis_control_system
+        self._anfis_model = self._load_anfis_model()
+        self._build_simulation = None
+        if self._anfis_model is None:
+            from .model import build_diagnosis_control_system
+            self._build_simulation = build_diagnosis_control_system
+
+    @staticmethod
+    def _load_anfis_model():
+        if not os.path.exists(_WEIGHTS_PATH):
+            print(f"[AnfisDiagnosisService] No trained weights at {_WEIGHTS_PATH}; "
+                  "falling back to the rule-based fuzzy system. Run train_anfis.py to generate them.")
+            return None
+        try:
+            model = build_fracture_anfis(hybrid=True)
+            model.load_state_dict(torch.load(_WEIGHTS_PATH, map_location="cpu"))
+            model.eval()
+            return model
+        except Exception as exc:  # defensive: never let a bad weights file take the service down
+            print(f"[AnfisDiagnosisService] Failed to load trained ANFIS weights ({exc}); "
+                  "falling back to the rule-based fuzzy system.")
+            return None
+
+    def _score_with_anfis(self, inputs: Dict[str, float]) -> float:
+        x = torch.tensor([[inputs[name] for name in INPUT_ORDER]], dtype=torch.float)
+        with torch.no_grad():
+            y = self._anfis_model(x)
+        return float(y.item())
+
+    def _score_with_rule_system(self, inputs: Dict[str, float]) -> float:
+        simulation = self._build_simulation()
+        for name in INPUT_ORDER:
+            simulation.input[name] = inputs[name]
+        simulation.compute()
+        return float(simulation.output.get("fracture_score", 0.0))
 
     def predict(self, features: Dict[str, float]) -> Dict[str, object]:
         inputs = {
@@ -244,15 +293,11 @@ class AnfisDiagnosisService:
             "region_count":       max(0.0, float(features.get("region_count", 0.0) or 0.0)),
         }
 
-        simulation = self._build_simulation()
-        simulation.input["edge_irregularity"]  = inputs["edge_irregularity"]
-        simulation.input["bone_contrast"]      = inputs["bone_contrast"]
-        simulation.input["yolo_confidence"]    = inputs["yolo_confidence"]
-        simulation.input["region_burden"]      = inputs["region_burden"]
-        simulation.input["morphology_strength"] = inputs["morphology_strength"]
-        simulation.compute()
+        if self._anfis_model is not None:
+            raw_score = self._score_with_anfis(inputs)
+        else:
+            raw_score = self._score_with_rule_system(inputs)
 
-        raw_score = float(simulation.output.get("fracture_score", 0.0))
         if inputs["region_count"] == 0:
             raw_score = min(raw_score, 12.0)
         elif inputs["source_agreement"] >= 0.95 and inputs["max_confidence"] >= 0.55:

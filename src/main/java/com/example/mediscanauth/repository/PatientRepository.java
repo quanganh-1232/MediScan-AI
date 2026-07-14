@@ -15,4 +15,6 @@ public interface PatientRepository extends JpaRepository<Patient, Long>, JpaSpec
     Optional<Patient> findByUser(User user);
 
     List<Patient> findAllByOrderByCreatedAtDesc();
+
+    Optional<Patient> findFirstByPhoneOrderByPatientIdDesc(String phone);
 }
