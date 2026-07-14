@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import com.example.mediscanauth.repository.NotificationRepository;
+import com.example.mediscanauth.model.Notification;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -51,15 +53,21 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private final UserAccountService userAccountService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final NotificationRepository notificationRepository;
 
-    public ImagingRecordServiceImpl(ImagingRecordRepository imagingRecordRepository,
+    public ImagingRecordServiceImpl(
+            ImagingRecordRepository imagingRecordRepository,
             UserAccountService userAccountService,
             PatientRepository patientRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            NotificationRepository notificationRepository) {
+
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
+        this.notificationRepository = notificationRepository;
+
         this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
     }
@@ -262,7 +270,26 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
                         : recommendation));
         record.setStatus("COMPLETED");
         record.setConfirmedAt(LocalDateTime.now());
-        return imagingRecordRepository.save(record);
+
+        ImagingRecord savedRecord = imagingRecordRepository.save(record);
+
+        // Tạo thông báo cho bệnh nhân
+        Notification notification = new Notification();
+        notification.setUser(savedRecord.getPatient());
+        notification.setRecordId(savedRecord.getRecordId());
+
+        notification.setTitle("Kết quả X-quang đã có");
+
+        notification.setMessage(
+                "Kết quả chẩn đoán cho hồ sơ "
+                        + savedRecord.getRecordCode()
+                        + " đã được bác sĩ xác nhận. Vui lòng đăng nhập để xem chi tiết.");
+
+        notification.setRead(false);
+
+        notificationRepository.save(notification);
+
+        return savedRecord;
     }
 
     @Override
@@ -453,6 +480,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         }
         return sb.isEmpty() ? "Chờ bác sĩ xác nhận kết quả và đưa ra hướng điều trị phù hợp." : sb.toString();
     }
+
     private record StoredImage(String fileName, byte[] fileBytes) {
     }
 }
