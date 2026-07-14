@@ -1,6 +1,8 @@
 package com.example.mediscanauth.service.impl;
 
+import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
+import com.example.mediscanauth.repository.PatientRepository;
 import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.RoleService;
 import com.example.mediscanauth.service.UserAccountService;
@@ -13,13 +15,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserAccountServiceImpl implements UserAccountService {
 
     private final UserRepository userRepository;
+    private final PatientRepository patientRepository;
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
 
     public UserAccountServiceImpl(UserRepository userRepository,
+                                  PatientRepository patientRepository,
                                   RoleService roleService,
                                   PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.patientRepository = patientRepository;
         this.roleService = roleService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -57,7 +62,9 @@ public class UserAccountServiceImpl implements UserAccountService {
         user.setStatus("ACTIVE");
         user.setRole(roleService.getOrCreatePatientRole());
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        createPatientProfile(savedUser);
+        return savedUser;
     }
 
     @Override
@@ -77,7 +84,13 @@ public class UserAccountServiceImpl implements UserAccountService {
         user.setFullName(fullName);
         user.setEmail(normalizedEmail);
         user.setPhone(phone);
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        patientRepository.findByUser(savedUser).ifPresent(patient -> {
+            patient.setFullName(savedUser.getFullName());
+            patient.setPhone(savedUser.getPhone());
+            patientRepository.save(patient);
+        });
+        return savedUser;
     }
 
     @Override
@@ -107,5 +120,16 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     private String normalizeEmail(String email) {
         return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    private Patient createPatientProfile(User user) {
+        return patientRepository.findByUser(user).orElseGet(() -> {
+            Patient patient = new Patient();
+            patient.setUser(user);
+            patient.setFullName(user.getFullName());
+            patient.setPhone(user.getPhone());
+            patient.setGender("OTHER");
+            return patientRepository.save(patient);
+        });
     }
 }

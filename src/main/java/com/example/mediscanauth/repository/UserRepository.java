@@ -15,4 +15,6 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     long countByStatus(String status);
 
     List<User> findByRoleRoleNameInAndStatusOrderByFullNameAsc(List<String> roleNames, String status);
+
+    List<User> findByRoleRoleNameInOrderByFullNameAsc(List<String> roleNames);
 }

@@ -3,15 +3,19 @@ package com.example.mediscanauth.controller.admin;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.impl.UserAdminService;
+import com.example.mediscanauth.service.impl.UserExcelService;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.io.ByteArrayOutputStream;
 
 @Controller
 public class AdminDashboardController {
@@ -20,11 +24,14 @@ public class AdminDashboardController {
 
     private final UserAdminService userAdminService;
     private final ImagingRecordService imagingRecordService;
+    private final UserExcelService userExcelService;
 
     public AdminDashboardController(UserAdminService userAdminService,
-                                    ImagingRecordService imagingRecordService) {
+                                    ImagingRecordService imagingRecordService,
+                                    UserExcelService userExcelService) {
         this.userAdminService = userAdminService;
         this.imagingRecordService = imagingRecordService;
+        this.userExcelService = userExcelService;
     }
 
     @GetMapping("/admin/dashboard")
@@ -54,6 +61,43 @@ public class AdminDashboardController {
         addSharedModel(model);
         addUserManagementModel(model, keyword, role, status, page, null);
         return "admin/users";
+    }
+
+    @GetMapping("/admin/users/export-excel")
+    public ResponseEntity<byte[]> exportUsersExcel(@RequestParam(required = false) String keyword,
+                                                   @RequestParam(required = false) String role,
+                                                   @RequestParam(required = false) String status) throws Exception {
+        ByteArrayOutputStream out = userExcelService.exportUsers(keyword, role, status);
+        return buildExcelResponse(out, "users_export.xlsx");
+    }
+
+    @GetMapping("/admin/users/import-template")
+    public ResponseEntity<byte[]> downloadImportTemplate() throws Exception {
+        ByteArrayOutputStream out = userExcelService.buildImportTemplate();
+        return buildExcelResponse(out, "user_import_template.xlsx");
+    }
+
+    @PostMapping("/admin/users/import-excel")
+    public String importUsersExcel(@RequestPart("file") MultipartFile file,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            UserExcelService.ImportResult result = userExcelService.importUsers(file);
+            redirectAttributes.addFlashAttribute("success",
+                    "Imported " + result.successCount() + " users. Failed: " + result.failCount());
+            if (!result.errors().isEmpty()) {
+                redirectAttributes.addFlashAttribute("importErrors", result.errors());
+            }
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("error", "Import failed: " + ex.getMessage());
+        }
+        return "redirect:/admin/users";
+    }
+
+    private ResponseEntity<byte[]> buildExcelResponse(ByteArrayOutputStream out, String filename) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(out.toByteArray());
     }
 
     @GetMapping("/admin/users/{userId}")
