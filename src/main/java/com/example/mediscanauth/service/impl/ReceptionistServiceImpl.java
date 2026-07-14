@@ -84,6 +84,11 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         if (!"CONFIRMED".equals(appointment.getStatus())) {
             throw new InvalidFieldException("Chỉ có thể check-in lịch hẹn đã được xác nhận.");
         }
+        if (appointment.getScheduledTime() != null && appointment.getScheduledTime().toLocalDate().isAfter(LocalDate.now())) {
+            throw new InvalidFieldException(
+                    "Lịch hẹn này được đặt cho ngày " + appointment.getScheduledTime().toLocalDate()
+                    + ", chưa thể check-in hôm nay.");
+        }
         User receptionist = findReceptionist(receptionistEmail);
         appointment.setReceptionist(receptionist);
         appointment.setStatus("CHECKED_IN");
@@ -124,16 +129,18 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                                                String phone,
                                                String symptom,
                                                Long doctorId,
+                                               LocalDate scheduledDate,
                                                LocalTime scheduledTime,
                                                String receptionistEmail) {
         String cleanFullName = validateFullName(fullName);
         String cleanPhone = validatePhone(phone);
         String cleanSymptom = validateSymptom(symptom);
+        LocalDate date = validateScheduledDate(scheduledDate);
         LocalTime time = validateScheduledTime(scheduledTime);
 
         User receptionist = findReceptionist(receptionistEmail);
         User doctor = doctorId != null ? findDoctorOrThrow(doctorId) : null;
-        LocalDateTime scheduledAt = LocalDateTime.of(LocalDate.now(), time);
+        LocalDateTime scheduledAt = LocalDateTime.of(date, time);
         if (doctor != null) {
             ensureDoctorAvailable(doctor, scheduledAt, null);
         }
@@ -246,6 +253,14 @@ public class ReceptionistServiceImpl implements ReceptionistService {
             throw new InvalidFieldException("Triệu chứng chính không được vượt quá " + MAX_SYMPTOM_LENGTH + " ký tự.");
         }
         return trimmed;
+    }
+
+    private LocalDate validateScheduledDate(LocalDate scheduledDate) {
+        LocalDate date = scheduledDate != null ? scheduledDate : LocalDate.now();
+        if (date.isBefore(LocalDate.now())) {
+            throw new InvalidFieldException("Ngày khám không được ở trong quá khứ.");
+        }
+        return date;
     }
 
     private LocalTime validateScheduledTime(LocalTime scheduledTime) {

@@ -440,6 +440,81 @@ body {
     color: var(--ms-muted);
 }
 
+/* ---------- Doctor schedule timeline ---------- */
+.rc-schedule-wrap {
+    overflow-x: auto;
+}
+
+.rc-schedule-row {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    min-width: 46rem;
+}
+
+.rc-schedule-row:last-child { border-bottom: none; }
+
+.rc-schedule-doctor-col {
+    flex: 0 0 12rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 0.75rem;
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+
+.rc-schedule-header .rc-schedule-doctor-col { font-weight: 700; color: var(--ms-muted); }
+
+.rc-schedule-track {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 3rem;
+    background-image: repeating-linear-gradient(to right, rgba(15, 23, 42, 0.06) 0, rgba(15, 23, 42, 0.06) 1px, transparent 1px, transparent calc(100% / 15));
+}
+
+.rc-schedule-header .rc-schedule-track {
+    min-height: auto;
+    background-image: none;
+    display: flex;
+}
+
+.rc-schedule-hour {
+    flex: 1 1 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ms-muted);
+    padding: 0.5rem 0 0.5rem 0.25rem;
+}
+
+.rc-schedule-chip {
+    position: absolute;
+    top: 0.4rem;
+    bottom: 0.4rem;
+    min-width: 0.5rem;
+    border-radius: 8px;
+    padding: 0.2rem 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+    overflow: hidden;
+    white-space: nowrap;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+}
+
+.rc-schedule-chip:hover { filter: brightness(0.92); color: #fff; }
+
+.rc-chip-pending, .rc-chip-scheduled { background: #b45309; }
+.rc-chip-confirmed { background: var(--ms-primary); }
+.rc-chip-checked_in { background: #0f766e; }
+.rc-chip-triaged, .rc-chip-in_progress { background: #7c3aed; }
+.rc-chip-completed { background: var(--ms-success); }
+.rc-chip-cancelled, .rc-chip-missed { background: #94a3b8; }
+.rc-chip-unassigned { background: var(--ms-danger); }
+
 /* ---------- Tables ---------- */
 .pt-table {
     width: 100%;
