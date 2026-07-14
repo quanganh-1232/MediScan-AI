@@ -1,6 +1,8 @@
 package com.example.mediscanauth.controller.receptionist;
 
+import com.example.mediscanauth.exception.customize.DoctorScheduleConflictException;
 import com.example.mediscanauth.model.Appointment;
+import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.AppointmentStatusHistoryRepository;
 import com.example.mediscanauth.repository.UserRepository;
@@ -19,15 +21,22 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Controller
 public class ReceptionistDashboardController {
 
     private static final List<String> DOCTOR_ROLE_NAMES = List.of("DOCTOR", "ROLE_DOCTOR");
+    private static final LocalTime SCHEDULE_OPEN = LocalTime.of(6, 0);
+    private static final LocalTime SCHEDULE_CLOSE = LocalTime.of(21, 0);
+    private static final int SCHEDULE_TOTAL_MINUTES = (int) Duration.between(SCHEDULE_OPEN, SCHEDULE_CLOSE).toMinutes();
+    private static final int SCHEDULE_SLOT_MINUTES = 30;
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentStatusHistoryRepository appointmentStatusHistoryRepository;
@@ -96,6 +105,8 @@ public class ReceptionistDashboardController {
         try {
             receptionistService.confirmAppointment(appointmentId, authentication.getName());
             redirectAttributes.addFlashAttribute("success", "Đã xác nhận lịch hẹn.");
+        } catch (DoctorScheduleConflictException ex) {
+            redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
@@ -136,6 +147,8 @@ public class ReceptionistDashboardController {
         try {
             receptionistService.assignDoctor(appointmentId, doctorId, note, authentication.getName());
             redirectAttributes.addFlashAttribute("success", "Đã điều hướng bệnh nhân đến bác sĩ.");
+        } catch (DoctorScheduleConflictException ex) {
+            redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
@@ -208,18 +221,38 @@ public class ReceptionistDashboardController {
                                           @RequestParam String phone,
                                           @RequestParam(required = false) String symptom,
                                           @RequestParam(required = false) Long doctorId,
+                                          @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate scheduledDate,
                                           @RequestParam(required = false) @DateTimeFormat(pattern = "HH:mm") LocalTime scheduledTime,
                                           Authentication authentication,
                                           RedirectAttributes redirectAttributes) {
         try {
             Appointment appointment = receptionistService.createWalkInAppointment(
-                    fullName, phone, symptom, doctorId, scheduledTime, authentication.getName());
+                    fullName, phone, symptom, doctorId, scheduledDate, scheduledTime, authentication.getName());
             redirectAttributes.addFlashAttribute("success",
                     "Đã đăng ký lịch hẹn " + appointment.getAppointmentCode() + " cho khách vãng lai.");
+        } catch (DoctorScheduleConflictException ex) {
+            redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
+            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledDate, scheduledTime);
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledDate, scheduledTime);
         }
         return "redirect:/receptionist/appointments/new";
+    }
+
+    /**
+     * On validation failure, keep what the receptionist already typed so a
+     * mistake in one field doesn't force re-entering the whole walk-in form.
+     */
+    private void addWalkInFormBackFill(RedirectAttributes redirectAttributes,
+                                       String fullName, String phone, String symptom,
+                                       Long doctorId, LocalDate scheduledDate, LocalTime scheduledTime) {
+        redirectAttributes.addFlashAttribute("formFullName", fullName);
+        redirectAttributes.addFlashAttribute("formPhone", phone);
+        redirectAttributes.addFlashAttribute("formSymptom", symptom);
+        redirectAttributes.addFlashAttribute("formDoctorId", doctorId);
+        redirectAttributes.addFlashAttribute("formScheduledDate", scheduledDate);
+        redirectAttributes.addFlashAttribute("formScheduledTime", scheduledTime);
     }
 
     /**
@@ -230,6 +263,97 @@ public class ReceptionistDashboardController {
         model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
                 DOCTOR_ROLE_NAMES, "ACTIVE"));
         return "receptionist/doctors";
+    }
+
+    /**
+     * Lịch bác sĩ theo ngày: timeline trực quan giúp lễ tân thấy ngay khung giờ
+     * trống/bận của từng bác sĩ trước khi đặt lịch, thay vì phải đoán hoặc chờ
+     * popup trùng lịch khi submit form.
+     */
+    @GetMapping("/receptionist/schedule")
+    public String schedule(@RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+                           Model model) {
+        LocalDate selectedDate = date != null ? date : LocalDate.now();
+        LocalDateTime startOfDay = selectedDate.atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+        List<User> doctors = userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(DOCTOR_ROLE_NAMES, "ACTIVE");
+        List<Appointment> dayAppointments = appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay);
+
+        List<DoctorScheduleRow> scheduleRows = new ArrayList<>();
+        for (User doctor : doctors) {
+            List<ScheduleSlot> slots = new ArrayList<>();
+            for (Appointment appointment : dayAppointments) {
+                if (appointment.getDoctor() != null && appointment.getDoctor().getUserId().equals(doctor.getUserId())) {
+                    slots.add(toScheduleSlot(appointment));
+                }
+            }
+            scheduleRows.add(new DoctorScheduleRow(doctor, slots));
+        }
+        List<ScheduleSlot> unassignedSlots = dayAppointments.stream()
+                .filter(a -> a.getDoctor() == null)
+                .map(this::toScheduleSlot)
+                .toList();
+
+        model.addAttribute("scheduleRows", scheduleRows);
+        model.addAttribute("unassignedSlots", unassignedSlots);
+        model.addAttribute("selectedDate", selectedDate);
+        model.addAttribute("hourMarks", IntStream.rangeClosed(SCHEDULE_OPEN.getHour(), SCHEDULE_CLOSE.getHour()).boxed().toList());
+        return "receptionist/schedule";
+    }
+
+    private ScheduleSlot toScheduleSlot(Appointment appointment) {
+        LocalTime time = appointment.getScheduledTime().toLocalTime();
+        int minutesFromOpen = (int) Duration.between(SCHEDULE_OPEN, time).toMinutes();
+        double leftPercent = Math.max(0, Math.min(100, minutesFromOpen * 100.0 / SCHEDULE_TOTAL_MINUTES));
+        double widthPercent = Math.min(100 - leftPercent, SCHEDULE_SLOT_MINUTES * 100.0 / SCHEDULE_TOTAL_MINUTES);
+        return new ScheduleSlot(appointment, leftPercent, widthPercent);
+    }
+
+    /**
+     * Presentation-only wrappers so the timeline template can position each
+     * appointment chip with a plain percentage, instead of doing time-math in Thymeleaf.
+     */
+    public static class ScheduleSlot {
+        private final Appointment appointment;
+        private final double leftPercent;
+        private final double widthPercent;
+
+        public ScheduleSlot(Appointment appointment, double leftPercent, double widthPercent) {
+            this.appointment = appointment;
+            this.leftPercent = leftPercent;
+            this.widthPercent = widthPercent;
+        }
+
+        public Appointment getAppointment() {
+            return appointment;
+        }
+
+        public double getLeftPercent() {
+            return leftPercent;
+        }
+
+        public double getWidthPercent() {
+            return widthPercent;
+        }
+    }
+
+    public static class DoctorScheduleRow {
+        private final User doctor;
+        private final List<ScheduleSlot> slots;
+
+        public DoctorScheduleRow(User doctor, List<ScheduleSlot> slots) {
+            this.doctor = doctor;
+            this.slots = slots;
+        }
+
+        public User getDoctor() {
+            return doctor;
+        }
+
+        public List<ScheduleSlot> getSlots() {
+            return slots;
+        }
     }
 
     /**

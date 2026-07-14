@@ -34,6 +34,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     boolean existsByTechnicianUserId(Long technicianId);
 
+    List<Appointment> findByDoctorAndScheduledTimeBetween(User doctor, LocalDateTime from, LocalDateTime to);
+
     @Query(value = """
             select a from Appointment a
             where (:keyword is null or :keyword = ''
