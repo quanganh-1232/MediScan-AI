@@ -2,6 +2,7 @@ package com.example.mediscanauth.controller.receptionist;
 
 import com.example.mediscanauth.exception.customize.DoctorScheduleConflictException;
 import com.example.mediscanauth.model.Appointment;
+import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.AppointmentStatusHistoryRepository;
 import com.example.mediscanauth.repository.UserRepository;
@@ -20,15 +21,22 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Controller
 public class ReceptionistDashboardController {
 
     private static final List<String> DOCTOR_ROLE_NAMES = List.of("DOCTOR", "ROLE_DOCTOR");
+    private static final LocalTime SCHEDULE_OPEN = LocalTime.of(6, 0);
+    private static final LocalTime SCHEDULE_CLOSE = LocalTime.of(21, 0);
+    private static final int SCHEDULE_TOTAL_MINUTES = (int) Duration.between(SCHEDULE_OPEN, SCHEDULE_CLOSE).toMinutes();
+    private static final int SCHEDULE_SLOT_MINUTES = 30;
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentStatusHistoryRepository appointmentStatusHistoryRepository;
@@ -255,6 +263,97 @@ public class ReceptionistDashboardController {
         model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
                 DOCTOR_ROLE_NAMES, "ACTIVE"));
         return "receptionist/doctors";
+    }
+
+    /**
+     * Lịch bác sĩ theo ngày: timeline trực quan giúp lễ tân thấy ngay khung giờ
+     * trống/bận của từng bác sĩ trước khi đặt lịch, thay vì phải đoán hoặc chờ
+     * popup trùng lịch khi submit form.
+     */
+    @GetMapping("/receptionist/schedule")
+    public String schedule(@RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+                           Model model) {
+        LocalDate selectedDate = date != null ? date : LocalDate.now();
+        LocalDateTime startOfDay = selectedDate.atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+        List<User> doctors = userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(DOCTOR_ROLE_NAMES, "ACTIVE");
+        List<Appointment> dayAppointments = appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay);
+
+        List<DoctorScheduleRow> scheduleRows = new ArrayList<>();
+        for (User doctor : doctors) {
+            List<ScheduleSlot> slots = new ArrayList<>();
+            for (Appointment appointment : dayAppointments) {
+                if (appointment.getDoctor() != null && appointment.getDoctor().getUserId().equals(doctor.getUserId())) {
+                    slots.add(toScheduleSlot(appointment));
+                }
+            }
+            scheduleRows.add(new DoctorScheduleRow(doctor, slots));
+        }
+        List<ScheduleSlot> unassignedSlots = dayAppointments.stream()
+                .filter(a -> a.getDoctor() == null)
+                .map(this::toScheduleSlot)
+                .toList();
+
+        model.addAttribute("scheduleRows", scheduleRows);
+        model.addAttribute("unassignedSlots", unassignedSlots);
+        model.addAttribute("selectedDate", selectedDate);
+        model.addAttribute("hourMarks", IntStream.rangeClosed(SCHEDULE_OPEN.getHour(), SCHEDULE_CLOSE.getHour()).boxed().toList());
+        return "receptionist/schedule";
+    }
+
+    private ScheduleSlot toScheduleSlot(Appointment appointment) {
+        LocalTime time = appointment.getScheduledTime().toLocalTime();
+        int minutesFromOpen = (int) Duration.between(SCHEDULE_OPEN, time).toMinutes();
+        double leftPercent = Math.max(0, Math.min(100, minutesFromOpen * 100.0 / SCHEDULE_TOTAL_MINUTES));
+        double widthPercent = Math.min(100 - leftPercent, SCHEDULE_SLOT_MINUTES * 100.0 / SCHEDULE_TOTAL_MINUTES);
+        return new ScheduleSlot(appointment, leftPercent, widthPercent);
+    }
+
+    /**
+     * Presentation-only wrappers so the timeline template can position each
+     * appointment chip with a plain percentage, instead of doing time-math in Thymeleaf.
+     */
+    public static class ScheduleSlot {
+        private final Appointment appointment;
+        private final double leftPercent;
+        private final double widthPercent;
+
+        public ScheduleSlot(Appointment appointment, double leftPercent, double widthPercent) {
+            this.appointment = appointment;
+            this.leftPercent = leftPercent;
+            this.widthPercent = widthPercent;
+        }
+
+        public Appointment getAppointment() {
+            return appointment;
+        }
+
+        public double getLeftPercent() {
+            return leftPercent;
+        }
+
+        public double getWidthPercent() {
+            return widthPercent;
+        }
+    }
+
+    public static class DoctorScheduleRow {
+        private final User doctor;
+        private final List<ScheduleSlot> slots;
+
+        public DoctorScheduleRow(User doctor, List<ScheduleSlot> slots) {
+            this.doctor = doctor;
+            this.slots = slots;
+        }
+
+        public User getDoctor() {
+            return doctor;
+        }
+
+        public List<ScheduleSlot> getSlots() {
+            return slots;
+        }
     }
 
     /**

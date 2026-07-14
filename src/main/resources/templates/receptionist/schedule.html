@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Lịch bác sĩ - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+</head>
+<body>
+
+<div th:replace="~{receptionist/fragments/receptionist-shell :: nav}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+    <div class="row g-4">
+
+        <!-- ============ Sidebar ============ -->
+        <div class="col-12 col-xl-2">
+            <div th:replace="~{receptionist/fragments/receptionist-shell :: sidebar('schedule')}"></div>
+        </div>
+
+        <!-- ============ Main ============ -->
+        <div class="col-12 col-xl-10">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <div>
+                    <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-calendar-week text-primary me-2"></i>Lịch bác sĩ theo ngày</h1>
+                    <p class="text-secondary mb-0">Xem nhanh khung giờ trống/bận của từng bác sĩ trước khi đặt lịch cho khách.</p>
+                </div>
+                <form method="get" th:action="@{/receptionist/schedule}" class="d-flex align-items-center gap-2">
+                    <label class="ms-label mb-0">Ngày xem</label>
+                    <input type="date" name="date" class="form-control ms-input" style="max-width: 180px;"
+                           th:value="${selectedDate}" onchange="this.form.submit()">
+                </form>
+            </div>
+
+            <section class="pt-card p-4">
+                <div class="d-flex flex-wrap gap-3 mb-3 small">
+                    <span><span class="d-inline-block rounded-2 me-1" style="width:0.75rem;height:0.75rem;background:#b45309;"></span>Chờ xác nhận</span>
+                    <span><span class="d-inline-block rounded-2 me-1" style="width:0.75rem;height:0.75rem;background:var(--ms-primary);"></span>Đã xác nhận</span>
+                    <span><span class="d-inline-block rounded-2 me-1" style="width:0.75rem;height:0.75rem;background:#0f766e;"></span>Đã check-in</span>
+                    <span><span class="d-inline-block rounded-2 me-1" style="width:0.75rem;height:0.75rem;background:#7c3aed;"></span>Đang khám</span>
+                    <span><span class="d-inline-block rounded-2 me-1" style="width:0.75rem;height:0.75rem;background:var(--ms-success);"></span>Hoàn tất</span>
+                    <span><span class="d-inline-block rounded-2 me-1" style="width:0.75rem;height:0.75rem;background:#94a3b8;"></span>Đã hủy/Vắng mặt</span>
+                    <span><span class="d-inline-block rounded-2 me-1" style="width:0.75rem;height:0.75rem;background:var(--ms-danger);"></span>Chưa gán bác sĩ</span>
+                </div>
+
+                <div class="rc-schedule-wrap" th:if="${!#lists.isEmpty(scheduleRows)}">
+                    <!-- Hour header -->
+                    <div class="rc-schedule-row rc-schedule-header">
+                        <div class="rc-schedule-doctor-col">Bác sĩ</div>
+                        <div class="rc-schedule-track">
+                            <span class="rc-schedule-hour" th:each="h : ${hourMarks}" th:text="${#numbers.formatInteger(h,2) + ':00'}">06:00</span>
+                        </div>
+                    </div>
+
+                    <!-- One row per doctor on duty -->
+                    <div class="rc-schedule-row" th:each="row : ${scheduleRows}">
+                        <div class="rc-schedule-doctor-col">
+                            <span class="ms-avatar ms-avatar-primary" style="width:2.1rem;height:2.1rem;font-size:0.85rem;"
+                                  th:text="${#strings.substring(row.doctor.fullName, 0, 1).toUpperCase()}">A</span>
+                            <span th:text="${'BS. ' + row.doctor.fullName}">BS. Trần Minh Đức</span>
+                        </div>
+                        <div class="rc-schedule-track">
+                            <a class="rc-schedule-chip" th:each="slot : ${row.slots}"
+                               th:classappend="'rc-chip-' + ${#strings.toLowerCase(slot.appointment.status)}"
+                               th:style="'left:' + ${slot.leftPercent} + '%; width:' + ${slot.widthPercent} + '%;'"
+                               th:href="@{'/receptionist/appointments/' + ${slot.appointment.appointmentId}}"
+                               th:title="${slot.appointment.patient.fullName + ' - ' + #temporals.format(slot.appointment.scheduledTime, 'HH:mm') + ' (' + slot.appointment.status + ')'}">
+                                <span th:text="${#temporals.format(slot.appointment.scheduledTime, 'HH:mm')}">09:00</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Appointments not yet assigned to a doctor -->
+                    <div class="rc-schedule-row" th:if="${!#lists.isEmpty(unassignedSlots)}">
+                        <div class="rc-schedule-doctor-col text-muted">
+                            <i class="bi bi-question-circle"></i> Chưa gán bác sĩ
+                        </div>
+                        <div class="rc-schedule-track">
+                            <a class="rc-schedule-chip rc-chip-unassigned" th:each="slot : ${unassignedSlots}"
+                               th:style="'left:' + ${slot.leftPercent} + '%; width:' + ${slot.widthPercent} + '%;'"
+                               th:href="@{'/receptionist/appointments/' + ${slot.appointment.appointmentId}}"
+                               th:title="${slot.appointment.patient.fullName + ' - ' + #temporals.format(slot.appointment.scheduledTime, 'HH:mm') + ' (chưa gán bác sĩ)'}">
+                                <span th:text="${#temporals.format(slot.appointment.scheduledTime, 'HH:mm')}">09:00</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center text-muted py-5" th:if="${#lists.isEmpty(scheduleRows)}">
+                    <i class="bi bi-calendar-x fs-1 d-block mb-2 opacity-50"></i>
+                    Chưa có bác sĩ nào đang hoạt động.
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
