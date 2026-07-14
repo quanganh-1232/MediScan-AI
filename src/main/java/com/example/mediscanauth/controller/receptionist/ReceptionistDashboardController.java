@@ -1,5 +1,6 @@
 package com.example.mediscanauth.controller.receptionist;
 
+import com.example.mediscanauth.exception.customize.DoctorScheduleConflictException;
 import com.example.mediscanauth.model.Appointment;
 import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.AppointmentStatusHistoryRepository;
@@ -96,6 +97,8 @@ public class ReceptionistDashboardController {
         try {
             receptionistService.confirmAppointment(appointmentId, authentication.getName());
             redirectAttributes.addFlashAttribute("success", "Đã xác nhận lịch hẹn.");
+        } catch (DoctorScheduleConflictException ex) {
+            redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
@@ -136,6 +139,8 @@ public class ReceptionistDashboardController {
         try {
             receptionistService.assignDoctor(appointmentId, doctorId, note, authentication.getName());
             redirectAttributes.addFlashAttribute("success", "Đã điều hướng bệnh nhân đến bác sĩ.");
+        } catch (DoctorScheduleConflictException ex) {
+            redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
@@ -216,10 +221,28 @@ public class ReceptionistDashboardController {
                     fullName, phone, symptom, doctorId, scheduledTime, authentication.getName());
             redirectAttributes.addFlashAttribute("success",
                     "Đã đăng ký lịch hẹn " + appointment.getAppointmentCode() + " cho khách vãng lai.");
+        } catch (DoctorScheduleConflictException ex) {
+            redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
+            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledTime);
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledTime);
         }
         return "redirect:/receptionist/appointments/new";
+    }
+
+    /**
+     * On validation failure, keep what the receptionist already typed so a
+     * mistake in one field doesn't force re-entering the whole walk-in form.
+     */
+    private void addWalkInFormBackFill(RedirectAttributes redirectAttributes,
+                                       String fullName, String phone, String symptom,
+                                       Long doctorId, LocalTime scheduledTime) {
+        redirectAttributes.addFlashAttribute("formFullName", fullName);
+        redirectAttributes.addFlashAttribute("formPhone", phone);
+        redirectAttributes.addFlashAttribute("formSymptom", symptom);
+        redirectAttributes.addFlashAttribute("formDoctorId", doctorId);
+        redirectAttributes.addFlashAttribute("formScheduledTime", scheduledTime);
     }
 
     /**
