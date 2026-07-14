@@ -30,6 +30,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     long countByStatusIn(List<String> statuses);
 
+    long countByTechnicianUserIdAndStatus(Long technicianId, String status);
+
+    boolean existsByTechnicianUserId(Long technicianId);
+
     @Query(value = """
             select a from Appointment a
             where (:keyword is null or :keyword = ''
