@@ -37,8 +37,13 @@ public class TechnicianDashboardController {
     }
 
     @GetMapping("/technician/overview")
-    public String overview() {
-        return "redirect:/technician/xray-upload";
+    public String overview(Model model,
+                           Authentication authentication) {
+        addDashboardData(model, authentication);
+        model.addAttribute(
+                "scheduledAppointments",
+                technicianWorkflowService.findScheduledAppointments());
+        return "/technician/overview";
     }
 
     @GetMapping("/technician/appointments")

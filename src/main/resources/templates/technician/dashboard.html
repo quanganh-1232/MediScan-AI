@@ -90,7 +90,8 @@
                         <i class="bi bi-camera"></i>
                     </span>
                             <span class="small">
-                        <span class="d-block fw-bold">18</span>
+                        <span class="d-block fw-bold"
+                        th:text="${uploadedImageCount}">0</span>
                         <span class="text-muted">Đã chụp hôm nay</span>
                     </span>
                         </div>
@@ -114,7 +115,8 @@
                         <i class="bi bi-check-circle"></i>
                     </span>
                             <span class="small">
-                        <span class="d-block fw-bold">12</span>
+                        <span class="d-block fw-bold"
+                        th:text="${aiSuccessCount}">0</span>
                         <span class="text-muted">Hoàn thành</span>
                     </span>
                         </div>
@@ -126,7 +128,7 @@
                         <i class="bi bi-clock-history"></i>
                     </span>
                             <span class="small">
-                        <span class="d-block fw-bold">4 phút</span>
+                        <span class="d-block fw-bold">2 phút</span>
                         <span class="text-muted">TB xử lý AI</span>
                     </span>
                         </div>
@@ -157,12 +159,13 @@
                     </div>
 
                     <div class="col-md-4 d-grid">
-                        <button class="btn ms-btn ms-btn-ghost border">
+                        <a th:href="@{/technician/overview}"
+                           class="btn ms-btn ms-btn-primary text-white">
 
-                            <i class="bi bi-cloud-upload me-2"></i>
+                            <i class="bi bi-clipboard-data-fill"></i>
 
-                            Tải ảnh từ máy
-                        </button>
+                            Tổng quan
+                        </a>
                     </div>
 
                     <div class="col-md-4 d-grid">
