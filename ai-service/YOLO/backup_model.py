@@ -63,10 +63,18 @@ class FractureRegion:
     fractal_dim: float
     confidence:  float
     label:       str = ""
-    source:      str = "fractal"   # "fractal" or "yolo"
+    source:      str = "fractal"   # "fractal", "yolo", or "fused"
+    yolo_conf:   Optional[float] = None    # raw YOLO confidence, if applicable
+    fractal_conf: Optional[float] = None   # raw fractal confidence, if applicable
+    agreement:   str = "single"    # "single" or "agreed" (both detectors fired here)
 
     def __post_init__(self):
-        prefix = "[YOLO] " if self.source == "yolo" else "[Fractal] "
+        if self.source == "fused":
+            prefix = "[FUSED] " if self.agreement == "agreed" else "[FUSED*] "
+        elif self.source == "yolo":
+            prefix = "[YOLO] "
+        else:
+            prefix = "[Fractal] "
         self.label = f"{prefix}FD={self.fractal_dim:.3f}  conf={self.confidence:.0%}"
 
 
@@ -415,7 +423,7 @@ def extract_candidates(enhanced: np.ndarray,
 # ══════════════════════════════════════════════════════════════════════════════
 
 # ── Tuning parameters — adjust these if you're getting too many / too few hits ──
-FD_FRACTURE_THRESHOLD = 1.5   # minimum fractal dimension to be called a fracture
+FD_FRACTURE_THRESHOLD = 1.57   # minimum fractal dimension to be called a fracture
 FD_UPPER_BOUND        = 2.0    # physical maximum for a 2-D binary image
 ASPECT_RATIO_MIN      = 1.2    # fractures are elongated, not square
 ASPECT_RATIO_MAX      = 15.0   # very thin slivers are likely noise
@@ -467,7 +475,7 @@ def score_region(roi_mask: np.ndarray,
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SECTION 6b — YOLOv11 Detection
+# SECTION 6b — YOLOv8 Detection
 # ══════════════════════════════════════════════════════════════════════════════
 
 def run_yolo_detection(img_u8: np.ndarray,
@@ -587,6 +595,11 @@ def nms(regions: List[FractureRegion], iou_thresh: float = 0.4) -> List[Fracture
     from slightly different edge blobs.  iou_thresh=0.4 is a reasonable
     default: boxes that overlap by more than 40% of their union are
     considered duplicates.
+
+    Note: used WITHIN a single detector's output (e.g. to de-duplicate the
+    fractal pipeline's own candidates). For combining the two detectors,
+    see fuse_detections() below, which implements decision-level fusion
+    instead of winner-take-all suppression.
     """
     regions = sorted(regions, key=lambda r: r.confidence, reverse=True)
     kept    = []
@@ -594,6 +607,182 @@ def nms(regions: List[FractureRegion], iou_thresh: float = 0.4) -> List[Fracture
         if all(_iou(r.bbox, k.bbox) < iou_thresh for k in kept):
             kept.append(r)
     return kept
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SECTION 7b — Decision-Level Fusion
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Weights for combining the two detectors' confidence scores.
+# YOLO is a trained, calibrated classifier — generally more trustworthy on
+# in-distribution data — so it gets a higher weight by default. The fractal
+# score is a geometric heuristic and gets a smaller weight, acting more as
+# a "second opinion" that boosts or slightly dampens YOLO's score.
+YOLO_WEIGHT    = 0.7
+FRACTAL_WEIGHT = 0.3
+
+# Bonus added (additively, then clipped to [0,1]) when BOTH detectors
+# independently flag overlapping regions. This rewards agreement between
+# two different methodologies — a classic principle in multi-classifier
+# fusion (e.g. Dempster-Shafer / weighted voting).
+AGREEMENT_BONUS = 0.15
+
+# IoU threshold above which two boxes (one from each detector) are
+# considered to be detecting "the same" fracture.
+FUSION_IOU_THRESH = 0.3
+
+
+def _union_bbox(a: Tuple[int,int,int,int], b: Tuple[int,int,int,int]) -> Tuple[int,int,int,int]:
+    """Return the smallest bbox that contains both input bboxes."""
+    ax1, ay1, aw, ah = a; ax2, ay2 = ax1+aw, ay1+ah
+    bx1, by1, bw, bh = b; bx2, by2 = bx1+bw, by1+bh
+    x1, y1 = min(ax1, bx1), min(ay1, by1)
+    x2, y2 = max(ax2, bx2), max(ay2, by2)
+    return (x1, y1, x2 - x1, y2 - y1)
+
+
+def fuse_detections(fractal_regions: List[FractureRegion],
+                    yolo_regions: List[FractureRegion],
+                    iou_thresh: float = FUSION_IOU_THRESH,
+                    yolo_weight: float = YOLO_WEIGHT,
+                    fractal_weight: float = FRACTAL_WEIGHT,
+                    agreement_bonus: float = AGREEMENT_BONUS) -> List[FractureRegion]:
+    """
+    Combine fractal-based and YOLO-based detections using decision-level
+    (score) fusion, rather than picking a single "winning" box.
+
+    How it differs from NMS
+    ------------------------
+    NMS is winner-take-all: when two boxes overlap, the lower-confidence
+    one is discarded entirely — its information is lost.
+
+    Decision-level fusion instead treats each detector as an independent
+    "opinion" about the same region and combines their scores:
+
+        fused_conf = w_yolo * yolo_conf + w_fractal * fractal_conf
+                    + agreement_bonus  (if both detectors fired here)
+
+    This means:
+      • A region both detectors agree on gets a CONFIDENCE BOOST, even if
+        neither detector alone was highly confident.
+      • A region only YOLO sees keeps YOLO's score (scaled by its weight,
+        renormalised — see below) — it isn't thrown away just because the
+        fractal heuristic didn't independently flag it.
+      • A region only the fractal method sees is kept too, but with lower
+        weight, reflecting that it's a single, less-calibrated opinion.
+
+    Algorithm
+    ---------
+    1. Build a bipartite overlap map: for every (fractal_region, yolo_region)
+       pair, compute IoU. Pairs with IoU >= iou_thresh are "matches".
+    2. Greedily match pairs in descending IoU order (each region used once).
+    3. For matched pairs → fuse into one "agreed" region:
+         - bbox       = union of both boxes
+         - confidence = w_yolo*yolo_conf + w_fractal*fractal_conf + bonus
+         - fractal_dim = from the fractal detection (kept for the report)
+    4. For unmatched YOLO regions → kept as-is, confidence scaled by
+       yolo_weight / (yolo_weight) = unchanged in absolute terms, but you
+       can interpret it as "single-source evidence".
+       Unmatched fractal regions → kept as-is similarly.
+    5. Sort all resulting regions by fused confidence, descending.
+
+    Parameters
+    ----------
+    fractal_regions : Output of the fractal pipeline (after its own NMS).
+    yolo_regions    : Output of run_yolo_detection().
+    iou_thresh      : Overlap threshold to consider two boxes "the same
+                      fracture" (default 0.3 — slightly looser than the
+                      0.4 used for intra-detector NMS, since the two
+                      detectors may localise edges differently).
+    yolo_weight     : Weight given to YOLO's confidence in the fused score.
+    fractal_weight  : Weight given to the fractal confidence in the fused
+                      score. (yolo_weight + fractal_weight need not sum to
+                      1; the bonus can push fused_conf above either input.)
+    agreement_bonus : Added to fused_conf when both detectors agree.
+
+    Returns
+    -------
+    List of FractureRegion, each tagged:
+      - source="fused",   agreement="agreed"  → both detectors fired here
+      - source="yolo",    agreement="single"  → YOLO-only detection
+      - source="fractal", agreement="single"  → fractal-only detection
+    Sorted by confidence, descending.
+    """
+    # Step 1: compute all pairwise IoUs
+    pairs = []  # (iou, i_fractal, j_yolo)
+    for i, fr in enumerate(fractal_regions):
+        for j, yr in enumerate(yolo_regions):
+            iou_val = _iou(fr.bbox, yr.bbox)
+            if iou_val >= iou_thresh:
+                pairs.append((iou_val, i, j))
+
+    # Step 2: greedy matching — highest IoU first, each region used once
+    pairs.sort(key=lambda t: t[0], reverse=True)
+    matched_fractal: set = set()
+    matched_yolo:    set = set()
+    matches = []  # (i_fractal, j_yolo, iou)
+
+    for iou_val, i, j in pairs:
+        if i in matched_fractal or j in matched_yolo:
+            continue
+        matched_fractal.add(i)
+        matched_yolo.add(j)
+        matches.append((i, j, iou_val))
+
+    fused: List[FractureRegion] = []
+
+    # Step 3: fuse matched pairs
+    for i, j, iou_val in matches:
+        fr, yr = fractal_regions[i], yolo_regions[j]
+
+        fused_conf = yolo_weight * yr.confidence + fractal_weight * fr.confidence
+        fused_conf += agreement_bonus
+        fused_conf = float(np.clip(fused_conf, 0.0, 1.0))
+
+        region = FractureRegion(
+            bbox=_union_bbox(fr.bbox, yr.bbox),
+            fractal_dim=fr.fractal_dim,
+            confidence=fused_conf,
+            source="fused",
+            yolo_conf=yr.confidence,
+            fractal_conf=fr.confidence,
+            agreement="agreed",
+        )
+        fused.append(region)
+
+    # Step 4: unmatched YOLO-only regions
+    for j, yr in enumerate(yolo_regions):
+        if j in matched_yolo:
+            continue
+        region = FractureRegion(
+            bbox=yr.bbox,
+            fractal_dim=yr.fractal_dim,
+            confidence=yr.confidence,
+            source="yolo",
+            yolo_conf=yr.confidence,
+            fractal_conf=None,
+            agreement="single",
+        )
+        fused.append(region)
+
+    # Unmatched fractal-only regions
+    for i, fr in enumerate(fractal_regions):
+        if i in matched_fractal:
+            continue
+        region = FractureRegion(
+            bbox=fr.bbox,
+            fractal_dim=fr.fractal_dim,
+            confidence=fr.confidence,
+            source="fractal",
+            yolo_conf=None,
+            fractal_conf=fr.confidence,
+            agreement="single",
+        )
+        fused.append(region)
+
+    # Step 5: sort by fused confidence, descending
+    fused.sort(key=lambda r: r.confidence, reverse=True)
+    return fused
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -629,17 +818,20 @@ def draw_bounding_boxes(img_u8: np.ndarray,
     annotated = cv2.cvtColor(img_u8, cv2.COLOR_GRAY2BGR)
 
     for idx, reg in enumerate(regions):
-        if reg.source == "yolo":
-            color = (0, 255, 0)   # green = YOLO
+        if reg.source == "fused":
+            color = (255, 0, 255)   # magenta = agreed by both detectors
+        elif reg.source == "yolo":
+            color = (0, 255, 0)     # green = YOLO-only
         else:
-            color = BOX_COLORS[idx % len(BOX_COLORS)]   # red/orange/yellow/blue = fractal
+            color = BOX_COLORS[idx % len(BOX_COLORS)]   # fractal-only
         x, y, bw, bh = reg.bbox
 
-        # Bounding box
-        cv2.rectangle(annotated, (x, y), (x + bw, y + bh), color, 2)
+        # Bounding box (fused boxes get a thicker border to stand out)
+        thickness = 3 if reg.source == "fused" else 2
+        cv2.rectangle(annotated, (x, y), (x + bw, y + bh), color, thickness)
 
         # Label badge
-        tag   = "Y" if reg.source == "yolo" else "F"
+        tag   = {"fused": "F+Y", "yolo": "Y", "fractal": "F"}[reg.source]
         label = f"#{idx+1}[{tag}] FD={reg.fractal_dim:.2f} {reg.confidence:.0%}"
         (tw, th), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         cv2.rectangle(annotated, (x, y - th - baseline - 4), (x + tw + 4, y), color, -1)
@@ -698,10 +890,15 @@ def export_png(annotated_bgr: np.ndarray,
         lines = []
         for i, r in enumerate(regions):
             x, y, bw, bh = r.bbox
-            lines += [f"\n#{i+1}  Fracture",
+            tag = {"fused": "Fused (agreed)", "yolo": "YOLO only",
+                   "fractal": "Fractal only"}[r.source]
+            lines += [f"\n#{i+1}  {tag}",
                       f"  FD   = {r.fractal_dim:.4f}",
-                      f"  Conf = {r.confidence:.1%}",
-                      f"  Box  ({x},{y},{bw},{bh})"]
+                      f"  Conf = {r.confidence:.1%}"]
+            if r.agreement == "agreed":
+                lines.append(f"    (yolo={r.yolo_conf:.1%}, "
+                              f"fractal={r.fractal_conf:.1%})")
+            lines.append(f"  Box  ({x},{y},{bw},{bh})")
         axes[1].text(0.05, 0.90, "\n".join(lines), transform=axes[1].transAxes,
                      ha="left", va="top", fontsize=8.5, color="#e0e0e0",
                      fontfamily="monospace",
@@ -736,6 +933,10 @@ def detect_fractures(input_path: str,
                      output_path: Optional[str] = None,
                      yolo_model_path: Optional[str] = None,
                      yolo_conf_thresh: float = 0.25,
+                     fusion_yolo_weight: float = YOLO_WEIGHT,
+                     fusion_fractal_weight: float = FRACTAL_WEIGHT,
+                     fusion_agreement_bonus: float = AGREEMENT_BONUS,
+                     fusion_iou_thresh: float = FUSION_IOU_THRESH,
                      verbose: bool = True) -> List[FractureRegion]:
     """
     End-to-end fracture detection pipeline.
@@ -801,25 +1002,30 @@ def detect_fractures(input_path: str,
         if verbose:
             print(f"       YOLO found {len(yolo_regions)} detection(s).")
 
-    # ── Step 5c: Merge both detectors via NMS ─────────────────────────────────
-    # Combine, then re-run NMS across the merged set. Because nms() sorts by
-    # confidence first, and YOLO confidence (objectness) and fractal
-    # confidence (FD-derived) are on different scales, overlapping boxes
-    # will generally be resolved in favor of whichever score is higher —
-    # in practice YOLO boxes (trained, calibrated) tend to win ties against
-    # fractal boxes when both detect the same region.
-    combined = nms(fractal_regions + yolo_regions, iou_thresh=0.4)
-    combined.sort(key=lambda r: r.confidence, reverse=True)
-    regions = combined
+    # ── Step 5c: Decision-level fusion ────────────────────────────────────────
+    # Instead of NMS (winner-take-all), we combine evidence from both
+    # detectors using weighted confidence fusion + an agreement bonus.
+    # See fuse_detections() docstring for the full algorithm.
+    regions = fuse_detections(fractal_regions, yolo_regions,
+                              iou_thresh=fusion_iou_thresh,
+                              yolo_weight=fusion_yolo_weight,
+                              fractal_weight=fusion_fractal_weight,
+                              agreement_bonus=fusion_agreement_bonus)
 
     if verbose:
-        n_fractal = sum(1 for r in regions if r.source == "fractal")
+        n_agreed  = sum(1 for r in regions if r.agreement == "agreed")
         n_yolo    = sum(1 for r in regions if r.source == "yolo")
-        print(f"[5/5] After merge+NMS: {len(regions)} fracture(s) "
-              f"({n_fractal} fractal, {n_yolo} YOLO).")
+        n_fractal = sum(1 for r in regions if r.source == "fractal")
+        print(f"[5/5] After fusion: {len(regions)} region(s) "
+              f"({n_agreed} agreed by both, {n_yolo} YOLO-only, "
+              f"{n_fractal} fractal-only).")
         for i, r in enumerate(regions):
-            print(f"      #{i+1} [{r.source}]  FD={r.fractal_dim:.4f}  "
-                  f"conf={r.confidence:.1%}  bbox={r.bbox}")
+            extra = ""
+            if r.agreement == "agreed":
+                extra = f"  (yolo={r.yolo_conf:.1%}, fractal={r.fractal_conf:.1%})"
+            print(f"      #{i+1} [{r.source}/{r.agreement}]  "
+                  f"FD={r.fractal_dim:.4f}  conf={r.confidence:.1%}  "
+                  f"bbox={r.bbox}{extra}")
 
     # ── Annotate & export ─────────────────────────────────────────────────────
     if output_path is None:
@@ -870,6 +1076,14 @@ Examples:
                         "YOLO detections are merged with fractal detections.")
     p.add_argument("--yolo-conf", type=float, default=0.25,
                    help="Minimum YOLO confidence threshold  (default: 0.25)")
+    p.add_argument("--yolo-weight", type=float, default=YOLO_WEIGHT,
+                   help=f"Weight for YOLO confidence in fusion  (default: {YOLO_WEIGHT})")
+    p.add_argument("--fractal-weight", type=float, default=FRACTAL_WEIGHT,
+                   help=f"Weight for fractal confidence in fusion  (default: {FRACTAL_WEIGHT})")
+    p.add_argument("--agreement-bonus", type=float, default=AGREEMENT_BONUS,
+                   help=f"Confidence bonus when both detectors agree  (default: {AGREEMENT_BONUS})")
+    p.add_argument("--fusion-iou", type=float, default=FUSION_IOU_THRESH,
+                   help=f"IoU threshold to consider two detections as the same region  (default: {FUSION_IOU_THRESH})")
     p.add_argument("--quiet", action="store_true",
                    help="Suppress progress output")
     return p
@@ -905,11 +1119,15 @@ def main():
         sys.exit(1)
 
     detect_fractures(
-        input_path       = args.input_path,
-        output_path      = args.output,
-        yolo_model_path  = args.yolo_model,
-        yolo_conf_thresh = args.yolo_conf,
-        verbose          = not args.quiet,
+        input_path             = args.input_path,
+        output_path            = args.output,
+        yolo_model_path        = args.yolo_model,
+        yolo_conf_thresh       = args.yolo_conf,
+        fusion_yolo_weight     = args.yolo_weight,
+        fusion_fractal_weight  = args.fractal_weight,
+        fusion_agreement_bonus = args.agreement_bonus,
+        fusion_iou_thresh      = args.fusion_iou,
+        verbose                = not args.quiet,
     )
 
 

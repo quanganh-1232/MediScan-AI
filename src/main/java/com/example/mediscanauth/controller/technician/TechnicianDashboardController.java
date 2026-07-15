@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -29,17 +30,26 @@ public class TechnicianDashboardController {
     }
 
     @GetMapping("/technician/dashboard")
-    public String dashboard() {
-        return "redirect:/technician/xray-upload";
+    public String dashboard(Model model,
+                            Authentication authentication) {
+        addDashboardData(model, authentication);
+        return "/technician/dashboard";
     }
 
     @GetMapping("/technician/overview")
-    public String overview() {
-        return "redirect:/technician/xray-upload";
+    public String overview(Model model,
+                           Authentication authentication) {
+        addDashboardData(model, authentication);
+        model.addAttribute(
+                "scheduledAppointments",
+                technicianWorkflowService.findScheduledAppointments());
+        return "/technician/overview";
     }
 
     @GetMapping("/technician/appointments")
-    public String appointments() {
+    public String appointments(Model model,
+                               Authentication authentication) {
+        addDashboardData(model, authentication);
         return "redirect:/technician/xray-upload";
     }
 
@@ -60,14 +70,18 @@ public class TechnicianDashboardController {
 
     @PostMapping("/technician/xray-upload")
     public String uploadXray(Authentication authentication,
+                             @RequestParam("image")
+                             MultipartFile image,
                              @RequestParam String patientEmail,
-                             @RequestParam(required = false) String doctorEmail,
+                             @RequestParam(required = false)
+                                 String doctorEmail,
                              Model model) {
         try {
             imagingRecordService.captureAndAnalyzeFromTechnician(
                     authentication.getName(),
                     patientEmail,
-                    doctorEmail
+                    doctorEmail,
+                    image
             );
             return "redirect:/technician/xray-upload?success=true";
         } catch (RuntimeException ex) {
