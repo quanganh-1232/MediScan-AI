@@ -2,21 +2,25 @@ package com.example.mediscanauth.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Service
 public class CloudinaryService {
 
     private final Cloudinary cloudinary;
+    private final String cloudName = "xo59jq3r";
 
     @Autowired
     public CloudinaryService(Cloudinary cloudinary) {
@@ -24,81 +28,107 @@ public class CloudinaryService {
     }
 
     /**
-     * Tự động xử lý chuỗi ở Backend để tìm ảnh gốc, vẽ bounding box và upload trực tiếp lên Root Cloudinary.
+     * Hàm hỗ trợ loại bỏ hoàn toàn dấu tiếng Việt để tạo tên thư mục an toàn trên
+     * Cloudinary.
      */
-    public String generateAndUploadDoctorImage(String dbFileName, int x, int y, int w, int h) {
+    private String removeAccent(String s) {
+        if (s == null)
+            return "";
+        String temp = Normalizer.normalize(s, Normalizer.Form.NFD);
+        Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+        return pattern.matcher(temp).replaceAll("").replace('đ', 'd').replace('Đ', 'D');
+    }
+
+    /**
+     * Nhận chuỗi ảnh Base64 chụp màn hình từ trình duyệt của bác sĩ,
+     * tự động tạo thư mục và upload trực tiếp lên Cloudinary với quy tắc đặt tên
+     * mới.
+     * Tên file đích: doctor_ + [tên file gốc] (Ví dụ:
+     * doctor_img-2026-0002-ankle.png)
+     */
+    public String generateAndUploadDoctorImage(
+            String base64ImageData,
+            String patientName,
+            String recordCode,
+            String dbFileName) { // <-- Thêm tham số dbFileName để lấy tên file gốc
+
         try {
-            System.out.println("====== [BACKEND CLOUDINARY CONVERSION] ======");
-            System.out.println("-> Tên file gốc từ DB: " + dbFileName);
+            System.out.println("====== [UPLOAD SCREENSHOT TO DOCTOR FOLDER] ======");
+            System.out.println("Patient   : " + patientName);
+            System.out.println("Record    : " + recordCode);
+            System.out.println("Origin File: " + dbFileName);
 
-            // 1. TỰ ĐỘNG BIẾN ĐỔI CHUỖI SANG LINK CLOUDINARY THỰC TẾ
-            String cloudName = "xo59jq3r";
-            String cleanName = dbFileName;
-            if (cleanName.contains(".")) {
-                cleanName = cleanName.substring(0, cleanName.lastIndexOf('.'));
+            String safePatient = removeAccent(patientName.trim());
+
+            // Thư mục đích trên Cloudinary
+            String folderPath = String.format(
+                    "MedicalAI/%s/%s/Doctor",
+                    safePatient,
+                    recordCode.trim());
+
+            // Quy tắc đặt tên file ảnh bác sĩ: doctor_[tên file gốc]
+            String doctorFileName;
+            if (dbFileName != null && !dbFileName.trim().isEmpty()) {
+                // Loại bỏ phần mở rộng (ví dụ .png, .jpg) nếu có vì Cloudinary tự quản lý
+                // extension hoặc định danh qua public_id
+                String rawName = dbFileName.trim();
+                if (rawName.contains(".")) {
+                    rawName = rawName.substring(0, rawName.lastIndexOf("."));
+                }
+                doctorFileName = "doctor_" + rawName;
+            } else {
+                // Phương án dự phòng nếu dbFileName bị null
+                doctorFileName = "doctor_img-" + System.currentTimeMillis();
             }
 
-            // Nếu là ảnh ankle của bạn, tự động chèn hậu tố ngẫu nhiên để khớp link thực tế trên mây
-            if (cleanName.equals("img-2026-0002-ankle")) {
-                cleanName = "img-2026-0002-ankle_zsta1p";
-            }
-
-            // Thử nạp định dạng .png trước, nếu lỗi ta sẽ bắt lỗi và thử với .jpg
-            String downloadUrl = String.format("https://res.cloudinary.com/%s/image/upload/v1784184990/%s.png", cloudName, cleanName);
-            System.out.println("-> Đang thử tải ảnh gốc dạng PNG: " + downloadUrl);
-
-            BufferedImage image = null;
-            try {
-                URL url = URI.create(downloadUrl).toURL();
-                image = ImageIO.read(url);
-            } catch (Exception e) {
-                System.out.println("-> [INFO] Thử dạng PNG thất bại, đang chuyển hướng sang tải định dạng JPG...");
-                downloadUrl = String.format("https://res.cloudinary.com/%s/image/upload/v1784184990/%s.jpg", cloudName, cleanName);
-                URL url = URI.create(downloadUrl).toURL();
-                image = ImageIO.read(url);
-            }
-
-            if (image == null) {
-                throw new IOException("Không thể đọc dữ liệu ảnh từ Cloudinary với cả 2 định dạng PNG/JPG.");
-            }
-
-            // 2. TIẾN HÀNH VẼ BOUNDING BOX MÀU ĐỎ
-            Graphics2D g2d = image.createGraphics();
-            g2d.setColor(Color.RED); 
-            g2d.setStroke(new BasicStroke(4)); // Khung viền dày 4px
-            g2d.drawRect(x, y, w, h);
-            g2d.dispose();
-
-            // 3. TẠO FILE TẠM VỚI TIỀN TỐ doctor_
-            String doctorFileName = "doctor_" + cleanName;
-            File tempFile = File.createTempFile(doctorFileName + "_", ".png");
-            ImageIO.write(image, "png", tempFile);
-            System.out.println("-> Đã tạo tệp vẽ tạm thành công: " + tempFile.getAbsolutePath());
-
-            // 4. UPLOAD TRỰC TIẾP LÊN THƯ MỤC GỐC (ROOT) CỦA CLOUDINARY
-            // Loại bỏ hoàn toàn tham số "folder" để tránh xung đột thư mục chưa tạo
             Map<String, Object> params = ObjectUtils.asMap(
-                "use_filename", true,
-                "unique_filename", false 
-            );
+                    "folder", folderPath,
+                    "public_id", doctorFileName, // Đặt tên file đúng theo quy tắc
+                    "overwrite", true,
+                    "invalidate", true);
 
-            Map<?, ?> uploadResult = cloudinary.uploader().upload(tempFile, params);
+            // Cloudinary hỗ trợ nhận trực tiếp chuỗi Base64
+            Map<?, ?> result = cloudinary.uploader().upload(base64ImageData, params);
 
-            // Xóa tệp tạm để giải phóng bộ nhớ server
-            if (tempFile.exists()) {
-                tempFile.delete();
-            }
+            String secureUrl = (String) result.get("secure_url");
 
-            String secureUrl = uploadResult.get("secure_url").toString();
-            System.out.println("-> [THÀNH CÔNG] Ảnh của bác sĩ đã lên Cloudinary: " + secureUrl);
-            System.out.println("=============================================");
+            System.out.println("======================================");
+            System.out.println("UPLOAD SCREENSHOT SUCCESS");
+            System.out.println("Filename: " + doctorFileName);
+            System.out.println("URL: " + secureUrl);
+            System.out.println("======================================");
 
             return secureUrl;
 
-        } catch (IOException e) {
-            System.err.println("-> [LỖI NGHIÊM TRỌNG] Thất bại trong tiến trình vẽ/tải ảnh: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("UPLOAD SCREENSHOT FAILED");
             e.printStackTrace();
             return null;
         }
+    }
+
+    /**
+     * Lấy link hiển thị tương ứng với cấu trúc thư mục MedicalAI
+     */
+    public String getDisplayImageUrl(String dbFileName, String status, String patientName, String recordCode) {
+        if (dbFileName == null || dbFileName.trim().isEmpty()) {
+            return "";
+        }
+
+        String cleanName = dbFileName.contains(".")
+                ? dbFileName.substring(0, dbFileName.lastIndexOf('.'))
+                : dbFileName.trim();
+
+        if ("COMPLETED".equalsIgnoreCase(status)) {
+            String doctorName = "doctor_" + cleanName.replaceAll("[^a-zA-Z0-9_-]", "_");
+            String safePatient = removeAccent(patientName.trim());
+            String safeRecord = recordCode.trim();
+
+            return String.format(
+                    "https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/MedicalAI/%s/%s/Doctor/%s.jpg",
+                    cloudName, safePatient, safeRecord, doctorName);
+        }
+
+        return "https://res.cloudinary.com/" + cloudName + "/image/upload/f_auto,q_auto/" + dbFileName;
     }
 }
