@@ -281,8 +281,9 @@
                         <div class="xray-viewport-box">
                             <div class="ms-xray-wrapper" id="xrayWrapper">
                                 <div class="pan-zoom-container" id="panZoomContainer">
-                                    <img th:src="@{'/uploads/xray/' + ${record.fileName}}" id="xrayImage"
-                                        class="ms-xray-viewport rounded-3" alt="X-ray DICOM">
+
+                                    <img src="https://res.cloudinary.com/xo59jq3r/image/upload/f_auto,q_auto/v1784184990/img-2026-0002-ankle_zsta1p.jpg"
+                                        id="xrayImage" class="ms-xray-viewport rounded-3" alt="X-ray Cloudinary">
 
                                     <div class="ms-xray-overlay" id="overlayContainer">
                                         <div th:each="region : ${aiRegions}" class="ai-box"

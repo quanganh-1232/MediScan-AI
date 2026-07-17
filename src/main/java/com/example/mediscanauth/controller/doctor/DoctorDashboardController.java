@@ -86,10 +86,15 @@ public class DoctorDashboardController {
             @RequestParam(required = false) Integer bboxWidth,
             @RequestParam(required = false) Integer bboxHeight,
             RedirectAttributes redirectAttributes) {
+            
+        // Nếu bác sĩ có vẽ hoặc cập nhật tọa độ box
         if (bboxX != null || bboxY != null || bboxWidth != null || bboxHeight != null) {
             imagingRecordService.updateRecordCoordinates(recordId, bboxX, bboxY, bboxWidth, bboxHeight);
         }
+        
+        // Gọi service xử lý: service sẽ tự động lấy ảnh local từ tên file trong DB -> đẩy lên Cloudinary -> đổi sang Public ID
         imagingRecordService.confirmDoctorReview(recordId, authentication.getName(), conclusion, null);
+        
         redirectAttributes.addFlashAttribute("diagnosisSuccess", true);
         return "redirect:/doctor/records/pending";
     }
