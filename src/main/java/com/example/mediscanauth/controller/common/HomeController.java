@@ -54,7 +54,7 @@ public class HomeController {
         }
 
         if (hasRole(user, "TECHNICIAN")) {
-            return "redirect:/technician/xray-upload";
+            return "redirect:/technician/dashboard";
         }
 
         if (isAdmin(user)) {
