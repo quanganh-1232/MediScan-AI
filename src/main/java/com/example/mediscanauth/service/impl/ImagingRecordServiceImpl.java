@@ -25,6 +25,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import com.example.mediscanauth.repository.NotificationRepository;
 import com.example.mediscanauth.model.Notification;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
+import java.util.Map;
+import com.example.mediscanauth.service.CloudinaryService;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -54,20 +58,25 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final NotificationRepository notificationRepository;
+    private final Cloudinary cloudinary;
+    private final CloudinaryService cloudinaryService;
 
     public ImagingRecordServiceImpl(
             ImagingRecordRepository imagingRecordRepository,
             UserAccountService userAccountService,
             PatientRepository patientRepository,
             UserRepository userRepository,
-            NotificationRepository notificationRepository) {
+            NotificationRepository notificationRepository,
+            Cloudinary cloudinary,
+            CloudinaryService cloudinaryService) {
 
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
         this.notificationRepository = notificationRepository;
-
+        this.cloudinary = cloudinary;
+        this.cloudinaryService = cloudinaryService;
         this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
     }
@@ -271,22 +280,50 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         record.setStatus("COMPLETED");
         record.setConfirmedAt(LocalDateTime.now());
 
+        // ==================== TẠO VÀ UPLOAD ẢNH DOCTOR LÊN CLOUDINARY
+        // ====================
+        String originalUrl = record.getFileName(); // Lấy URL ảnh gốc hiện tại
+
+        // Kiểm tra xem bác sĩ có cập nhật tọa độ box không
+        if (originalUrl != null && !originalUrl.isEmpty() && record.getBboxX() != null) {
+            System.out.println("====== [CONFIRM DOCTOR PROCESS] ======");
+            System.out.println("-> Ảnh tham chiếu: " + originalUrl);
+            System.out.println(String.format("-> Tọa độ bác sĩ vẽ: X:%d, Y:%d, W:%d, H:%d",
+                    record.getBboxX(), record.getBboxY(), record.getBboxWidth(), record.getBboxHeight()));
+
+            // Gọi service vẽ đè và tải lên Cloudinary dưới dạng tệp "doctor_..." riêng biệt
+            String doctorImageUrl = cloudinaryService.generateAndUploadDoctorImage(
+                    originalUrl,
+                    record.getBboxX(),
+                    record.getBboxY(),
+                    record.getBboxWidth(),
+                    record.getBboxHeight());
+
+            if (doctorImageUrl != null && !doctorImageUrl.isEmpty()) {
+                System.out.println("-> ĐÃ TẢI ẢNH DOCTOR LÊN CLOUDINARY! URL: " + doctorImageUrl);
+
+                // Cập nhật trường hiển thị của Hồ sơ sang ảnh của Bác sĩ vừa tạo
+                // (Bạn có thể đổi sang setDoctorFileName(doctorImageUrl) nếu DB của bạn có
+                // trường riêng)
+                String doctorFileNameOnly = doctorImageUrl.substring(doctorImageUrl.lastIndexOf('/') + 1);
+                record.setFileName(doctorFileNameOnly);
+            } else {
+                System.err.println("-> [LỖI] Không thể tạo ảnh Doctor. Giữ nguyên liên kết ảnh gốc.");
+            }
+            System.out.println("======================================");
+        }
+        // =================================================================================
+
         ImagingRecord savedRecord = imagingRecordRepository.save(record);
 
-        // Tạo thông báo cho bệnh nhân
+        // Tạo thông báo gửi cho bệnh nhân
         Notification notification = new Notification();
         notification.setUser(savedRecord.getPatient());
         notification.setRecordId(savedRecord.getRecordId());
-
         notification.setTitle("Kết quả X-quang đã có");
-
-        notification.setMessage(
-                "Kết quả chẩn đoán cho hồ sơ "
-                        + savedRecord.getRecordCode()
-                        + " đã được bác sĩ xác nhận. Vui lòng đăng nhập để xem chi tiết.");
-
+        notification.setMessage("Kết quả chẩn đoán cho hồ sơ " + savedRecord.getRecordCode()
+                + " đã được bác sĩ xác nhận. Vui lòng đăng nhập để xem chi tiết.");
         notification.setRead(false);
-
         notificationRepository.save(notification);
 
         return savedRecord;
