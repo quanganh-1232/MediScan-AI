@@ -7,6 +7,7 @@ import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.NotificationRepository;
 import com.example.mediscanauth.repository.PatientRepository;
+import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.NotificationService;
 import com.example.mediscanauth.service.PatientWorkflowService;
@@ -37,6 +38,7 @@ public class PatientDashboardController {
     private final PatientRepository patientRepository;
     private final AppointmentRepository appointmentRepository;
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
 
     public PatientDashboardController(UserAccountService userAccountService,
                                       ImagingRecordService imagingRecordService,
@@ -44,7 +46,8 @@ public class PatientDashboardController {
                                       PatientWorkflowService patientWorkflowService,
                                       PatientRepository patientRepository,
                                       AppointmentRepository appointmentRepository,
-                                      NotificationRepository notificationRepository) {
+                                      NotificationRepository notificationRepository,
+                                      UserRepository userRepository) {
         this.userAccountService = userAccountService;
         this.imagingRecordService = imagingRecordService;
         this.notificationService = notificationService;
@@ -52,6 +55,14 @@ public class PatientDashboardController {
         this.patientRepository = patientRepository;
         this.appointmentRepository = appointmentRepository;
         this.notificationRepository = notificationRepository;
+        this.userRepository = userRepository;
+    }
+
+    /** Tự động đưa danh sách bác sĩ vào tất cả các trang patient (dùng cho chatbot đặt lịch) */
+    @org.springframework.web.bind.annotation.ModelAttribute("doctors")
+    public List<User> populateDoctors() {
+        return userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
+                List.of("DOCTOR", "ROLE_DOCTOR"), "ACTIVE");
     }
 
     // ── KAN-28: Patient Dashboard ──────────────────────────────────────────
@@ -257,11 +268,19 @@ public class PatientDashboardController {
 
     // ── KAN-38: Notifications page ──────────────────────────────────────────
     @GetMapping("/patient/notifications")
-    public String notifications(Authentication authentication, Model model) {
+    public String notifications(Authentication authentication,
+                                @RequestParam(defaultValue = "0") int page,
+                                @RequestParam(defaultValue = "10") int size,
+                                Model model) {
         User user = getUser(authentication);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(Math.max(page, 0), Math.max(size, 1));
+        org.springframework.data.domain.Page<com.example.mediscanauth.model.Notification> notifPage = notificationService.findForUser(user, pageable);
+
         model.addAttribute("currentUser", user);
         model.addAttribute("unreadCount", notificationService.countUnread(user));
-        model.addAttribute("notifications", notificationService.findForUser(user));
+        model.addAttribute("notifications", notifPage.getContent());
+        model.addAttribute("notifPage", notifPage);
+        model.addAttribute("currentPage", page);
         return "patient/notifications";
     }
 
