@@ -147,15 +147,27 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
         // Reuse the most recent walk-in patient record with this phone number
         // instead of creating a fresh one every visit, so a returning
-        // patient's history stays under one Patient record.
-        Patient patient = patientRepository.findFirstByPhoneOrderByPatientIdDesc(cleanPhone)
-                .orElseGet(Patient::new);
-        patient.setFullName(cleanFullName);
-        patient.setPhone(cleanPhone);
+        // patient's history stays under one Patient record. Never reuse (and
+        // overwrite the name on) a record tied to a real login account —
+        // a shared/mistyped phone number must not rename someone's real profile.
+        Patient existing = patientRepository.findFirstByPhoneOrderByPatientIdDesc(cleanPhone).orElse(null);
+        Patient patient;
+        if (existing != null && existing.getUser() == null) {
+            existing.setFullName(cleanFullName);
+            patient = existing;
+        } else {
+            patient = new Patient();
+            patient.setFullName(cleanFullName);
+            patient.setPhone(cleanPhone);
+        }
         patient = patientRepository.save(patient);
 
         Appointment appointment = new Appointment();
-        appointment.setAppointmentCode(nextCode("APT", appointmentRepository.count() + 1));
+        // Placeholder to satisfy the NOT NULL/unique column until the row has
+        // a real, DB-assigned id to build the human-readable code from —
+        // avoids the race where count()+1 lets two concurrent walk-ins land
+        // on the same appointment code.
+        appointment.setAppointmentCode("TMP-" + java.util.UUID.randomUUID());
         appointment.setPatient(patient);
         appointment.setDoctor(doctor);
         appointment.setReceptionist(receptionist);
@@ -163,6 +175,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         appointment.setScheduledTime(scheduledAt);
         appointment.setBodyPart(cleanSymptom);
         appointment.setStatus("CONFIRMED");
+        appointmentRepository.save(appointment);
+        appointment.setAppointmentCode(nextCode("APT", appointment.getAppointmentId()));
         appointmentRepository.save(appointment);
 
         logStatusChange(appointment, "CONFIRMED", receptionist, "Đăng ký nhanh tại quầy lễ tân cho khách vãng lai.");
@@ -207,16 +221,34 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     @Override
     @Transactional
     public Appointment callNextPatient(String receptionistEmail) {
+        User receptionist = findReceptionist(receptionistEmail);
         List<Appointment> waiting = appointmentRepository.findByStatusOrderByScheduledTimeAsc("CHECKED_IN");
-        if (waiting.isEmpty()) {
-            throw new InvalidFieldException("Không có bệnh nhân nào đang chờ.");
+        // Try candidates in order; if another receptionist claimed one first
+        // (0 rows affected), move to the next rather than double-assigning it.
+        for (Appointment candidate : waiting) {
+            int claimed = appointmentRepository.claimAppointment(
+                    candidate.getAppointmentId(), "CHECKED_IN", "IN_PROGRESS", receptionist);
+            if (claimed == 1) {
+                Appointment appointment = getAppointmentOrThrow(candidate.getAppointmentId());
+                logStatusChange(appointment, "IN_PROGRESS", receptionist, "Lễ tân gọi số, mời bệnh nhân vào phòng khám.");
+                return appointment;
+            }
         }
-        Appointment appointment = waiting.get(0);
+        throw new InvalidFieldException("Không có bệnh nhân nào đang chờ.");
+    }
+
+    @Override
+    @Transactional
+    public Appointment completeAppointment(Long appointmentId, String receptionistEmail) {
+        Appointment appointment = getAppointmentOrThrow(appointmentId);
+        if (!"IN_PROGRESS".equals(appointment.getStatus())) {
+            throw new InvalidFieldException("Chỉ có thể hoàn tất lịch hẹn đang trong trạng thái khám.");
+        }
         User receptionist = findReceptionist(receptionistEmail);
         appointment.setReceptionist(receptionist);
-        appointment.setStatus("IN_PROGRESS");
+        appointment.setStatus("COMPLETED");
         appointmentRepository.save(appointment);
-        logStatusChange(appointment, "IN_PROGRESS", receptionist, "Lễ tân gọi số, mời bệnh nhân vào phòng khám.");
+        logStatusChange(appointment, "COMPLETED", receptionist, "Hoàn tất buổi khám.");
         return appointment;
     }
 

@@ -21,6 +21,8 @@ public interface ReceptionistService {
                                         LocalTime scheduledTime,
                                         String receptionistEmail);
 
+    Appointment completeAppointment(Long appointmentId, String receptionistEmail);
+
     Appointment cancelAppointment(Long appointmentId, String reason, String receptionistEmail);
 
     Appointment markMissed(Long appointmentId, String receptionistEmail);
