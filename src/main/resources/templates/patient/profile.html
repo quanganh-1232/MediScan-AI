@@ -123,7 +123,7 @@
 
     <!-- EDIT MODE -->
     <div id="editMode" style="display:none;">
-        <form th:action="@{/patient/profile}" method="post">
+        <form th:action="@{/patient/profile}" method="post" onsubmit="return validateProfile()">
             <div th:if="${_csrf != null}">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             </div>
@@ -139,6 +139,7 @@
                     <div class="col-12 col-md-6">
                         <label class="ms-label" for="phone">Số điện thoại</label>
                         <input type="tel" id="phone" name="phone" class="form-control ms-input"
+                               maxlength="15" pattern="[0-9]{9,15}" title="So dien thoai tu 9-15 chu so"
                                th:value="${profile != null ? profile.phone : (currentUser != null ? currentUser.phone : '')}">
                     </div>
                     <div class="col-12 col-md-6">
@@ -153,6 +154,7 @@
                     <div class="col-12 col-md-6">
                         <label class="ms-label" for="dateOfBirth">Ngày sinh</label>
                         <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-control ms-input"
+                               th:attr="max=${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}"
                                th:value="${profile != null and profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'yyyy-MM-dd') : ''}">
                     </div>
                     <div class="col-12">
@@ -195,14 +197,26 @@
         if (e.style.display === 'none') {
             v.style.display = 'none';
             e.style.display = 'block';
-            btn.innerHTML = '<i class="bi bi-eye me-1"></i>Xem hồ sơ';
+            btn.innerHTML = '<i class="bi bi-eye me-1"></i>Xem ho so';
             btn.classList.replace('btn-outline-primary', 'btn-outline-secondary');
         } else {
             v.style.display = 'block';
             e.style.display = 'none';
-            btn.innerHTML = '<i class="bi bi-pencil-square me-1"></i>Chỉnh sửa';
+            btn.innerHTML = '<i class="bi bi-pencil-square me-1"></i>Chinh sua';
             btn.classList.replace('btn-outline-secondary', 'btn-outline-primary');
         }
+    }
+    function validateProfile() {
+        const name = document.getElementById('fullName').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const dob = document.getElementById('dateOfBirth').value;
+        if (!name) { alert('Vui long nhap ho va ten.'); return false; }
+        if (phone && !/^[0-9]{9,15}$/.test(phone)) { alert('So dien thoai khong hop le (9-15 chu so).'); return false; }
+        if (dob) {
+            const today = new Date(); const d = new Date(dob);
+            if (d > today) { alert('Ngay sinh khong duoc lon hon hom nay.'); return false; }
+        }
+        return true;
     }
     // Auto-open edit if there was an error
     /*[[${error != null}]]*/
