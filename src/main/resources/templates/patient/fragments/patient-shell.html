@@ -62,6 +62,9 @@
     <!-- CSRF token for XHR image upload -->
     <span id="csrfToken"  th:attr="data-token=${_csrf.token}"  style="display:none"></span>
     <span id="csrfHeader" th:attr="data-header=${_csrf.headerName}" style="display:none"></span>
+    <!-- Doctor list for chatbot booking -->
+    <span id="doctorListData" style="display:none"
+          th:attr="data-doctors=${doctors != null ? #strings.listJoin(doctors.![userId + ':' + fullName], ',') : ''}"></span>
 
     <button class="chat-fab" id="chatFab" onclick="toggleChatPopup()" title="Chatbot hỗ trợ" aria-label="Mo chatbot">
         <i class="bi bi-chat-dots-fill" id="chatFabIcon"></i>
@@ -94,16 +97,16 @@
 
         <!-- Quick chips -->
         <div class="chatbot-chips" id="chipArea">
-            <button class="chat-chip" onclick="sendChip(this)">Dat lich kham</button>
-            <button class="chat-chip" onclick="sendChip(this)">Xem ho so</button>
-            <button class="chat-chip" onclick="sendChip(this)">Ket qua moi nhat</button>
-            <button class="chat-chip" onclick="sendChip(this)">Dau lung</button>
-            <button class="chat-chip" onclick="sendChip(this)">Dau vai gay</button>
-            <button class="chat-chip" onclick="sendChip(this)">Dau khop goi</button>
-            <button class="chat-chip" onclick="sendChip(this)">Dau co tay</button>
-            <button class="chat-chip" onclick="sendChip(this)">Gap xuong</button>
+            <button class="chat-chip" onclick="sendChip(this)">Đặt lịch khám</button>
+            <button class="chat-chip" onclick="sendChip(this)">Xem hồ sơ</button>
+            <button class="chat-chip" onclick="sendChip(this)">Kết quả mới nhất</button>
+            <button class="chat-chip" onclick="sendChip(this)">Đau lưng</button>
+            <button class="chat-chip" onclick="sendChip(this)">Đau vai gáy</button>
+            <button class="chat-chip" onclick="sendChip(this)">Đau khớp gối</button>
+            <button class="chat-chip" onclick="sendChip(this)">Đau cổ tay</button>
+            <button class="chat-chip" onclick="sendChip(this)">Nghi gãy xương</button>
             <button class="chat-chip" onclick="chatImageUpload()" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;">
-                <i class="bi bi-image me-1"></i>Gui anh X-quang
+                <i class="bi bi-image me-1"></i>Gửi ảnh X-quang
             </button>
         </div>
 
@@ -174,36 +177,438 @@
         }
         function hideTyping(){const t=document.getElementById('typingRow');if(t)t.remove();}
 
-        const REPLIES=[
-            {keys:['dat lich','hen kham','lich kham','book'],reply:'Để đặt lịch khám, vào <strong>Trang chủ &rarr; Đặt lịch khám</strong> chọn bác sĩ + ngày giờ.',link:['/home#booking','Đặt lịch ngay']},
-            {keys:['ho so','xem ho so','x-quang','anh chup'],reply:'Toàn bộ hồ sơ X-quang có tại <strong>Hồ sơ y tế</strong>. Mỗi hồ sơ có trạng thái và kết luận bác sĩ.',link:['/patient/records','Xem hồ sơ y tế']},
-            {keys:['ket qua','chan doan','ket luan','moi nhat'],reply:'Kết quả chẩn đoán mới nhất (phân tích AI + kết luận bác sĩ) có tại:',link:['/patient/results','Xem kết quả']},
-            {keys:['tong quan','dashboard','tien trinh'],reply:'Trang Tổng quan cho thấy tiến độ hồ sơ: chụp ảnh &rarr; AI phân tích &rarr; bác sĩ xem xét &rarr; hoàn thành.',link:['/patient/dashboard','Xem tổng quan']},
-            {keys:['dau lung','lung','cot song','that lung'],reply:'Đau lưng thường do: thoát vị đĩa đệm, thoái hóa cột sống, căng cơ.<br>Nếu đau kéo dài &gt;2 tuần hoặc lan xuống chân, nên chụp X-quang để chẩn đoán chính xác.'},
-            {keys:['vai','vai gay','co','dau vai'],reply:'Đau vai/Cổ có thể do thoái hóa đốt sống cổ, viêm gân, hội chứng cổ vai gáy.<br>Nghỉ ngơi, tránh nhìn màn hình lâu, gặp bác sĩ nếu đau không giảm sau 1 tuần.'},
-            {keys:['goi','khop goi','dau goi','dau chan'],reply:'Đau khớp gối thường do viêm khớp, thoái hóa sụn, chấn thương dây chằng.<br>Hạn chế leo cầu thang. Chụp X-quang để kiểm tra sụn khớp.'},
-            {keys:['co tay','ban tay','ngon tay','tay'],reply:'Đau cổ tay/Bàn tay có thể do hội chứng ống cổ tay, viêm gân, gãy xương nhỏ.<br>Nghỉ tay, chườm lạnh, chụp X-quang nếu sưng hoặc bầm tím.'},
-            {keys:['ban chan','got chan','mat ca','chan'],reply:'Đau bàn chân/Gót chân có thể do viêm cân gan bàn chân, gai gót chân, bong gân.<br>Nghỉ ngơi, mang giày đế mềm. Chụp X-quang nếu nghi gãy xương.'},
-            {keys:['gay','gay xuong','vo xuong'],reply:'CẢNH BÁO: Triệu chứng gãy xương: đau dữ dội, sưng, biến dạng, không vận động được.<br>Cần đến cơ sở y tế NGAY để chụp X-quang và cố định xương.'},
-            {keys:['sung','bam tim','tu mau'],reply:'Sưng và bầm tím sau chấn thương: Chườm lạnh 20 phút/giờ trong 48h đầu. Nếu đau tăng hoặc mất cảm giác, đến khám ngay.'},
-            {keys:['mat khau','tai khoan','profile','thong tin'],reply:'Chỉnh sửa thông tin cá nhân và đổi mật khẩu tại:',link:['/profile','Hồ sơ cá nhân']},
-            {keys:['cam on','thanks','ok','hieu roi','duoc roi'],reply:'Không có gì! Nếu cần hỗ trợ thêm, cứ nhắn cho tôi nhé.'},
+        const REPLIES = [
+            // === SYSTEM / NAVIGATION ===
+            {
+                keys: ['dat lich','hen kham','lich kham','book','kham benh','dang ky kham','muon kham','can kham'],
+                action: 'startBooking'
+            },
+            {
+                keys: ['ho so','xem ho so','lich su kham','benh an'],
+                reply: `Mục <strong>Hồ sơ y tế</strong> lưu toàn bộ lịch sử chụp X-quang của bạn, bao gồm:<br>
+• Ảnh X-quang gốc & ảnh AI đã đánh dấu vùng bất thường<br>
+• Kết quả phân tích AI (độ tin cậy, mức nguy cơ)<br>
+• Kết luận & khuyến nghị từ bác sĩ chuyên khoa<br>
+• Trạng thái xử lý hồ sơ theo thời gian thực`,
+                link: ['/patient/records', '📂 Xem hồ sơ y tế']
+            },
+            {
+                keys: ['ket qua','chan doan','ket luan','moi nhat','bao cao'],
+                reply: `Kết quả chẩn đoán mới nhất của bạn đang chờ tại trang <strong>Kết quả chẩn đoán</strong>.<br><br>
+Mỗi kết quả gồm:<br>
+• 🤖 <strong>Phân tích AI</strong>: phát hiện vùng bất thường, điểm nguy cơ<br>
+• 👨‍⚕️ <strong>Kết luận bác sĩ</strong>: chẩn đoán chính thức & phác đồ điều trị<br>
+• 📋 <strong>Khuyến nghị</strong>: cần tái khám, theo dõi, hay phẫu thuật`,
+                link: ['/patient/results', '📋 Xem kết quả']
+            },
+            {
+                keys: ['thong bao','notification','tin nhan moi'],
+                reply: `Tất cả thông báo từ hệ thống (kết quả mới, lịch hẹn được xác nhận...) có trong mục <strong>Thông báo</strong>.`,
+                link: ['/patient/notifications', '🔔 Xem thông báo']
+            },
+            {
+                keys: ['profile','thong tin','ho so ca nhan','sua thong tin'],
+                reply: `Bạn có thể cập nhật thông tin cá nhân gồm: họ tên, ngày sinh, giới tính, số điện thoại, địa chỉ và <strong>tiền sử bệnh</strong>.<br><br>
+💡 <em>Lưu ý: Thông tin tiền sử bệnh giúp bác sĩ chẩn đoán chính xác hơn — hãy điền đầy đủ nhé!</em>`,
+                link: ['/patient/profile', '👤 Cập nhật hồ sơ']
+            },
+
+            // === ĐAU LƯNG ===
+            {
+                keys: ['dau lung','lung duoi','that lung','cot song','thoat vi','dau lung duoi'],
+                reply: `<strong>🦴 Đau lưng</strong> là triệu chứng rất phổ biến. Nguyên nhân thường gặp:<br><br>
+<strong>• Cơ học (80% trường hợp):</strong> Căng cơ, sai tư thế ngồi, nâng vật nặng sai cách<br>
+<strong>• Thoát vị đĩa đệm:</strong> Đau lan xuống mông, đùi hoặc chân (đau thần kinh tọa)<br>
+<strong>• Thoái hóa cột sống:</strong> Thường gặp ở người >40 tuổi, đau khi vận động<br>
+<strong>• Loãng xương:</strong> Nguy cơ gãy đốt sống nếu không điều trị<br><br>
+<strong>🏠 Xử lý tại nhà:</strong><br>
+→ Nghỉ ngơi 1-2 ngày, không nằm yên hoàn toàn<br>
+→ Chườm ấm (đau mãn tính) hoặc chườm lạnh (đau cấp tính)<br>
+→ Giảm đau Paracetamol hoặc Ibuprofen nếu không dị ứng<br><br>
+<strong>⚠️ Đến khám NGAY nếu:</strong><br>
+• Đau kéo dài >2 tuần không giảm<br>
+• Đau lan xuống chân kèm tê bì<br>
+• Mất kiểm soát bàng quang/ruột<br>
+• Đau sau chấn thương hoặc té ngã`
+            },
+
+            // === ĐAU VAI GÁY ===
+            {
+                keys: ['vai','co vai','dau vai','co gay','gay co','cot song co'],
+                reply: `<strong>🦴 Đau vai gáy / Cổ vai gáy</strong><br><br>
+<strong>Nguyên nhân phổ biến:</strong><br>
+• <strong>Hội chứng cổ vai gáy:</strong> Ngồi máy tính lâu, cúi điện thoại — rất phổ biến ở người trẻ<br>
+• <strong>Thoái hóa đốt sống cổ:</strong> Gây đau nhức, tê tay, đau đầu phía sau<br>
+• <strong>Viêm quanh khớp vai:</strong> Đau khi giơ tay, khó mặc áo/chải tóc<br>
+• <strong>Chấn thương dây chằng cổ:</strong> Sau tai nạn hoặc va đập<br><br>
+<strong>🏠 Biện pháp giảm đau:</strong><br>
+→ Điều chỉnh tư thế: màn hình ngang tầm mắt, lưng thẳng<br>
+→ Nghỉ giải lao 5 phút mỗi giờ, xoay cổ nhẹ nhàng<br>
+→ Chườm ấm vùng vai gáy 15-20 phút<br>
+→ Massage nhẹ cơ thang, cơ ức đòn chũm<br><br>
+<strong>⚠️ Cần gặp bác sĩ nếu:</strong><br>
+• Tê bì hoặc yếu cơ cánh tay/bàn tay<br>
+• Đau đầu dữ dội kèm chóng mặt<br>
+• Đau không giảm sau 1 tuần tự điều trị`
+            },
+
+            // === ĐAU KHỚP GỐI ===
+            {
+                keys: ['goi','khop goi','dau goi','dau khop','xuong bau cha','sung goi'],
+                reply: `<strong>🦵 Đau khớp gối</strong><br><br>
+<strong>Các nguyên nhân hay gặp:</strong><br>
+• <strong>Thoái hóa khớp gối (Osteoarthritis):</strong> Đau tăng khi đi nhiều, lên xuống cầu thang, tiếng lục cục<br>
+• <strong>Viêm gân bánh chè:</strong> Đau phía trước đầu gối, gặp ở người chạy bộ/vận động nhiều<br>
+• <strong>Rách meniscus (sụn chêm):</strong> Đau đột ngột sau xoay người, khóa khớp<br>
+• <strong>Đứt dây chằng chéo (ACL):</strong> Nghe tiếng "bốp", sưng nhanh, không chịu lực được<br>
+• <strong>Viêm túi thanh dịch:</strong> Sưng mềm phía sau hoặc trước gối<br><br>
+<strong>🏠 Sơ cứu & chăm sóc:</strong><br>
+→ Phương pháp RICE: <em>Rest – Ice – Compression – Elevation</em><br>
+→ Hạn chế leo cầu thang, ngồi xổm, quỳ gối<br>
+→ Dùng nẹp gối khi vận động nếu đau nhiều<br><br>
+<strong>⚠️ Khám ngay nếu:</strong><br>
+• Gối sưng to đột ngột sau chấn thương<br>
+• Không duỗi thẳng/gập hết được<br>
+• Gối lỏng lẻo, cảm giác "sắp trật khớp"<br>
+• Sốt kèm sưng đỏ (nghi viêm khớp nhiễm khuẩn)`
+            },
+
+            // === ĐAU CỔ TAY / BÀN TAY ===
+            {
+                keys: ['co tay','ban tay','ngon tay','tay','ong co tay','te tay'],
+                reply: `<strong>🖐️ Đau cổ tay / Bàn tay</strong><br><br>
+<strong>Nguyên nhân thường gặp:</strong><br>
+• <strong>Hội chứng ống cổ tay (Carpal Tunnel):</strong> Tê bì ngón 1-4, đau về đêm — phổ biến ở văn phòng<br>
+• <strong>Viêm gân De Quervain:</strong> Đau ngón cái khi cầm nắm, bế em bé<br>
+• <strong>Gãy xương thuyền:</strong> Hay bị bỏ sót, đau âm ỉ lâu ngày sau ngã chống tay<br>
+• <strong>Viêm khớp dạng thấp:</strong> Sưng đối xứng nhiều khớp ngón tay, cứng tay buổi sáng<br>
+• <strong>Gout bàn tay:</strong> Sưng đỏ đột ngột, nóng, đau dữ dội<br><br>
+<strong>🏠 Xử lý:</strong><br>
+→ Đeo nẹp cổ tay khi ngủ (với hội chứng ống cổ tay)<br>
+→ Chườm lạnh nếu sưng cấp tính, chườm ấm nếu đau mãn tính<br>
+→ Điều chỉnh cách gõ bàn phím — kê cổ tay đúng tư thế<br><br>
+<strong>⚠️ Cần chụp X-quang nếu:</strong><br>
+• Sưng, bầm tím sau ngã hoặc va đập<br>
+• Đau kéo dài >1 tuần không giảm<br>
+• Biến dạng xương hoặc cử động hạn chế`
+            },
+
+            // === BÀN CHÂN / GÓT CHÂN ===
+            {
+                keys: ['ban chan','got chan','mat ca','long ban chan','viem can','chai chan'],
+                reply: `<strong>🦶 Đau bàn chân / Gót chân</strong><br><br>
+<strong>Nguyên nhân phổ biến:</strong><br>
+• <strong>Viêm cân gan bàn chân (Plantar fasciitis):</strong> Đau gót nhói khi bước xuống giường buổi sáng<br>
+• <strong>Gai gót chân:</strong> X-quang thấy mấu xương nhọn ở gót, liên quan viêm cân<br>
+• <strong>Bong gân mắt cá:</strong> Đau + sưng sau trẹo chân, cần chụp X-quang loại trừ gãy xương<br>
+• <strong>Ngón chân búa (Hammer toe):</strong> Biến dạng ngón, đau khi mang giày<br>
+• <strong>Gout bàn chân:</strong> Đau dữ dội ngón cái, sưng đỏ đột ngột — thường tự giảm sau vài ngày<br><br>
+<strong>🏠 Chăm sóc:</strong><br>
+→ Mang giày đế mềm, đệm gót silicon<br>
+→ Chườm lạnh sau khi đứng/đi nhiều<br>
+→ Tập kéo giãn cơ bắp chân mỗi sáng<br>
+→ Giảm cân nếu thừa cân — giảm áp lực lên bàn chân`
+            },
+
+            // === GÃY XƯƠNG ===
+            {
+                keys: ['gay','gay xuong','vo xuong','nut xuong','nghi gay','bi gay'],
+                reply: `<strong>🚨 Nghi ngờ gãy xương — Xử lý khẩn cấp</strong><br><br>
+<strong>Dấu hiệu nhận biết gãy xương:</strong><br>
+• Đau dữ dội đột ngột sau chấn thương<br>
+• Sưng và bầm tím lan rộng<br>
+• Biến dạng chi (cong, lệch bất thường)<br>
+• Không thể cử động hoặc chịu lực<br>
+• Nghe/cảm nhận tiếng "rắc" khi chấn thương<br><br>
+<strong>🆘 Sơ cứu đúng cách:</strong><br>
+① <strong>Không nắn chỉnh xương</strong> — sẽ gây tổn thương thêm<br>
+② Cố định chi bằng nẹp tạm (que gỗ, bìa cứng) ở <em>vị trí bị thương</em><br>
+③ Nâng cao chi để giảm sưng<br>
+④ Chườm lạnh (không đặt đá trực tiếp lên da)<br>
+⑤ <strong>Đến cơ sở y tế NGAY</strong> để chụp X-quang và bó bột<br><br>
+<strong>⚠️ GỌI CẤP CỨU 115 nếu:</strong><br>
+• Gãy cột sống / xương chậu / xương đùi<br>
+• Xương lồi ra ngoài da (gãy hở)<br>
+• Bệnh nhân mất ý thức hoặc khó thở`,
+            },
+
+            // === SƯNG / BẦM TÍM ===
+            {
+                keys: ['sung','bam tim','tu mau','phong to','chay mau'],
+                reply: `<strong>🟣 Sưng và bầm tím sau chấn thương</strong><br><br>
+<strong>Phương pháp RICE — áp dụng trong 48 giờ đầu:</strong><br>
+• <strong>R</strong>est (Nghỉ ngơi): Hạn chế vận động vùng tổn thương<br>
+• <strong>I</strong>ce (Chườm lạnh): 15-20 phút, mỗi 2 giờ/lần, không đặt đá trực tiếp<br>
+• <strong>C</strong>ompression (Băng ép): Băng thun để giảm sưng, không quá chặt<br>
+• <strong>E</strong>levation (Nâng cao): Kê cao chi hơn tim khi nghỉ<br><br>
+<strong>Sau 48-72 giờ:</strong> Có thể chuyển sang chườm ấm để tăng tuần hoàn<br><br>
+<strong>⚠️ Cần khám nếu:</strong><br>
+• Sưng tăng dần thay vì giảm sau 48h<br>
+• Đau tăng khi ấn vào xương (nghi gãy)<br>
+• Tê bì hoặc lạnh đầu ngón (ảnh hưởng thần kinh/mạch máu)<br>
+• Sốt kèm sưng đỏ (nghi nhiễm trùng)`
+            },
+
+            // === LOÃNG XƯƠNG ===
+            {
+                keys: ['loang xuong','xuong yeu','mat xuong','calcium','canxi'],
+                reply: `<strong>🦴 Loãng xương (Osteoporosis)</strong><br><br>
+<strong>Ai có nguy cơ cao?</strong><br>
+• Phụ nữ sau mãn kinh, người >65 tuổi<br>
+• Ít vận động, ít tiếp xúc ánh nắng<br>
+• Dùng corticosteroid lâu dài<br>
+• Tiền sử gia đình có loãng xương<br><br>
+<strong>🥛 Phòng ngừa & điều trị:</strong><br>
+→ Bổ sung <strong>Canxi 1000-1200mg/ngày</strong> (sữa, phô mai, đậu nành, rau xanh)<br>
+→ <strong>Vitamin D 800-1000 IU/ngày</strong> hoặc tắm nắng sáng 15-20 phút<br>
+→ Tập thể dục chịu lực: đi bộ, khiêu vũ, thái cực quyền<br>
+→ Tránh hút thuốc, hạn chế rượu bia và caffeine<br><br>
+<strong>📊 Kiểm tra mật độ xương (DEXA scan)</strong> nếu bạn thuộc nhóm nguy cơ — phát hiện sớm giúp ngăn gãy xương`
+            },
+
+            // === VIÊM KHỚP ===
+            {
+                keys: ['viem khop','thoai hoa','xuong khop','cung khop','kho cu dong'],
+                reply: `<strong>🦴 Viêm khớp / Thoái hóa khớp</strong><br><br>
+<strong>Hai loại phổ biến nhất:</strong><br><br>
+<strong>1. Thoái hóa khớp (Osteoarthritis):</strong><br>
+• Đau tăng khi vận động, giảm khi nghỉ<br>
+• Tiếng lục cục khi cử động khớp<br>
+• Thường gặp ở gối, háng, cột sống, ngón tay<br><br>
+<strong>2. Viêm khớp dạng thấp (Rheumatoid):</strong><br>
+• Cứng khớp buổi sáng >1 giờ<br>
+• Sưng đau đối xứng (cả 2 bên cùng lúc)<br>
+• Mệt mỏi, sốt nhẹ kèm đau khớp<br><br>
+<strong>🏠 Kiểm soát triệu chứng:</strong><br>
+→ Duy trì cân nặng lý tưởng — mỗi 1kg giảm giảm 4kg áp lực lên gối<br>
+→ Bơi lội, đạp xe — vận động không tạo áp lực lên khớp<br>
+→ Omega-3 (cá hồi, hạt lanh) giúp giảm viêm tự nhiên<br>
+→ Không tự ý dùng corticoid kéo dài — tổn thương sụn khớp`
+            },
+
+            // === CHẤN THƯƠNG THỂ THAO ===
+            {
+                keys: ['chan thuong','the thao','bong chan','trat khop','dau co','co bi cang'],
+                reply: `<strong>⚽ Chấn thương thể thao</strong><br><br>
+<strong>Phân loại phổ biến:</strong><br>
+• <strong>Bong gân:</strong> Giãn/rách dây chằng — sưng, đau, bầm tím nhưng xương còn nguyên<br>
+• <strong>Căng cơ (strain):</strong> Rách sợi cơ — đau nhói khi co cơ, sờ vào đau<br>
+• <strong>Trật khớp:</strong> Xương lệch khỏi ổ khớp — thấy biến dạng rõ<br>
+• <strong>Viêm gân:</strong> Đau dọc đường gân, tăng khi gân hoạt động<br><br>
+<strong>🏠 Sơ cứu (RICE):</strong><br>
+→ Dừng hoạt động ngay, tránh cố thi đấu tiếp<br>
+→ Chườm đá 20 phút mỗi 2 giờ trong 48h đầu<br>
+→ Băng ép nhẹ, kê cao chi<br><br>
+<strong>🔬 Nên chụp X-quang để loại trừ gãy xương</strong> nếu:<br>
+• Không thể chịu lực hoàn toàn<br>
+• Đau điểm khu trú trên xương (Ottawa Rules)<br>
+• Sưng to nhanh sau chấn thương`
+            },
+
+            // === XÉT NGHIỆM / CHẨN ĐOÁN ===
+            {
+                keys: ['xet nghiem','x-quang','chup xquang','mri','sieu am','ct scan'],
+                reply: `<strong>🔬 Các phương pháp chẩn đoán hình ảnh</strong><br><br>
+<strong>• X-quang (Radiograph):</strong> Tốt nhất cho xương — phát hiện gãy xương, thoái hóa, loãng xương. Nhanh & rẻ<br><br>
+<strong>• Siêu âm (Ultrasound):</strong> Tốt cho gân, cơ, dịch khớp. Không phóng xạ, có thể theo dõi chuyển động<br><br>
+<strong>• MRI:</strong> Chi tiết nhất cho sụn, dây chằng, tủy xương. Không phóng xạ nhưng tốn thời gian & chi phí<br><br>
+<strong>• CT Scan:</strong> Xương phức tạp (cột sống, xương chậu). Phóng xạ cao hơn X-quang<br><br>
+💡 <em>MediScan AI sử dụng X-quang + AI để sàng lọc sơ bộ, sau đó bác sĩ xem xét và chỉ định thêm nếu cần.</em>`,
+                link: ['/patient/upload', '📷 Gửi ảnh X-quang']
+            },
+
+            // === THUỐC / GIẢM ĐAU ===
+            {
+                keys: ['thuoc','uong thuoc','giam dau','paracetamol','ibuprofen','khang sinh'],
+                reply: `<strong>💊 Hướng dẫn dùng thuốc giảm đau xương khớp</strong><br><br>
+<strong>Paracetamol (Acetaminophen):</strong><br>
+→ An toàn hơn, ít tác dụng phụ tiêu hóa<br>
+→ Liều: 500-1000mg, cách 4-6 giờ, tối đa 4g/ngày<br>
+→ ⚠️ <strong>Tuyệt đối không uống rượu bia</strong> khi dùng Paracetamol<br><br>
+<strong>Ibuprofen / Naproxen (NSAIDs):</strong><br>
+→ Giảm đau + kháng viêm tốt hơn, phù hợp viêm khớp<br>
+→ <em>Uống sau ăn no</em> để tránh loét dạ dày<br>
+→ ⚠️ Không dùng nếu: bệnh dạ dày, suy thận, đang mang thai<br><br>
+<strong>⛔ KHÔNG tự ý dùng:</strong><br>
+• Corticosteroid (Prednisolone, Dexamethasone) kéo dài<br>
+• Kháng sinh khi chưa có chỉ định của bác sĩ<br><br>
+<em>Hãy tham khảo bác sĩ trước khi dùng thuốc dài ngày.</em>`
+            },
+
+            // === CẤP CỨU ===
+            {
+                keys: ['cap cuu','khan cap','nguy hiem','khong cu dong','liet','mat y thuc'],
+                reply: `<strong>🚨 TÌNH HUỐNG KHẨN CẤP — GỌI 115 NGAY!</strong><br><br>
+<strong>Các dấu hiệu cần cấp cứu ngay:</strong><br>
+🔴 Gãy xương hở (xương đâm ra ngoài da)<br>
+🔴 Chấn thương cột sống (tê liệt tứ chi, mất cảm giác)<br>
+🔴 Mất ý thức sau chấn thương đầu<br>
+🔴 Chảy máu không cầm được<br>
+🔴 Biến dạng chi nghiêm trọng sau tai nạn<br><br>
+<strong>☎️ Đường dây cấp cứu: <span style="color:red;font-size:1.1em;">115</span></strong><br><br>
+<em>Trong khi chờ cấp cứu: Giữ nạn nhân bất động, không di chuyển nếu nghi chấn thương cột sống.</em>`
+            },
+
+            // === CHÀO HỎI / KẾT THÚC ===
+            {
+                keys: ['xin chao','chao','hello','hi','hey'],
+                reply: `Xin chào! 👋 Tôi là <strong>Trợ lý AI MediScan</strong>.<br><br>
+Tôi có thể hỗ trợ bạn:<br>
+🦴 Tư vấn triệu chứng xương khớp<br>
+📋 Hướng dẫn sử dụng hệ thống<br>
+📷 Phân tích ảnh X-quang sơ bộ<br>
+📅 Hỗ trợ đặt lịch khám<br><br>
+Bạn đang gặp vấn đề gì? Hãy mô tả triệu chứng hoặc chọn gợi ý bên dưới.`
+            },
+            {
+                keys: ['cam on','thanks','ok','hieu roi','duoc roi','tot','hay qua','tuyet'],
+                reply: `Không có gì! Rất vui khi được hỗ trợ bạn. 😊<br><br>
+💡 <em>Lưu ý: Thông tin từ chatbot chỉ mang tính tham khảo. Để chẩn đoán chính xác, vui lòng gặp bác sĩ chuyên khoa.</em><br><br>
+Nếu cần thêm thông tin, cứ hỏi tôi nhé!`
+            },
+            {
+                keys: ['tam biet','bye','thoat','dong'],
+                reply: `Tạm biệt bạn! 👋 Chúc bạn sức khỏe tốt.<br>
+Khi cần hỗ trợ, tôi luôn ở đây. Nhớ tái khám định kỳ theo lịch hẹn nhé! 🏥`
+            },
         ];
 
-        function botReply(userText){
+        // ─── Booking flow state ───────────────────────────────────────────────
+        const bookingState = { active: false, step: null, doctorId: null, doctorName: null, date: null };
+
+        function getDoctors() {
+            const raw = document.getElementById('doctorListData')?.dataset.doctors || '';
+            if (!raw) return [];
+            return raw.split(',').filter(Boolean).map(entry => {
+                const [id, ...nameParts] = entry.split(':');
+                return { id, name: nameParts.join(':') };
+            });
+        }
+
+        function startBookingFlow() {
+            const doctors = getDoctors();
+            bookingState.active = true;
+            bookingState.step = 'doctor';
+            bookingState.doctorId = null; bookingState.doctorName = null; bookingState.date = null;
+
+            if (!doctors.length) {
+                appendBotHTML('Hiện tại chưa có bác sĩ nào. Vui lòng thử lại sau hoặc <a class="chat-link-btn" href="/home#booking">đặt lịch trực tiếp</a>.');
+                bookingState.active = false;
+                return;
+            }
+            let html = '📋 <strong>Đặt lịch khám qua chatbot</strong><br><br>Bạn muốn khám với bác sĩ nào?<br><br>';
+            doctors.forEach((d, i) => {
+                html += `<button class="chat-link-btn" style="margin:.2rem .2rem .2rem 0;cursor:pointer;" onclick="selectDoctor('${d.id}','${d.name.replace(/'/g,"'")}')">${i + 1}. BS. ${d.name}</button>`;
+            });
+            html += `<br><br><button class="chat-link-btn" style="background:#64748b;margin-top:.2rem;" onclick="selectDoctor('','Chưa chọn')">Không chọn bác sĩ cụ thể</button>`;
+            appendBotHTML(html);
+        }
+
+        function selectDoctor(id, name) {
+            bookingState.doctorId = id || null;
+            bookingState.doctorName = name;
+            bookingState.step = 'date';
+            const today = new Date().toISOString().split('T')[0];
+            appendMessage('BS. ' + name, 'user');
+            appendBotHTML(`✅ Đã chọn: <strong>BS. ${name}</strong><br><br>📅 Vui lòng nhập <strong>ngày khám</strong> (định dạng YYYY-MM-DD, ví dụ <em>${today}</em>):`);
+            document.getElementById('chatInput').focus();
+        }
+
+        function selectTime(time) {
+            appendMessage(time, 'user');
+            confirmBooking(time);
+        }
+
+        function confirmBooking(time) {
+            bookingState.active = false;
+            bookingState.step = null;
             showTyping();
-            const lower=userText.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
-            const match=REPLIES.find(r=>r.keys.some(k=>lower.includes(k)));
-            setTimeout(()=>{
+            const token  = document.getElementById('csrfToken').dataset.token;
+            const header = document.getElementById('csrfHeader').dataset.header;
+            const form   = new URLSearchParams();
+            if (bookingState.doctorId) form.append('doctorId', bookingState.doctorId);
+            form.append('date', bookingState.date);
+            form.append('time', time);
+            fetch('/patient/book-appointment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', [header]: token },
+                body: form.toString()
+            }).then(r => r.json()).then(data => {
                 hideTyping();
-                if(match){
-                    let html=match.reply;
-                    if(match.link)html+=`<br><a class="chat-link-btn" href="${match.link[0]}">${match.link[1]}</a>`;
+                if (data.success) {
+                    appendBotHTML(`🎉 <strong>Đặt lịch thành công!</strong><br><br>
+📋 Mã lịch hẹn: <strong>${data.appointmentCode || 'Đang tạo...'}</strong><br>
+👨‍⚕️ Bác sĩ: <strong>BS. ${bookingState.doctorName}</strong><br>
+📅 Ngày: <strong>${bookingState.date}</strong><br>
+⏰ Giờ: <strong>${time}</strong><br><br>
+⚠️ Lịch hẹn cần <strong>lễ tân xác nhận</strong> trước khi có hiệu lực.<br>
+<a class="chat-link-btn" href="/home">📋 Xem lịch hẹn</a>`);
+                } else {
+                    appendBotHTML(`❌ <strong>Không thể đặt lịch:</strong><br>${data.message || 'Có lỗi xảy ra.'}<br><br>
+<button class="chat-link-btn" style="cursor:pointer;" onclick="startBookingFlow()">🔄 Thử lại</button>`);
+                }
+            }).catch(() => { hideTyping(); appendBotHTML('Lỗi kết nối. Vui lòng thử lại sau.'); });
+        }
+
+        function handleBookingInput(text) {
+            if (bookingState.step === 'date') {
+                // Validate date format YYYY-MM-DD
+                const dateReg = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+                if (!dateReg.test(text)) {
+                    const today = new Date().toISOString().split('T')[0];
+                    appendBotHTML(`⚠️ Định dạng ngày không hợp lệ. Vui lòng nhập theo dạng <strong>YYYY-MM-DD</strong>, ví dụ: <em>${today}</em>`);
+                    return;
+                }
+                const chosen = new Date(text); const today = new Date(); today.setHours(0,0,0,0);
+                if (chosen < today) {
+                    appendBotHTML('⚠️ Không thể đặt lịch trong quá khứ. Vui lòng chọn ngày từ hôm nay trở đi.');
+                    return;
+                }
+                bookingState.date = text;
+                bookingState.step = 'time';
+                const slots = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','13:30','14:00','14:30','15:00','15:30'];
+                let html = `✅ Ngày: <strong>${text}</strong><br><br>⏰ Chọn <strong>giờ khám</strong>:<br><br>`;
+                slots.forEach(s => {
+                    html += `<button class="chat-link-btn" style="margin:.15rem;" onclick="selectTime('${s}')">${s}</button>`;
+                });
+                appendBotHTML(html);
+            }
+        }
+
+        function botReply(userText){
+            if (bookingState.active) { handleBookingInput(userText); return; }
+            showTyping();
+            const lower = userText.toLowerCase()
+                .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+                .replace(/đ/g, 'd');
+            const match = REPLIES.find(r => r.keys.some(k => lower.includes(k)));
+            setTimeout(() => {
+                hideTyping();
+                if (match) {
+                    if (match.action === 'startBooking') { startBookingFlow(); return; }
+                    let html = match.reply;
+                    if (match.link) html += `<br><a class="chat-link-btn" href="${match.link[0]}">${match.link[1]}</a>`;
                     appendBotHTML(html);
                 } else {
-                    appendBotHTML('Cảm ơn bạn đã chia sẻ! Tôi chưa có câu trả lời cụ thể cho vấn đề này.<br>Bạn nên đặt lịch để bác sĩ chuyên khoa khám trực tiếp.<br><a class="chat-link-btn" href="/home#booking">Đặt lịch ngay</a>');
+                    const isSymptom = /dau|nhuc|kho|sung|met|sot|bam/.test(lower);
+                    if (isSymptom) {
+                        appendBotHTML(
+                            `Cảm ơn bạn đã mô tả triệu chứng! Tôi chưa có đủ thông tin để tư vấn cụ thể về trường hợp này.<br><br>
+<strong>Bạn có thể:</strong><br>
+• 📷 <strong>Gửi ảnh X-quang</strong> để AI phân tích sơ bộ<br>
+• 📅 <strong>Đặt lịch khám</strong> với bác sĩ chuyên khoa xương khớp<br><br>
+<em>Triệu chứng đau kéo dài >1 tuần hoặc ngày càng nặng hơn — nên khám sớm!</em><br>
+<a class="chat-link-btn" href="/home#booking">📅 Đặt lịch khám</a>`
+                        );
+                    } else {
+                        appendBotHTML(
+                            `Tôi hiểu câu hỏi của bạn, nhưng chưa có thông tin cụ thể về vấn đề này trong cơ sở dữ liệu.<br><br>
+Hãy thử hỏi về: <em>triệu chứng cụ thể, vị trí đau, hoặc cách sử dụng hệ thống</em>.<br><br>
+Hoặc liên hệ trực tiếp với đội ngũ hỗ trợ tại phòng khám.`
+                        );
+                    }
                 }
-            },700+Math.random()*400);
+            }, 600 + Math.random() * 500);
         }
 
         function sendChat(){
