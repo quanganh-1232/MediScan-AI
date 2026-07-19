@@ -61,6 +61,18 @@
         </button>
     </div>
 
+    <!-- Filter tabs -->
+    <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-sm" id="tabAll" onclick="filterNotifs('all')"
+                style="background:#2563eb;color:#fff;border-radius:999px;padding:.3rem .9rem;font-size:.82rem;border:none;">
+            Tat ca
+        </button>
+        <button class="btn btn-sm" id="tabUnread" onclick="filterNotifs('unread')"
+                style="background:#f1f5f9;color:#475569;border-radius:999px;padding:.3rem .9rem;font-size:.82rem;border:none;">
+            Chua doc <span th:if="${unreadCount > 0}" class="badge bg-primary ms-1" th:text="${unreadCount}"></span>
+        </button>
+    </div>
+
     <!-- CSRF token -->
     <span id="csrfToken"  th:attr="data-token=${_csrf.token}"  style="display:none"></span>
     <span id="csrfHeader" th:attr="data-header=${_csrf.headerName}" style="display:none"></span>
@@ -174,9 +186,24 @@
                     document.getElementById('readAllBtn')?.remove();
                     const badge = document.querySelector('.ms-notification-count');
                     if (badge) badge.style.display = 'none';
-                    document.querySelector('.text-muted.small').textContent = '0 thông báo chưa đọc';
+                    document.querySelector('.text-muted.small').textContent = '0 thong bao chua doc';
                 }
             });
+    }
+
+    function filterNotifs(tab) {
+        const tabAll = document.getElementById('tabAll');
+        const tabUnread = document.getElementById('tabUnread');
+        const cards = document.querySelectorAll('.notif-card');
+        if (tab === 'unread') {
+            tabUnread.style.background = '#2563eb'; tabUnread.style.color = '#fff';
+            tabAll.style.background = '#f1f5f9'; tabAll.style.color = '#475569';
+            cards.forEach(c => c.style.display = c.classList.contains('unread') ? '' : 'none');
+        } else {
+            tabAll.style.background = '#2563eb'; tabAll.style.color = '#fff';
+            tabUnread.style.background = '#f1f5f9'; tabUnread.style.color = '#475569';
+            cards.forEach(c => c.style.display = '');
+        }
     }
 </script>
 </body>
