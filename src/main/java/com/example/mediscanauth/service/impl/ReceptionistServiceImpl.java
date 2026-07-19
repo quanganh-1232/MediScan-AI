@@ -37,6 +37,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     private static final Pattern PHONE_PATTERN =
             Pattern.compile("^(0\\d{9}|\\+84\\d{9})$");
     private static final int MAX_SYMPTOM_LENGTH = 100; // matches appointments.body_part column width
+    private static final int MAX_NOTE_LENGTH = 500;
+    private static final int MAX_FUTURE_BOOKING_DAYS = 90;
     private static final LocalTime CLINIC_OPEN = LocalTime.of(6, 0);
     private static final LocalTime CLINIC_CLOSE = LocalTime.of(21, 0);
     // Two appointments for the same doctor within this many minutes of each
@@ -67,7 +69,9 @@ public class ReceptionistServiceImpl implements ReceptionistService {
             throw new InvalidFieldException("Lịch hẹn không ở trạng thái chờ xác nhận.");
         }
         if (appointment.getDoctor() != null) {
-            ensureDoctorAvailable(appointment.getDoctor(), appointment.getScheduledTime(), appointment.getAppointmentId());
+            User lockedDoctor = userRepository.findByIdForUpdate(appointment.getDoctor().getUserId())
+                    .orElseThrow(() -> new InvalidFieldException("Không tìm thấy bác sĩ."));
+            ensureDoctorAvailable(lockedDoctor, appointment.getScheduledTime(), appointment.getAppointmentId());
         }
         User receptionist = findReceptionist(receptionistEmail);
         appointment.setReceptionist(receptionist);
@@ -104,8 +108,10 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         if (TERMINAL_STATUSES.contains(appointment.getStatus())) {
             throw new InvalidFieldException("Không thể đổi bác sĩ cho lịch hẹn đã kết thúc.");
         }
+        String cleanNote = validateNote(note, "Ghi chú");
         User receptionist = findReceptionist(receptionistEmail);
         User doctor = findDoctorOrThrow(doctorId);
+        userRepository.findByIdForUpdate(doctor.getUserId());
         ensureDoctorAvailable(doctor, appointment.getScheduledTime(), appointment.getAppointmentId());
 
         User previousDoctor = appointment.getDoctor();
@@ -116,8 +122,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         String historyNote = previousDoctor != null
                 ? "Chuyển từ BS. " + previousDoctor.getFullName() + " sang BS. " + doctor.getFullName() + "."
                 : "Điều hướng đến BS. " + doctor.getFullName() + ".";
-        if (note != null && !note.isBlank()) {
-            historyNote += " Ghi chú: " + note.trim();
+        if (cleanNote != null) {
+            historyNote += " Ghi chú: " + cleanNote;
         }
         logStatusChange(appointment, appointment.getStatus(), receptionist, historyNote);
         return appointment;
@@ -142,6 +148,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         User doctor = doctorId != null ? findDoctorOrThrow(doctorId) : null;
         LocalDateTime scheduledAt = LocalDateTime.of(date, time);
         if (doctor != null) {
+            userRepository.findByIdForUpdate(doctor.getUserId());
             ensureDoctorAvailable(doctor, scheduledAt, null);
         }
 
@@ -190,14 +197,15 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         if (TERMINAL_STATUSES.contains(appointment.getStatus())) {
             throw new InvalidFieldException("Lịch hẹn đã kết thúc, không thể hủy.");
         }
+        String cleanReason = validateNote(reason, "Lý do hủy");
         User receptionist = findReceptionist(receptionistEmail);
         appointment.setReceptionist(receptionist);
         appointment.setStatus("CANCELLED");
         appointmentRepository.save(appointment);
 
         String note = "Lễ tân hủy lịch hẹn.";
-        if (reason != null && !reason.isBlank()) {
-            note += " Lý do: " + reason.trim();
+        if (cleanReason != null) {
+            note += " Lý do: " + cleanReason;
         }
         logStatusChange(appointment, "CANCELLED", receptionist, note);
         return appointment;
@@ -287,10 +295,25 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         return trimmed;
     }
 
+    private String validateNote(String note, String fieldLabel) {
+        if (note == null || note.isBlank()) {
+            return null;
+        }
+        String trimmed = note.trim();
+        if (trimmed.length() > MAX_NOTE_LENGTH) {
+            throw new InvalidFieldException(fieldLabel + " không được vượt quá " + MAX_NOTE_LENGTH + " ký tự.");
+        }
+        return trimmed;
+    }
+
     private LocalDate validateScheduledDate(LocalDate scheduledDate) {
         LocalDate date = scheduledDate != null ? scheduledDate : LocalDate.now();
         if (date.isBefore(LocalDate.now())) {
             throw new InvalidFieldException("Ngày khám không được ở trong quá khứ.");
+        }
+        if (date.isAfter(LocalDate.now().plusDays(MAX_FUTURE_BOOKING_DAYS))) {
+            throw new InvalidFieldException(
+                    "Chỉ có thể đặt lịch trong vòng " + MAX_FUTURE_BOOKING_DAYS + " ngày tới.");
         }
         return date;
     }
@@ -310,6 +333,9 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         String roleName = doctor.getRole() != null ? doctor.getRole().getRoleName() : null;
         if (!"DOCTOR".equals(roleName) && !"ROLE_DOCTOR".equals(roleName)) {
             throw new InvalidFieldException(doctor.getFullName() + " không phải là bác sĩ.");
+        }
+        if (!"ACTIVE".equals(doctor.getStatus())) {
+            throw new InvalidFieldException("BS. " + doctor.getFullName() + " hiện không hoạt động, không thể gán lịch hẹn.");
         }
         return doctor;
     }

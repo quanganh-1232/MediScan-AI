@@ -15,7 +15,9 @@ import java.util.List;
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
     List<Appointment> findTop10ByOrderByScheduledTimeDesc();
 
-    List<Appointment> findByStatusOrderByScheduledTimeAsc(String status);
+    @Query("select a from Appointment a left join fetch a.patient left join fetch a.doctor " +
+           "where a.status = :status order by a.scheduledTime asc")
+    List<Appointment> findByStatusOrderByScheduledTimeAsc(@Param("status") String status);
 
     List<Appointment> findByDoctorUserIdOrderByScheduledTimeDesc(Long doctorId);
 
@@ -25,7 +27,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByPatientUserOrderByScheduledTimeDesc(User user);
 
-    List<Appointment> findByScheduledTimeBetweenOrderByScheduledTimeAsc(LocalDateTime from, LocalDateTime to);
+    @Query("select a from Appointment a left join fetch a.patient left join fetch a.doctor " +
+           "where a.scheduledTime between :from and :to order by a.scheduledTime asc")
+    List<Appointment> findByScheduledTimeBetweenOrderByScheduledTimeAsc(@Param("from") LocalDateTime from,
+                                                                        @Param("to") LocalDateTime to);
 
     long countByScheduledTimeBetween(LocalDateTime from, LocalDateTime to);
 
@@ -53,10 +58,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     @Query(value = """
             select a from Appointment a
+            left join fetch a.patient p
+            left join fetch a.doctor
             where (:keyword is null or :keyword = ''
                 or lower(a.appointmentCode) like lower(concat('%', :keyword, '%'))
-                or lower(a.patient.fullName) like lower(concat('%', :keyword, '%'))
-                or a.patient.phone like concat('%', :keyword, '%'))
+                or lower(p.fullName) like lower(concat('%', :keyword, '%'))
+                or p.phone like concat('%', :keyword, '%'))
               and (:dateFrom is null or a.scheduledTime >= :dateFrom)
               and (:dateTo is null or a.scheduledTime < :dateTo)
               and (:status is null or :status = '' or a.status = :status)

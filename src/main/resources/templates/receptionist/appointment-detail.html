@@ -118,7 +118,7 @@
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="ms-label">Ghi chú (không bắt buộc)</label>
-                                    <input type="text" name="note" class="form-control ms-input" placeholder="Lý do điều hướng...">
+                                    <input type="text" name="note" class="form-control ms-input" placeholder="Lý do điều hướng..." maxlength="500">
                                 </div>
                                 <div class="col-12 d-grid mt-2">
                                     <button type="submit" class="btn ms-btn ms-btn-primary text-white">
@@ -152,7 +152,7 @@
                             <input type="hidden" name="redirectTo" th:value="@{/receptionist/appointments/{id}(id=${appointment.appointmentId})}"/>
                             <div class="col-12">
                                 <label class="ms-label">Lý do hủy (không bắt buộc)</label>
-                                <input type="text" name="reason" class="form-control ms-input" placeholder="Bệnh nhân xin đổi lịch...">
+                                <input type="text" name="reason" class="form-control ms-input" placeholder="Bệnh nhân xin đổi lịch..." maxlength="500">
                             </div>
                             <div class="col-12 col-md-6 d-grid">
                                 <button type="submit" class="btn btn-outline-danger">
