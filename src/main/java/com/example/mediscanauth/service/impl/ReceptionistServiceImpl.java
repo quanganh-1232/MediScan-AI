@@ -319,12 +319,28 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     }
 
     private LocalTime validateScheduledTime(LocalTime scheduledTime) {
-        LocalTime time = scheduledTime != null ? scheduledTime : LocalTime.now();
+        LocalTime time = scheduledTime != null ? scheduledTime : roundUpToSlot(LocalTime.now());
         if (time.isBefore(CLINIC_OPEN) || time.isAfter(CLINIC_CLOSE)) {
             throw new InvalidFieldException(
                     "Giờ khám phải trong khung giờ hoạt động của phòng khám (" + CLINIC_OPEN + " - " + CLINIC_CLOSE + ").");
         }
+        long minutesFromOpen = java.time.Duration.between(CLINIC_OPEN, time).toMinutes();
+        if (minutesFromOpen % SLOT_MINUTES != 0) {
+            throw new InvalidFieldException(
+                    "Giờ khám phải chọn theo ca " + SLOT_MINUTES + " phút (VD: 08:00, 08:30), không nhập giờ lẻ.");
+        }
         return time;
+    }
+
+    /** Rounds a raw clock time up to the next bookable slot boundary. */
+    private LocalTime roundUpToSlot(LocalTime time) {
+        if (time.isBefore(CLINIC_OPEN)) {
+            return CLINIC_OPEN;
+        }
+        long minutesFromOpen = java.time.Duration.between(CLINIC_OPEN, time).toMinutes();
+        long roundedUp = ((minutesFromOpen + SLOT_MINUTES - 1) / SLOT_MINUTES) * SLOT_MINUTES;
+        LocalTime slot = CLINIC_OPEN.plusMinutes(roundedUp);
+        return slot.isAfter(CLINIC_CLOSE) ? CLINIC_CLOSE : slot;
     }
 
     private User findDoctorOrThrow(Long doctorId) {

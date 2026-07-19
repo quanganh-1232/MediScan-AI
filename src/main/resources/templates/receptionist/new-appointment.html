@@ -77,10 +77,13 @@
                             <div class="small text-muted mt-1">Mặc định là hôm nay, có thể chọn trong vòng 90 ngày tới.</div>
                         </div>
                         <div class="col-6">
-                            <label class="ms-label">Giờ khám</label>
-                            <input type="time" name="scheduledTime" class="form-control ms-input" min="06:00" max="21:00"
-                                   th:value="${formScheduledTime != null ? formScheduledTime : #temporals.format(#temporals.createNow(), 'HH:mm')}">
-                            <div class="small text-muted mt-1">Trong khung giờ hoạt động 06:00 - 21:00.</div>
+                            <label class="ms-label">Giờ khám (theo ca)</label>
+                            <select name="scheduledTime" class="form-select ms-input" required>
+                                <option th:each="slot : ${timeSlots}" th:value="${#temporals.format(slot, 'HH:mm')}"
+                                        th:text="${#temporals.format(slot, 'HH:mm')}"
+                                        th:selected="${(formScheduledTime != null ? formScheduledTime : defaultTimeSlot) == slot}">08:00</option>
+                            </select>
+                            <div class="small text-muted mt-1">Mỗi ca 30 phút, trong khung giờ hoạt động 06:00 - 21:00.</div>
                         </div>
                         <div class="col-12 d-grid mt-2">
                             <button type="submit" class="btn ms-btn ms-btn-primary text-white">

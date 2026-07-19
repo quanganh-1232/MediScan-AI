@@ -7,11 +7,13 @@ import com.example.mediscanauth.service.PatientWorkflowService;
 import com.example.mediscanauth.service.UserAccountService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -37,16 +39,25 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    // TODO: move to application.properties
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
-    private static final String AI_SERVICE_URL = "http://localhost:8000/predict";
     private static final int LEGACY_TEXT_COLUMN_LIMIT = 900;
+    private static final int AI_CONNECT_TIMEOUT_MS = 5_000;
+    private static final int AI_READ_TIMEOUT_MS = 45_000;
+
+    @Value("${ai.service.url}")
+    private String aiServiceUrl;
+
+    @Value("${ai.service.api-key}")
+    private String aiServiceApiKey;
 
     public PatientWorkflowServiceImpl(ImagingRecordRepository imagingRecordRepository,
                                       UserAccountService userAccountService) {
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
-        this.restTemplate = new RestTemplate();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
+        requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
+        this.restTemplate = new RestTemplate(requestFactory);
         this.objectMapper = new ObjectMapper();
     }
 
@@ -69,7 +80,8 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
             // 2. Send to AI Service
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            
+            headers.set("X-Internal-Api-Key", aiServiceApiKey);
+
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", new ByteArrayResource(fileBytes) {
                 @Override
@@ -87,7 +99,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
 
             ResponseEntity<String> response = null;
             try {
-                response = restTemplate.postForEntity(AI_SERVICE_URL, requestEntity, String.class);
+                response = restTemplate.postForEntity(aiServiceUrl, requestEntity, String.class);
             } catch (Exception e) {
                 record.setFileName(originalFileName);
                 record.setAiPrediction(limitText("Lỗi kết nối AI: " + e.getMessage(), LEGACY_TEXT_COLUMN_LIMIT));

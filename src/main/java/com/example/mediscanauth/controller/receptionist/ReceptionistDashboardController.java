@@ -232,7 +232,34 @@ public class ReceptionistDashboardController {
     public String newWalkInForm(Model model) {
         model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
                 DOCTOR_ROLE_NAMES, "ACTIVE"));
+        model.addAttribute("timeSlots", buildTimeSlots());
+        model.addAttribute("defaultTimeSlot", roundUpToSlot(LocalTime.now()));
         return "receptionist/new-appointment";
+    }
+
+    /**
+     * Fixed 30-minute booking slots (06:00, 06:30, ... 20:30) so walk-ins
+     * always land on the same grid the doctor-conflict check uses, instead
+     * of letting the receptionist type an arbitrary time like 09:07.
+     */
+    private List<LocalTime> buildTimeSlots() {
+        List<LocalTime> slots = new ArrayList<>();
+        for (LocalTime t = SCHEDULE_OPEN; t.isBefore(SCHEDULE_CLOSE); t = t.plusMinutes(SCHEDULE_SLOT_MINUTES)) {
+            slots.add(t);
+        }
+        return slots;
+    }
+
+    private LocalTime roundUpToSlot(LocalTime time) {
+        if (time.isBefore(SCHEDULE_OPEN)) {
+            return SCHEDULE_OPEN;
+        }
+        long minutesFromOpen = Duration.between(SCHEDULE_OPEN, time).toMinutes();
+        long roundedUp = ((minutesFromOpen + SCHEDULE_SLOT_MINUTES - 1) / SCHEDULE_SLOT_MINUTES) * SCHEDULE_SLOT_MINUTES;
+        LocalTime slot = SCHEDULE_OPEN.plusMinutes(roundedUp);
+        return slot.isAfter(SCHEDULE_CLOSE.minusMinutes(SCHEDULE_SLOT_MINUTES))
+                ? SCHEDULE_CLOSE.minusMinutes(SCHEDULE_SLOT_MINUTES)
+                : slot;
     }
 
     @PostMapping("/receptionist/appointments/walk-in")
