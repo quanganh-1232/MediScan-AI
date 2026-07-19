@@ -233,7 +233,7 @@
                                 </span>
                             </td>
                             <td class="text-end">
-                                <a th:href="@{/patient/records}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary">Xem chi tiết <i class="bi bi-chevron-right"></i></a>
+                                <a th:href="@{/patient/appointments/{id}(id=${a.appointmentId})}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary">Xem chi tiết <i class="bi bi-chevron-right"></i></a>
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(myAppointments)}">
