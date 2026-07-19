@@ -5,6 +5,7 @@ import com.example.mediscanauth.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -35,6 +36,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     boolean existsByTechnicianUserId(Long technicianId);
 
     List<Appointment> findByDoctorAndScheduledTimeBetween(User doctor, LocalDateTime from, LocalDateTime to);
+
+    /**
+     * Atomically claims an appointment only if it's still in the expected
+     * status, so two receptionists racing to "call next patient" can't both
+     * succeed on the same row — the loser gets 0 rows affected instead of
+     * silently overwriting the winner's claim.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Appointment a set a.status = :newStatus, a.receptionist = :receptionist " +
+           "where a.appointmentId = :id and a.status = :expectedStatus")
+    int claimAppointment(@Param("id") Long id,
+                         @Param("expectedStatus") String expectedStatus,
+                         @Param("newStatus") String newStatus,
+                         @Param("receptionist") User receptionist);
 
     @Query(value = """
             select a from Appointment a
