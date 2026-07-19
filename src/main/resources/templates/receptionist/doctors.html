@@ -38,7 +38,7 @@
                 <div class="row g-3">
                     <div class="col-12 col-md-6" th:each="d : ${doctorsOnDuty}">
                         <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:#f8fafd;">
-                            <span class="ms-avatar ms-avatar-primary fs-5" style="width:3rem;height:3rem;" th:text="${#strings.substring(d.fullName, 0, 1).toUpperCase()}">A</span>
+                            <span class="ms-avatar ms-avatar-primary fs-5" style="width:3rem;height:3rem;" th:text="${!#strings.isEmpty(d.fullName) ? #strings.substring(d.fullName, 0, 1).toUpperCase() : '?'}">A</span>
                             <span class="flex-grow-1 min-w-0">
                                 <span class="d-block fw-semibold" th:text="${'BS. ' + d.fullName}">BS. Trần Minh Đức</span>
                                 <span class="d-block small text-muted">Chấn thương chỉnh hình</span>

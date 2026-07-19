@@ -62,7 +62,7 @@
                     <div class="rc-schedule-row" th:each="row : ${scheduleRows}">
                         <div class="rc-schedule-doctor-col">
                             <span class="ms-avatar ms-avatar-primary" style="width:2.1rem;height:2.1rem;font-size:0.85rem;"
-                                  th:text="${#strings.substring(row.doctor.fullName, 0, 1).toUpperCase()}">A</span>
+                                  th:text="${!#strings.isEmpty(row.doctor.fullName) ? #strings.substring(row.doctor.fullName, 0, 1).toUpperCase() : '?'}">A</span>
                             <span th:text="${'BS. ' + row.doctor.fullName}">BS. Trần Minh Đức</span>
                         </div>
                         <div class="rc-schedule-track">
