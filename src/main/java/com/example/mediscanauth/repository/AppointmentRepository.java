@@ -20,11 +20,27 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByPatientUserOrderByScheduledTimeDesc(User user);
 
+    Page<Appointment> findByPatientUserOrderByScheduledTimeDesc(User user, Pageable pageable);
+
     List<Appointment> findByScheduledTimeBetweenOrderByScheduledTimeAsc(LocalDateTime from, LocalDateTime to);
 
     long countByScheduledTimeBetween(LocalDateTime from, LocalDateTime to);
 
     long countByStatusIn(List<String> statuses);
+
+    /**
+     * Kiểm tra bác sĩ có lịch trùng trong khoảng [from, to) không (bỏ qua lịch đã hủy/bỏ lỡ).
+     */
+    @Query("""
+            select count(a) from Appointment a
+            where a.doctor = :doctor
+              and a.scheduledTime >= :from
+              and a.scheduledTime < :to
+              and a.status not in ('CANCELLED', 'MISSED')
+            """)
+    long countDoctorConflicts(@Param("doctor") User doctor,
+                              @Param("from") LocalDateTime from,
+                              @Param("to") LocalDateTime to);
 
     @Query(value = """
             select a from Appointment a

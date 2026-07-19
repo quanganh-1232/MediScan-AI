@@ -241,11 +241,37 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
             doctor = userRepository.findById(doctorId).orElse(null);
         }
 
+        java.time.LocalDateTime scheduledTime = java.time.LocalDateTime.parse(date + "T" + time);
+
+        // Backend: không cho đặt lịch trong quá khứ
+        if (scheduledTime.isBefore(java.time.LocalDateTime.now())) {
+            throw new RuntimeException("Không thể đặt lịch vào thời điểm trong quá khứ. Vui lòng chọn từ hôm nay trở đi.");
+        }
+
+        // Backend: chỉ cho đặt trong giờ hành chính (07:00 - 17:00)
+        int hour = scheduledTime.getHour();
+        if (hour < 7 || hour >= 17) {
+            throw new RuntimeException("Chỉ có thể đặt lịch trong giờ hành chính (07:00 - 17:00).");
+        }
+
+        // Kiểm tra trùng lịch bác sĩ (±30 phút)
+        if (doctor != null) {
+            java.time.LocalDateTime from = scheduledTime.minusMinutes(29);
+            java.time.LocalDateTime to   = scheduledTime.plusMinutes(30);
+            long conflicts = appointmentRepository.countDoctorConflicts(doctor, from, to);
+            if (conflicts > 0) {
+                throw new RuntimeException(
+                    "Bác sĩ " + doctor.getFullName() + " đã có lịch hẹn vào khung giờ này. " +
+                    "Vui lòng chọn giờ khác (cách ít nhất 30 phút)."
+                );
+            }
+        }
+
         Appointment appointment = new Appointment();
         appointment.setAppointmentCode(nextCode("APT"));
         appointment.setPatient(patient);
         appointment.setDoctor(doctor);
-        appointment.setScheduledTime(java.time.LocalDateTime.parse(date + "T" + time));
+        appointment.setScheduledTime(scheduledTime);
         appointment.setStatus("SCHEDULED");
         appointment.setAppointmentType("DOCTOR_CONSULTATION");
 
