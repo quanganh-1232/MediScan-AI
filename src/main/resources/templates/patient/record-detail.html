@@ -72,15 +72,6 @@
                 <span class="step-circle done"><i class="bi bi-check-lg"></i></span>
                 <span class="step-label">Đã tải lên</span>
             </div>
-            <!-- AI -->
-            <div class="step-item">
-                <span th:switch="${record.status}">
-                    <span th:case="'PENDING_AI'"  class="step-circle active"><i class="bi bi-arrow-repeat"></i></span>
-                    <span th:case="'AI_FAILED'"   class="step-circle error"><i class="bi bi-x"></i></span>
-                    <span th:case="*"             class="step-circle done"><i class="bi bi-check-lg"></i></span>
-                </span>
-                <span class="step-label">AI phân tích</span>
-            </div>
             <!-- Doctor -->
             <div class="step-item">
                 <span th:switch="${record.status}">
@@ -178,21 +169,7 @@
                 </div>
             </div>
 
-            <!-- AI Result -->
-            <section class="pt-card p-4 mb-4">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="pt-card-title"><i class="bi bi-cpu"></i> Kết quả AI tham khảo</div>
-                    <span th:if="${record.aiConfidence != null}"
-                          class="pt-status pt-status-confirmed"
-                          th:text="${'Tin cậy ' + record.aiConfidence + '%'}">92%</span>
-                </div>
-                <p class="mb-0" style="white-space:pre-line;"
-                   th:text="${record.aiPrediction != null ? record.aiPrediction : 'Chưa có kết quả AI. Hệ thống đang xử lý.'}">-</p>
-                <div class="alert alert-info border-0 mt-3 mb-0 small py-2">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Kết quả AI chỉ mang tính tham khảo. Kết luận chính thức thuộc về bác sĩ chuyên khoa.
-                </div>
-            </section>
+
 
             <!-- Doctor Conclusion -->
             <section class="pt-card p-4 mb-4">

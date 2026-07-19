@@ -54,17 +54,6 @@
         <div class="col-12 col-lg-7">
             <section class="pt-card p-4 mb-4">
                 <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="pt-card-title"><i class="bi bi-cpu"></i> Kết quả AI tham khảo</div>
-                    <span class="pt-status pt-status-confirmed" th:text="${'Độ tin cậy ' + (latestRecord.aiConfidence != null ? latestRecord.aiConfidence : 0) + '%'}">Độ tin cậy 92%</span>
-                </div>
-                <p class="mb-0" style="white-space: pre-line;" th:text="${latestRecord.aiPrediction != null ? latestRecord.aiPrediction : 'Chưa có kết luận AI.'}">Chờ kết quả AI.</p>
-                <div class="small text-muted mt-3">
-                    <i class="bi bi-info-circle me-1"></i>AI chỉ hỗ trợ tham khảo, kết luận cuối cùng thuộc về bác sĩ.
-                </div>
-            </section>
-
-            <section class="pt-card p-4 mb-4">
-                <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="pt-card-title"><i class="bi bi-person-badge"></i> Kết luận của bác sĩ</div>
                     <span th:if="${latestRecord.doctor != null}" class="small text-muted" th:text="${'BS. ' + latestRecord.doctor.fullName}">BS. Trần Minh Đức</span>
                 </div>
