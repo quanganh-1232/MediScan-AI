@@ -19,11 +19,58 @@
             </ul>
 
             <div class="d-flex align-items-center gap-2">
-                <a th:href="@{/notifications}" class="btn ms-icon-btn" title="Thông báo">
-                    <i class="bi bi-bell"></i>
-                    <span class="ms-notification-count" th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
-                          th:text="${headerUnreadCount}">0</span>
-                </a>
+                <div class="dropdown">
+                    <button class="btn ms-icon-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo">
+                        <i class="bi bi-bell"></i>
+                        <span class="ms-notification-count" th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
+                              th:text="${headerUnreadCount}">0</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0 rounded-4" style="width: 360px; max-width: calc(100vw - 2rem);">
+                        <!-- Header -->
+                        <div class="d-flex align-items-center justify-content-between p-3 border-bottom bg-light rounded-top-4">
+                            <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-bell-fill text-teal"></i> Thông báo mới
+                                <span class="badge bg-teal text-white rounded-pill px-2 py-0.5" th:if="${headerUnreadCount != null && headerUnreadCount > 0}" th:text="${headerUnreadCount}">0</span>
+                            </div>
+                            <a th:href="@{/notifications}" class="small text-decoration-none text-teal fw-semibold">Tất cả</a>
+                        </div>
+
+                        <!-- Scrollable Content -->
+                        <div style="max-height: 330px; overflow-y: auto;">
+                            <div th:if="${headerNotifications == null or #lists.isEmpty(headerNotifications)}" class="text-center text-muted p-4">
+                                <i class="bi bi-bell-slash fs-3 d-block mb-1 opacity-50"></i>
+                                <div class="small">Chưa có thông báo nào</div>
+                            </div>
+                            <div th:if="${headerNotifications != null and !#lists.isEmpty(headerNotifications)}">
+                                <div th:each="n : ${headerNotifications}" 
+                                     class="p-3 border-bottom transition-all"
+                                     th:style="${!n.read} ? 'background: rgba(15, 118, 110, 0.04);' : ''">
+                                    <div class="d-flex align-items-start gap-2.5">
+                                        <div class="flex-shrink-0 mt-0.5">
+                                            <i class="bi bi-bell-fill text-teal fs-5" th:if="${!n.read}"></i>
+                                            <i class="bi bi-bell text-secondary fs-5" th:if="${n.read}"></i>
+                                        </div>
+                                        <div class="flex-grow-1 min-w-0">
+                                            <div class="fw-bold text-dark small mb-0.5 text-truncate" th:text="${n.title}">Tiêu đề</div>
+                                            <div class="text-secondary small mb-1" style="font-size: 0.8rem; line-height: 1.4;" th:text="${n.message}">Nội dung</div>
+                                            <div class="d-flex align-items-center justify-content-between text-muted" style="font-size: 0.72rem;">
+                                                <span th:text="${#temporals.format(n.createdAt, 'HH:mm dd/MM')}">10:30</span>
+                                                <span class="badge bg-teal bg-opacity-10 text-teal" th:if="${!n.read}">Chưa đọc</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="p-2.5 text-center border-top bg-light rounded-bottom-4">
+                            <a th:href="@{/notifications}" class="btn btn-sm btn-teal text-white w-100 fw-bold">
+                                Xem tất cả thông báo <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
                 <div class="dropdown">
                     <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="ms-avatar ms-avatar-primary"
