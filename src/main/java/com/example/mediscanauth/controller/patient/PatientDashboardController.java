@@ -1,5 +1,6 @@
 package com.example.mediscanauth.controller.patient;
 
+import com.example.mediscanauth.model.Appointment;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.Notification;
 import com.example.mediscanauth.model.Patient;
@@ -309,6 +310,34 @@ public class PatientDashboardController {
         java.util.Map<String, Object> result = new java.util.HashMap<>();
         result.put("success", true);
         return ResponseEntity.ok(result);
+    }
+
+    // ── Support / FAQ page ─────────────────────────────────────────────────
+    @GetMapping("/patient/support")
+    public String support(Authentication authentication, Model model) {
+        User user = getUser(authentication);
+        model.addAttribute("currentUser", user);
+        model.addAttribute("unreadCount", notificationService.countUnread(user));
+        return "patient/support";
+    }
+
+    // ── Appointment Detail ─────────────────────────────────────────────────
+    @GetMapping("/patient/appointments/{id}")
+    public String appointmentDetail(Authentication authentication,
+                                    @PathVariable Long id,
+                                    Model model) {
+        User user = getUser(authentication);
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn"));
+        // Security: only owner can view
+        if (appointment.getPatient() == null ||
+            !appointment.getPatient().getUser().getUserId().equals(user.getUserId())) {
+            return "redirect:/home";
+        }
+        model.addAttribute("currentUser", user);
+        model.addAttribute("unreadCount", notificationService.countUnread(user));
+        model.addAttribute("appointment", appointment);
+        return "patient/appointment-detail";
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
