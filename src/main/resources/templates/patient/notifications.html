@@ -97,6 +97,27 @@
         </div>
     </div>
 
+    <!-- Pagination -->
+    <div th:if="${notifPage != null and notifPage.totalPages > 1}"
+         class="d-flex justify-content-center gap-2 mt-4">
+        <a th:if="${currentPage > 0}"
+           th:href="@{/patient/notifications(page=${currentPage - 1})}"
+           class="btn btn-sm ms-btn ms-btn-ghost border px-3">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        <span th:each="i : ${#numbers.sequence(0, notifPage.totalPages - 1)}">
+            <a th:href="@{/patient/notifications(page=${i})}"
+               class="btn btn-sm border px-3"
+               th:classappend="${i == currentPage} ? ' ms-btn ms-btn-primary text-white' : ' ms-btn ms-btn-ghost'"
+               th:text="${i + 1}">1</a>
+        </span>
+        <a th:if="${currentPage < notifPage.totalPages - 1}"
+           th:href="@{/patient/notifications(page=${currentPage + 1})}"
+           class="btn btn-sm ms-btn ms-btn-ghost border px-3">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+
 </main>
 
 <div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
