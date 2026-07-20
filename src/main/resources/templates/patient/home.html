@@ -196,6 +196,19 @@
                     <div class="pt-card-title fs-5"><i class="bi bi-clock-history"></i> Lịch sử khám</div>
                     <a th:href="@{/patient/records}" class="small fw-semibold text-decoration-none">Xem tất cả <i class="bi bi-chevron-right"></i></a>
                 </div>
+                <!-- Status filter tabs -->
+                <div class="d-flex gap-2 flex-wrap mb-3" style="font-size:.8rem;">
+                    <button class="appt-filter-btn btn btn-sm active" onclick="filterAppt('')"
+                            style="border-radius:999px;padding:.25rem .8rem;background:#2563eb;color:#fff;border:none;">Tat ca</button>
+                    <button class="appt-filter-btn btn btn-sm" onclick="filterAppt('PENDING')"
+                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Cho xac nhan</button>
+                    <button class="appt-filter-btn btn btn-sm" onclick="filterAppt('CONFIRMED')"
+                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Da xac nhan</button>
+                    <button class="appt-filter-btn btn btn-sm" onclick="filterAppt('COMPLETED')"
+                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Hoan thanh</button>
+                    <button class="appt-filter-btn btn btn-sm" onclick="filterAppt('CANCELLED')"
+                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Da huy</button>
+                </div>
                 <div class="table-responsive">
                     <table class="pt-table">
                         <thead>
@@ -208,7 +221,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="a : ${myAppointments}">
+                        <tr th:each="a : ${myAppointments}" th:attr="data-appt-status=${a.status}">
                             <td>
                                 <div class="fw-semibold" th:text="${#temporals.format(a.scheduledTime, 'dd/MM/yyyy')}">15/05/2026</div>
                                 <div class="small text-muted" th:text="${#temporals.format(a.scheduledTime, 'HH:mm')}">09:15</div>
@@ -359,24 +372,48 @@
         return false;
     }
 
-    async function cancelAppt(id) {
-        if (!confirm('Bạn có chắc muốn hủy lịch hẹn này không?')) return;
-        const token = document.getElementById('csrfToken')?.dataset.token;
-        const header = document.getElementById('csrfHeader')?.dataset.header;
-        const headers = { 'Content-Type': 'application/json' };
-        if (token && header) headers[header] = token;
-        try {
-            const res = await fetch('/patient/appointments/' + id + '/cancel', { method: 'POST', headers });
-            const data = await res.json();
-            if (data.success) {
-                alert('Đã hủy lịch hẹn thành công!');
-                window.location.reload();
-            } else {
-                alert('Lỗi: ' + (data.message || 'Không thể hủy lịch hẹn.'));
-            }
-        } catch (e) {
-            alert('Lỗi kết nối. Vui lòng thử lại.');
-        }
+    }
+
+    /* ── Custom confirm modal for cancel ── */
+    function cancelAppt(id) {
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;';
+        modal.innerHTML = `
+        <div style="background:#fff;border-radius:18px;padding:1.75rem;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+            <div style="font-size:1.3rem;margin-bottom:.5rem;">&#128721; Xac nhan huy lich</div>
+            <p style="font-size:.9rem;color:#475569;margin-bottom:1.5rem;">Ban co chac muon huy lich hen nay? Hanh dong nay khong the hoan tac.</p>
+            <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+                <button onclick="this.closest('[style]').remove()" style="padding:.5rem 1.1rem;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-weight:600;">Tro lai</button>
+                <button id="confirmCancelBtn" style="padding:.5rem 1.1rem;border-radius:8px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-weight:600;">Huy lich</button>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+        modal.querySelector('#confirmCancelBtn').addEventListener('click', async () => {
+            modal.remove();
+            const token = document.getElementById('csrfToken')?.dataset.token;
+            const header = document.getElementById('csrfHeader')?.dataset.header;
+            const headers = { 'Content-Type': 'application/json' };
+            if (token && header) headers[header] = token;
+            try {
+                const res = await fetch('/patient/appointments/' + id + '/cancel', { method: 'POST', headers });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Huy lich hen thanh cong!', 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showToast(data.message || 'Khong the huy lich hen.', 'error');
+                }
+            } catch(e) { showToast('Loi ket noi. Vui long thu lai.', 'error'); }
+        });
+    }
+
+    /* ── Filter appointments by status ── */
+    function filterAppt(status) {
+        document.querySelectorAll('[data-appt-status]').forEach(row => {
+            row.style.display = (!status || row.dataset.apptStatus === status) ? '' : 'none';
+        });
+        document.querySelectorAll('.appt-filter-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
     }
 </script>
 </body>
