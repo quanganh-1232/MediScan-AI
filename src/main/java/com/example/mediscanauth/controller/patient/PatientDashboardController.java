@@ -325,13 +325,22 @@ public class PatientDashboardController {
     @GetMapping("/patient/appointments/{id}")
     public String appointmentDetail(Authentication authentication,
                                     @PathVariable Long id,
-                                    Model model) {
+                                    Model model,
+                                    RedirectAttributes redirectAttributes) {
         User user = getUser(authentication);
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn"));
+        // Find appointment — redirect gracefully if not found
+        java.util.Optional<Appointment> optAppt = appointmentRepository.findById(id);
+        if (optAppt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("toastMsg", "Khong tim thay lich hen nay.");
+            redirectAttributes.addFlashAttribute("toastType", "error");
+            return "redirect:/home";
+        }
+        Appointment appointment = optAppt.get();
         // Security: only owner can view
         if (appointment.getPatient() == null ||
             !appointment.getPatient().getUser().getUserId().equals(user.getUserId())) {
+            redirectAttributes.addFlashAttribute("toastMsg", "Ban khong co quyen xem lich hen nay.");
+            redirectAttributes.addFlashAttribute("toastType", "error");
             return "redirect:/home";
         }
         model.addAttribute("currentUser", user);
@@ -352,5 +361,19 @@ public class PatientDashboardController {
         model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(patient));
         model.addAttribute("recordCount", imagingRecordService.countForPatient(patient));
         model.addAttribute("unreadCount", notificationService.countUnread(patient));
+    }
+
+    // ── Global exception handler: never show white error page ───────────────
+    @ExceptionHandler(Exception.class)
+    public String handleAnyException(Exception ex,
+                                     RedirectAttributes redirectAttributes,
+                                     Authentication authentication) {
+        String msg = "Co loi xay ra. Vui long thu lai sau.";
+        if (ex.getMessage() != null && ex.getMessage().length() < 120) {
+            msg = ex.getMessage();
+        }
+        redirectAttributes.addFlashAttribute("toastMsg", msg);
+        redirectAttributes.addFlashAttribute("toastType", "error");
+        return "redirect:/home";
     }
 }
