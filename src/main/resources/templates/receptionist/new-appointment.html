@@ -72,8 +72,9 @@
                             <label class="ms-label">Ngày khám</label>
                             <input type="date" name="scheduledDate" class="form-control ms-input"
                                    th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}"
+                                   th:max="${#temporals.format(#temporals.createNow().plusDays(90), 'yyyy-MM-dd')}"
                                    th:value="${formScheduledDate != null ? formScheduledDate : #temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
-                            <div class="small text-muted mt-1">Mặc định là hôm nay, có thể chọn ngày trong tương lai.</div>
+                            <div class="small text-muted mt-1">Mặc định là hôm nay, có thể chọn trong vòng 90 ngày tới.</div>
                         </div>
                         <div class="col-6">
                             <label class="ms-label">Giờ khám</label>

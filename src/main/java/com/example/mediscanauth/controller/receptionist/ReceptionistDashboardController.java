@@ -128,9 +128,14 @@ public class ReceptionistDashboardController {
     }
 
     @GetMapping("/receptionist/appointments/{id}")
-    public String appointmentDetail(@PathVariable("id") Long appointmentId, Model model) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lịch hẹn."));
+    public String appointmentDetail(@PathVariable("id") Long appointmentId, Model model,
+                                    RedirectAttributes redirectAttributes) {
+        java.util.Optional<Appointment> found = appointmentRepository.findById(appointmentId);
+        if (found.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy lịch hẹn.");
+            return "redirect:/receptionist/appointments";
+        }
+        Appointment appointment = found.get();
         model.addAttribute("appointment", appointment);
         model.addAttribute("history", appointmentStatusHistoryRepository.findByAppointmentOrderByCreatedAtAsc(appointment));
         model.addAttribute("doctors", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
@@ -153,6 +158,20 @@ public class ReceptionistDashboardController {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/receptionist/appointments/" + appointmentId;
+    }
+
+    @PostMapping("/receptionist/appointments/{id}/complete")
+    public String completeAppointment(@PathVariable("id") Long appointmentId,
+                                      @RequestParam(required = false) String redirectTo,
+                                      Authentication authentication,
+                                      RedirectAttributes redirectAttributes) {
+        try {
+            receptionistService.completeAppointment(appointmentId, authentication.getName());
+            redirectAttributes.addFlashAttribute("success", "Đã hoàn tất buổi khám.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
     }
 
     @PostMapping("/receptionist/appointments/{id}/cancel")

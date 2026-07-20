@@ -23,7 +23,7 @@
                 <div class="dropdown">
                     <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="ms-avatar ms-avatar-primary"
-                              th:text="${currentUser != null ? #strings.substring(currentUser.fullName, 0, 1).toUpperCase() : 'L'}">L</span>
+                              th:text="${currentUser != null and !#strings.isEmpty(currentUser.fullName) ? #strings.substring(currentUser.fullName, 0, 1).toUpperCase() : 'L'}">L</span>
                         <span class="d-none d-md-block text-start">
                             <span class="d-block fw-bold" th:text="${currentUser != null ? currentUser.fullName : ''}">Lễ tân</span>
                             <span class="d-block small text-muted">Lễ tân</span>

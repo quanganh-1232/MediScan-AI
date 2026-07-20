@@ -4,11 +4,14 @@ import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.Notification;
 import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import com.example.mediscanauth.model.dto.DashboardDTO;
 import com.example.mediscanauth.repository.PatientRepository;
 import com.example.mediscanauth.repository.UserRepository;
+import com.example.mediscanauth.service.CloudinaryService;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.NotificationService;
 import org.springframework.security.core.Authentication;
@@ -27,15 +30,20 @@ import java.util.stream.Collectors;
 @Controller
 public class DoctorDashboardController {
 
+    private final CloudinaryService cloudinaryService;
     private final ImagingRecordService imagingRecordService;
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
-    public DoctorDashboardController(ImagingRecordService imagingRecordService,
+    // 2. Tiêm toàn bộ qua một Constructor duy nhất (Không dùng @Autowired rời rạc
+    // nữa)
+    public DoctorDashboardController(CloudinaryService cloudinaryService,
+            ImagingRecordService imagingRecordService,
             PatientRepository patientRepository,
             UserRepository userRepository,
             NotificationService notificationService) {
+        this.cloudinaryService = cloudinaryService;
         this.imagingRecordService = imagingRecordService;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
@@ -71,9 +79,23 @@ public class DoctorDashboardController {
     @GetMapping("/doctor/records/{recordId}/review")
     public String reviewDetail(@PathVariable Long recordId, Model model) {
         ImagingRecord record = imagingRecordService.getRecordById(recordId);
+        String patientName = record.getPatient() != null ? record.getPatient().getFullName() : "Unknown_Patient";
+        String recordCode = record.getRecordCode() != null ? record.getRecordCode() : "Unknown_Record";
+
+        // 2. Truyền đầy đủ 4 tham số vào hàm getDisplayImageUrl mới
+        String displayUrl = cloudinaryService.getDisplayImageUrl(
+                record.getFileName(),
+                record.getStatus(),
+                patientName,
+                recordCode);
+
         model.addAttribute("record", record);
+        model.addAttribute("displayImageUrl", displayUrl);
+        model.addAttribute("aiRegions", imagingRecordService.getAiRegionsByRecordId(recordId));
+
         patientRepository.findByUser(record.getPatient())
-                .ifPresent(profile -> model.addAttribute("profile", profile));
+                .ifPresent(p -> model.addAttribute("profile", p));
+
         return "doctor/review-detail";
     }
 
@@ -81,20 +103,21 @@ public class DoctorDashboardController {
     public String saveConclusion(Authentication authentication,
             @PathVariable Long recordId,
             @RequestParam(required = false) String conclusion,
+            @RequestParam(required = false) String screenshotData, // <--- Nhận dữ liệu ảnh chụp màn hình ở đây
             @RequestParam(required = false) Integer bboxX,
             @RequestParam(required = false) Integer bboxY,
             @RequestParam(required = false) Integer bboxWidth,
             @RequestParam(required = false) Integer bboxHeight,
             RedirectAttributes redirectAttributes) {
-            
+
         // Nếu bác sĩ có vẽ hoặc cập nhật tọa độ box
         if (bboxX != null || bboxY != null || bboxWidth != null || bboxHeight != null) {
             imagingRecordService.updateRecordCoordinates(recordId, bboxX, bboxY, bboxWidth, bboxHeight);
         }
-        
-        // Gọi service xử lý: service sẽ tự động lấy ảnh local từ tên file trong DB -> đẩy lên Cloudinary -> đổi sang Public ID
-        imagingRecordService.confirmDoctorReview(recordId, authentication.getName(), conclusion, null);
-        
+
+        // Truyền screenshotData vào hàm confirmDoctorReview
+        imagingRecordService.confirmDoctorReview(recordId, authentication.getName(), conclusion, null, screenshotData);
+
         redirectAttributes.addFlashAttribute("diagnosisSuccess", true);
         return "redirect:/doctor/records/pending";
     }
