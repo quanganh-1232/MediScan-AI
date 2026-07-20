@@ -1,5 +1,6 @@
-﻿package com.example.mediscanauth.controller.common;
+package com.example.mediscanauth.controller.common;
 
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.stereotype.Controller;
@@ -7,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- * Global error handler — redirects all errors to /home instead of
- * showing the Spring Boot white-label error page.
+ * Global error handler - redirects all errors to /home with a toast
+ * instead of showing the Spring Boot white-label error page.
  */
 @Controller
 public class GlobalErrorController implements ErrorController {
@@ -16,7 +17,7 @@ public class GlobalErrorController implements ErrorController {
     @RequestMapping("/error")
     public String handleError(HttpServletRequest request,
                               RedirectAttributes redirectAttributes) {
-        Object statusCode = request.getAttribute("javax.servlet.error.status_code");
+        Object statusCode = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
         String msg = "Co loi xay ra. Vui long thu lai.";
         if (statusCode != null) {
             int code = Integer.parseInt(statusCode.toString());
@@ -29,3 +30,4 @@ public class GlobalErrorController implements ErrorController {
         return "redirect:/home";
     }
 }
+
