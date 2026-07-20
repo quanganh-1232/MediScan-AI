@@ -11,6 +11,17 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link th:href="@{/css/portal.css}" rel="stylesheet">
+    <style>
+        .filter-bar { background: var(--ms-surface); border: 1px solid var(--ms-border); border-radius: 14px; padding: 1rem 1.25rem; }
+        .filter-bar .form-control, .filter-bar .form-select {
+            border-radius: 10px; font-size: .875rem; border-color: var(--ms-border);
+        }
+        .filter-bar .form-control:focus, .filter-bar .form-select:focus { border-color: var(--ms-primary); box-shadow: none; }
+        .filter-tag { display: inline-flex; align-items: center; gap: .3rem; background: #eff6ff; color: #2563eb;
+            border-radius: 999px; padding: .2rem .65rem; font-size: .78rem; font-weight: 600; }
+        .filter-tag .remove { cursor: pointer; opacity: .7; }
+        .filter-tag .remove:hover { opacity: 1; }
+    </style>
 </head>
 <body>
 
@@ -23,11 +34,17 @@
             <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-folder2-open text-primary me-2"></i>Hồ sơ y tế của tôi</h1>
             <p class="text-secondary mb-0">Toàn bộ hồ sơ chụp X-quang và kết luận chẩn đoán của bạn.</p>
         </div>
-        <a th:href="@{/home#booking}" class="btn ms-btn ms-btn-primary text-white">
-            <i class="bi bi-calendar2-plus me-1"></i> Đặt lịch khám mới
-        </a>
+        <div class="d-flex gap-2">
+            <a th:href="@{/patient/upload}" class="btn ms-btn ms-btn-primary text-white">
+                <i class="bi bi-cloud-upload me-1"></i> Tải ảnh lên
+            </a>
+            <a th:href="@{/home#booking}" class="btn ms-btn ms-btn-ghost border text-primary">
+                <i class="bi bi-calendar2-plus me-1"></i> Đặt lịch
+            </a>
+        </div>
     </div>
 
+    <!-- Stats -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
             <div class="pt-stat">
@@ -51,13 +68,84 @@
         <div class="col-12 col-lg-6">
             <div class="pt-stat">
                 <span class="pt-stat-icon warn"><i class="bi bi-info-circle"></i></span>
-                <span class="small text-muted">Hồ sơ chỉ được tạo bởi kỹ thuật viên khi bạn đến chụp X-quang tại phòng khám. Kết luận cuối cùng do bác sĩ xác nhận.</span>
+                <span class="small text-muted">Hồ sơ được tạo bởi kỹ thuật viên khi bạn đến chụp X-quang. Kết luận do bác sĩ xác nhận.</span>
             </div>
         </div>
     </div>
 
+    <!-- KAN-30: Filter bar -->
+    <form th:action="@{/patient/records}" method="get" class="filter-bar mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label small fw-semibold mb-1">Tìm kiếm</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="keyword" class="form-control border-start-0" placeholder="Mã hồ sơ, bác sĩ..."
+                           th:value="${keyword}">
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Vùng chụp</label>
+                <select name="bodyPart" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="Cẳng tay"  th:selected="${bodyPart == 'Cẳng tay'}">Cẳng tay</option>
+                    <option value="Bàn tay"   th:selected="${bodyPart == 'Bàn tay'}">Bàn tay</option>
+                    <option value="Cẳng chân" th:selected="${bodyPart == 'Cẳng chân'}">Cẳng chân</option>
+                    <option value="Bàn chân"  th:selected="${bodyPart == 'Bàn chân'}">Bàn chân</option>
+                    <option value="Cột sống"  th:selected="${bodyPart == 'Cột sống'}">Cột sống</option>
+                    <option value="Xương đùi" th:selected="${bodyPart == 'Xương đùi'}">Xương đùi</option>
+                    <option value="Vai"        th:selected="${bodyPart == 'Vai'}">Vai</option>
+                    <option value="Ngực"       th:selected="${bodyPart == 'Ngực'}">Ngực</option>
+                    <option value="Khớp gối"  th:selected="${bodyPart == 'Khớp gối'}">Khớp gối</option>
+                    <option value="Xương chậu" th:selected="${bodyPart == 'Xương chậu'}">Xương chậu</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Từ ngày</label>
+                <input type="date" name="fromDate" class="form-control" th:value="${fromDate}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Đến ngày</label>
+                <input type="date" name="toDate" class="form-control" th:value="${toDate}">
+            </div>
+            <div class="col-6 col-md-2 d-flex gap-2">
+                <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100">
+                    <i class="bi bi-funnel"></i> Lọc
+                </button>
+                <a th:href="@{/patient/records}" class="btn ms-btn ms-btn-ghost border" title="Xóa bộ lọc">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Active filter tags -->
+        <div th:if="${hasFilter}" class="mt-2 d-flex flex-wrap gap-2">
+            <span th:if="${!#strings.isEmpty(keyword)}" class="filter-tag">
+                <i class="bi bi-search"></i> <span th:text="${keyword}">-</span>
+                <a th:href="@{/patient/records(bodyPart=${bodyPart},fromDate=${fromDate},toDate=${toDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
+            </span>
+            <span th:if="${!#strings.isEmpty(bodyPart)}" class="filter-tag">
+                <i class="bi bi-body-text"></i> <span th:text="${bodyPart}">-</span>
+                <a th:href="@{/patient/records(keyword=${keyword},fromDate=${fromDate},toDate=${toDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
+            </span>
+            <span th:if="${!#strings.isEmpty(fromDate)}" class="filter-tag">
+                <i class="bi bi-calendar"></i> Từ <span th:text="${fromDate}">-</span>
+                <a th:href="@{/patient/records(keyword=${keyword},bodyPart=${bodyPart},toDate=${toDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
+            </span>
+            <span th:if="${!#strings.isEmpty(toDate)}" class="filter-tag">
+                <i class="bi bi-calendar-check"></i> Đến <span th:text="${toDate}">-</span>
+                <a th:href="@{/patient/records(keyword=${keyword},bodyPart=${bodyPart},fromDate=${fromDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
+            </span>
+        </div>
+    </form>
+
+    <!-- Table -->
     <section class="pt-card p-4">
-        <div class="pt-card-title fs-5 mb-3"><i class="bi bi-images"></i> Hồ sơ chụp X-quang</div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="pt-card-title fs-5"><i class="bi bi-images"></i> Hồ sơ chụp X-quang</div>
+            <span class="small text-muted" th:if="${recordPage != null}"
+                  th:text="${'Tìm thấy ' + recordPage.totalElements + ' hồ sơ'}"></span>
+        </div>
         <div class="table-responsive">
             <table class="pt-table">
                 <thead>
@@ -75,29 +163,32 @@
                 <tr th:each="record : ${records}">
                     <td><span class="fw-bold text-primary" th:text="${record.recordCode}">XR-2026-0001</span></td>
                     <td>
-                        <span class="fw-semibold" th:text="${record.capturedAt != null ? #temporals.format(record.capturedAt, 'dd/MM/yyyy') : '-'}">21/05/2026</span>
+                        <span class="fw-semibold"
+                              th:text="${record.capturedAt != null ? #temporals.format(record.capturedAt, 'dd/MM/yyyy') : '-'}">-</span>
                     </td>
                     <td th:text="${record.bodyPart}">Cẳng tay</td>
-                    <td th:text="${record.doctor != null ? 'BS. ' + record.doctor.fullName : 'Chưa phân công'}">BS. Trần Minh Đức</td>
+                    <td th:text="${record.doctor != null ? 'BS. ' + record.doctor.fullName : 'Chưa phân công'}">-</td>
                     <td>
                         <span th:switch="${record.status}">
-                            <span th:case="'PENDING_AI'" class="pt-status pt-status-pending">Chờ AI phân tích</span>
-                            <span th:case="'AI_ANALYZED'" class="pt-status pt-status-confirmed">AI đã phân tích</span>
-                            <span th:case="'PENDING_DOCTOR'" class="pt-status pt-status-confirmed">Chờ bác sĩ duyệt</span>
+                            <span th:case="'PENDING_AI'"       class="pt-status pt-status-pending">Chờ AI phân tích</span>
+                            <span th:case="'AI_ANALYZED'"      class="pt-status pt-status-confirmed">AI đã phân tích</span>
+                            <span th:case="'PENDING_DOCTOR'"   class="pt-status pt-status-confirmed">Chờ bác sĩ duyệt</span>
                             <span th:case="'DOCTOR_CONFIRMED'" class="pt-status pt-status-done">Đã có kết luận</span>
-                            <span th:case="'DOCTOR_REJECTED'" class="pt-status pt-status-cancelled">Cần chụp lại</span>
-                            <span th:case="'AI_FAILED'" class="pt-status pt-status-cancelled">AI phân tích lỗi</span>
-                            <span th:case="*" class="pt-status pt-status-pending" th:text="${record.status}">-</span>
+                            <span th:case="'DOCTOR_REJECTED'"  class="pt-status pt-status-cancelled">Cần chụp lại</span>
+                            <span th:case="'AI_FAILED'"        class="pt-status pt-status-cancelled">AI phân tích lỗi</span>
+                            <span th:case="*"                  class="pt-status pt-status-pending" th:text="${record.status}">-</span>
                         </span>
                     </td>
                     <td>
                         <span class="small" th:if="${record.doctorConclusion != null}"
                               th:title="${record.doctorConclusion}"
                               th:text="${#strings.abbreviate(record.doctorConclusion, 50)}">Kết luận</span>
-                        <span class="small text-muted" th:if="${record.doctorConclusion == null}">Chưa có kết luận cuối</span>
+                        <span class="small text-muted" th:if="${record.doctorConclusion == null}">Chưa có kết luận</span>
                     </td>
                     <td class="text-end">
-                        <a th:href="@{/patient/results}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-2">
+                        <!-- KAN-31: link to individual record detail -->
+                        <a th:href="@{/patient/records/{id}(id=${record.recordId})}"
+                           class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-2">
                             <i class="bi bi-eye me-1"></i> Xem
                         </a>
                     </td>
@@ -105,19 +196,43 @@
                 <tr th:if="${#lists.isEmpty(records)}">
                     <td colspan="7" class="text-center text-muted py-5">
                         <i class="bi bi-folder2-open fs-1 d-block mb-2 opacity-50"></i>
-                        <p class="fw-semibold text-dark mb-1">Chưa có hồ sơ chụp nào.</p>
-                        <p class="small mb-3">Hồ sơ sẽ xuất hiện sau khi bạn đến khám và chụp X-quang tại phòng khám.</p>
-                        <a th:href="@{/home#booking}" class="btn ms-btn ms-btn-primary text-white">Đặt lịch khám ngay</a>
+                        <p class="fw-semibold text-dark mb-1"
+                           th:text="${hasFilter ? 'Không tìm thấy hồ sơ phù hợp.' : 'Chưa có hồ sơ chụp nào.'}">-</p>
+                        <p class="small mb-3"
+                           th:text="${hasFilter ? 'Thử thay đổi bộ lọc hoặc xoá bộ lọc để xem tất cả.' : 'Hồ sơ sẽ xuất hiện sau khi bạn đến khám và chụp X-quang.'}">-</p>
+                        <a th:if="${!hasFilter}" th:href="@{/home#booking}" class="btn ms-btn ms-btn-primary text-white">Đặt lịch khám ngay</a>
+                        <a th:if="${hasFilter}" th:href="@{/patient/records}" class="btn ms-btn ms-btn-ghost border">Xoá bộ lọc</a>
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination -->
+        <div th:if="${recordPage != null and recordPage.totalPages > 1}"
+             class="d-flex justify-content-center gap-2 mt-4">
+            <a th:if="${currentPage > 0}"
+               th:href="@{/patient/records(page=${currentPage - 1},keyword=${keyword},bodyPart=${bodyPart},fromDate=${fromDate},toDate=${toDate})}"
+               class="btn btn-sm ms-btn ms-btn-ghost border px-3">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            <span th:each="i : ${#numbers.sequence(0, recordPage.totalPages - 1)}">
+                <a th:href="@{/patient/records(page=${i},keyword=${keyword},bodyPart=${bodyPart},fromDate=${fromDate},toDate=${toDate})}"
+                   class="btn btn-sm border px-3"
+                   th:classappend="${i == currentPage} ? ' ms-btn ms-btn-primary text-white' : ' ms-btn ms-btn-ghost'"
+                   th:text="${i + 1}">1</a>
+            </span>
+            <a th:if="${currentPage < recordPage.totalPages - 1}"
+               th:href="@{/patient/records(page=${currentPage + 1},keyword=${keyword},bodyPart=${bodyPart},fromDate=${fromDate},toDate=${toDate})}"
+               class="btn btn-sm ms-btn ms-btn-ghost border px-3">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
     </section>
 </main>
 
 <div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

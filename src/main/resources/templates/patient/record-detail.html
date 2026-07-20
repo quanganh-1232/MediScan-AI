@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Chi tiết hồ sơ - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+    <style>
+        .xray-wrap { background: #0a0f1e; border-radius: 16px; position: relative; overflow: hidden; }
+        .xray-wrap canvas { display: block; max-width: 100%; }
+        .bbox-legend { display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; }
+        .bbox-legend-box { width: 16px; height: 16px; border: 2px solid #ef4444; border-radius: 3px; background: rgba(239,68,68,.15); }
+        .risk-card { border-radius: 16px; padding: 1.25rem; }
+        .risk-card.HIGH   { background: linear-gradient(135deg,#fee2e2,#fecaca); border-left: 4px solid #dc2626; }
+        .risk-card.MEDIUM { background: linear-gradient(135deg,#fef9c3,#fde68a); border-left: 4px solid #ca8a04; }
+        .risk-card.LOW    { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-left: 4px solid #16a34a; }
+        .risk-card.NONE   { background: linear-gradient(135deg,#f1f5f9,#e2e8f0); border-left: 4px solid #94a3b8; }
+        .risk-icon { font-size: 2rem; }
+        .step-bar { display: flex; gap: 0; }
+        .step-item { flex: 1; text-align: center; position: relative; }
+        .step-item::before { content: ''; position: absolute; top: 13px; left: -50%; width: 100%; height: 2px; background: var(--ms-border); z-index: 0; }
+        .step-item:first-child::before { display: none; }
+        .step-circle { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--ms-border); background: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: .7rem; position: relative; z-index: 1; }
+        .step-circle.done   { background: #16a34a; border-color: #16a34a; color: #fff; }
+        .step-circle.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+        .step-circle.error  { background: #dc2626; border-color: #dc2626; color: #fff; }
+        .step-label { font-size: .7rem; color: var(--ms-text-muted); margin-top: .4rem; display: block; }
+        .info-row { display: flex; justify-content: space-between; padding: .5rem 0; border-bottom: 1px solid var(--ms-border); }
+        .info-row:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{patient/fragments/patient-shell :: nav('records')}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a th:href="@{/home}" class="text-primary text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a th:href="@{/patient/records}" class="text-primary text-decoration-none">Hồ sơ y tế</a></li>
+            <li class="breadcrumb-item active" th:text="${record.recordCode}">XR-001</li>
+        </ol>
+    </nav>
+
+    <!-- Title -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="fw-bold mb-1 fs-3">
+                <i class="bi bi-file-earmark-medical text-primary me-2"></i>
+                Hồ sơ <span th:text="${record.recordCode}">XR-001</span>
+            </h1>
+            <p class="text-secondary mb-0">Chi tiết kết quả X-quang và chẩn đoán của bác sĩ.</p>
+        </div>
+        <a th:href="@{/patient/records}" class="btn ms-btn ms-btn-ghost border text-primary">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </a>
+    </div>
+
+    <!-- Progress Steps -->
+    <section class="pt-card p-4 mb-4">
+        <div class="step-bar">
+            <!-- Uploaded -->
+            <div class="step-item">
+                <span class="step-circle done"><i class="bi bi-check-lg"></i></span>
+                <span class="step-label">Đã tải lên</span>
+            </div>
+            <!-- Doctor -->
+            <div class="step-item">
+                <span th:switch="${record.status}">
+                    <span th:case="'DOCTOR_CONFIRMED'" class="step-circle done"><i class="bi bi-check-lg"></i></span>
+                    <span th:case="'DOCTOR_REJECTED'"  class="step-circle error"><i class="bi bi-x"></i></span>
+                    <span th:case="'PENDING_DOCTOR'"   class="step-circle active"><i class="bi bi-person"></i></span>
+                    <span th:case="*"                  class="step-circle"><i class="bi bi-person"></i></span>
+                </span>
+                <span class="step-label">Bác sĩ duyệt</span>
+            </div>
+            <!-- Done -->
+            <div class="step-item">
+                <span th:if="${record.status == 'DOCTOR_CONFIRMED'}" class="step-circle done"><i class="bi bi-check-lg"></i></span>
+                <span th:unless="${record.status == 'DOCTOR_CONFIRMED'}" class="step-circle"></span>
+                <span class="step-label">Hoàn thành</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="row g-4">
+        <!-- Left: X-ray image with canvas bbox overlay -->
+        <div class="col-12 col-lg-5">
+            <section class="pt-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="pt-card-title"><i class="bi bi-image"></i> Ảnh X-quang</div>
+                    <div class="bbox-legend" th:if="${record.bboxX != null}">
+                        <span class="bbox-legend-box"></span>
+                        <span class="text-muted">Vùng phát hiện AI</span>
+                    </div>
+                </div>
+
+                <div th:if="${record.fileName != null}" class="xray-wrap p-2">
+                    <!-- Canvas draws bbox on top of image -->
+                    <canvas id="xrayCanvas" style="max-width:100%;border-radius:10px;"></canvas>
+                </div>
+                <div th:if="${record.fileName == null}" class="text-center text-muted py-5">
+                    <i class="bi bi-image fs-2 d-block mb-2 opacity-50"></i>
+                    <p class="small">Chưa có ảnh X-quang.</p>
+                </div>
+
+                <!-- Meta info -->
+                <div class="mt-3">
+                    <div class="info-row">
+                        <span class="text-muted small">Mã hồ sơ</span>
+                        <span class="fw-semibold small" th:text="${record.recordCode}">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted small">Vùng chụp</span>
+                        <span class="fw-semibold small" th:text="${record.bodyPart}">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted small">Ngày chụp</span>
+                        <span class="fw-semibold small"
+                              th:text="${record.capturedAt != null ? #temporals.format(record.capturedAt, 'dd/MM/yyyy') : '-'}">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted small">Kỹ thuật viên</span>
+                        <span class="fw-semibold small"
+                              th:text="${record.technician != null ? record.technician.fullName : 'Chưa xác định'}">-</span>
+                    </div>
+                    <div class="info-row" th:if="${record.bboxX != null}">
+                        <span class="text-muted small">Vùng phát hiện (bbox)</span>
+                        <span class="fw-semibold small"
+                              th:text="${'x=' + record.bboxX + ' y=' + record.bboxY + ' ' + record.bboxWidth + '×' + record.bboxHeight}">-</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Right: AI + Doctor results -->
+        <div class="col-12 col-lg-7">
+
+            <!-- Risk level card -->
+            <div th:if="${record.riskLevel != null}"
+                 class="risk-card mb-4"
+                 th:classappend="${record.riskLevel}">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="risk-icon">
+                        <i th:if="${record.riskLevel == 'HIGH'}"   class="bi bi-exclamation-triangle-fill text-danger"></i>
+                        <i th:if="${record.riskLevel == 'MEDIUM'}" class="bi bi-exclamation-circle-fill text-warning"></i>
+                        <i th:if="${record.riskLevel == 'LOW'}"    class="bi bi-shield-check-fill text-success"></i>
+                        <i th:if="${record.riskLevel == null or record.riskLevel == 'NONE'}" class="bi bi-shield-fill text-secondary"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold fs-5"
+                             th:text="${record.riskLevel == 'HIGH' ? 'Nguy cơ cao — Cần khám ngay' :
+                                        record.riskLevel == 'MEDIUM' ? 'Nguy cơ trung bình — Theo dõi thêm' :
+                                        record.riskLevel == 'LOW' ? 'Nguy cơ thấp — Tốt' : 'Chưa đánh giá'}">-</div>
+                        <div class="small mt-1"
+                             th:text="${record.riskLevel == 'HIGH' ? 'Kết quả AI phát hiện dấu hiệu cần được bác sĩ xem xét sớm.' :
+                                        record.riskLevel == 'MEDIUM' ? 'Có dấu hiệu bất thường nhẹ, cần theo dõi theo lịch hẹn.' :
+                                        record.riskLevel == 'LOW' ? 'Không phát hiện dấu hiệu gãy xương hoặc bất thường nghiêm trọng.' :
+                                        'Kết quả sẽ có sau khi AI và bác sĩ xem xét.'}">-</div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- Doctor Conclusion -->
+            <section class="pt-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="pt-card-title"><i class="bi bi-person-badge"></i> Kết luận của bác sĩ</div>
+                    <span class="small text-muted"
+                          th:if="${record.doctor != null}"
+                          th:text="${'BS. ' + record.doctor.fullName}">-</span>
+                </div>
+                <p class="mb-0" style="white-space:pre-line;"
+                   th:text="${record.doctorConclusion != null ? record.doctorConclusion : 'Bác sĩ chưa đưa ra kết luận. Vui lòng chờ sau khi được xem xét.'}">-</p>
+                <div th:if="${record.confirmedAt != null}" class="text-muted small mt-2">
+                    <i class="bi bi-clock me-1"></i>Xác nhận lúc:
+                    <span th:text="${#temporals.format(record.confirmedAt, 'dd/MM/yyyy HH:mm')}">-</span>
+                </div>
+            </section>
+
+            <!-- Recommendation -->
+            <section class="pt-card p-4">
+                <div class="pt-card-title mb-3"><i class="bi bi-journal-check"></i> Khuyến nghị tiếp theo</div>
+                <p class="mb-0" style="white-space:pre-line;"
+                   th:text="${record.recommendation != null ? record.recommendation : 'Chưa có khuyến nghị. Vui lòng đợi bác sĩ đánh giá hoặc liên hệ phòng khám để được tư vấn.'}">-</p>
+            </section>
+        </div>
+    </div>
+</main>
+
+<div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Canvas: draw bbox on X-ray image -->
+<script th:if="${record.fileName != null}" th:inline="javascript">
+    const fileName  = /*[[${record.fileName}]]*/ '';
+    const bboxX     = /*[[${record.bboxX}]]*/ null;
+    const bboxY     = /*[[${record.bboxY}]]*/ null;
+    const bboxW     = /*[[${record.bboxWidth}]]*/ null;
+    const bboxH     = /*[[${record.bboxHeight}]]*/ null;
+
+    const canvas = document.getElementById('xrayCanvas');
+    const ctx    = canvas.getContext('2d');
+    const img    = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = '/uploads/' + fileName;
+
+    img.onload = function () {
+        canvas.width  = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+
+        if (bboxX !== null && bboxW !== null) {
+            // Red bbox
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth   = Math.max(2, img.naturalWidth / 200);
+            ctx.strokeRect(bboxX, bboxY, bboxW, bboxH);
+            // Fill semi-transparent
+            ctx.fillStyle = 'rgba(239,68,68,0.12)';
+            ctx.fillRect(bboxX, bboxY, bboxW, bboxH);
+            // Label
+            ctx.fillStyle   = '#ef4444';
+            ctx.font        = `bold ${Math.max(14, img.naturalWidth / 40)}px Plus Jakarta Sans, sans-serif`;
+            ctx.fillText('Vùng phát hiện', bboxX + 4, bboxY - 6 > 0 ? bboxY - 6 : bboxY + 18);
+        }
+    };
+    img.onerror = function () {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 0, canvas.width || 400, canvas.height || 300);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('Không thể tải ảnh', 20, 30);
+    };
+</script>
+</body>
+</html>

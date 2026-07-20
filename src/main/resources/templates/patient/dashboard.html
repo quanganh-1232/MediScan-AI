@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Tổng quan - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+    <style>
+        .dash-stat { background: var(--ms-surface); border: 1px solid var(--ms-border); border-radius: 16px; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+        .dash-stat-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; }
+        .dash-stat-icon.blue  { background: #dbeafe; color: #2563eb; }
+        .dash-stat-icon.green { background: #dcfce7; color: #16a34a; }
+        .dash-stat-icon.amber { background: #fef9c3; color: #ca8a04; }
+        .dash-stat-icon.red   { background: #fee2e2; color: #dc2626; }
+        .dash-stat-val { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+        .dash-stat-label { font-size: .8rem; color: var(--ms-text-muted); margin-top: 2px; }
+        .timeline { position: relative; padding-left: 2rem; }
+        .timeline::before { content: ''; position: absolute; left: .65rem; top: 0; bottom: 0; width: 2px; background: var(--ms-border); }
+        .timeline-item { position: relative; padding-bottom: 1.25rem; }
+        .timeline-dot { position: absolute; left: -1.8rem; top: .15rem; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--ms-border); background: #fff; display: flex; align-items: center; justify-content: center; font-size: .55rem; }
+        .timeline-dot.done  { background: #16a34a; border-color: #16a34a; color: #fff; }
+        .timeline-dot.active { background: #2563eb; border-color: #2563eb; color: #fff; animation: pulse-dot 1.5s infinite; }
+        .timeline-dot.warn  { background: #ca8a04; border-color: #ca8a04; color: #fff; }
+        .timeline-dot.error { background: #dc2626; border-color: #dc2626; color: #fff; }
+        @keyframes pulse-dot { 0%,100%{box-shadow:0 0 0 0 #2563eb44} 50%{box-shadow:0 0 0 6px #2563eb11} }
+        .risk-badge { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .8rem; border-radius: 999px; font-weight: 600; font-size: .8rem; }
+        .risk-badge.HIGH   { background: #fee2e2; color: #dc2626; }
+        .risk-badge.MEDIUM { background: #fef9c3; color: #ca8a04; }
+        .risk-badge.LOW    { background: #dcfce7; color: #16a34a; }
+        .risk-badge.NONE   { background: #f1f5f9; color: #64748b; }
+        .record-row { border-left: 3px solid transparent; transition: border-color .2s, background .2s; }
+        .record-row:hover { background: var(--ms-bg); border-left-color: var(--ms-primary); }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{patient/fragments/patient-shell :: nav('dashboard')}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-speedometer2 text-primary me-2"></i>Tổng quan tiến trình</h1>
+            <p class="text-secondary mb-0">Theo dõi tiến độ chụp X-quang và kết quả chẩn đoán của bạn.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/patient/upload}" class="btn ms-btn ms-btn-primary text-white">
+                <i class="bi bi-cloud-upload me-1"></i> Tải ảnh lên
+            </a>
+            <a th:href="@{/patient/records}" class="btn ms-btn ms-btn-ghost border text-primary">
+                <i class="bi bi-folder2-open me-1"></i> Tất cả hồ sơ
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="dash-stat">
+                <div class="dash-stat-icon blue"><i class="bi bi-folder2"></i></div>
+                <div>
+                    <div class="dash-stat-val" th:text="${recordCount}">0</div>
+                    <div class="dash-stat-label">Tổng hồ sơ</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="dash-stat">
+                <div class="dash-stat-icon amber"><i class="bi bi-hourglass-split"></i></div>
+                <div>
+                    <div class="dash-stat-val" th:text="${processingCount}">0</div>
+                    <div class="dash-stat-label">Đang xử lý</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="dash-stat">
+                <div class="dash-stat-icon green"><i class="bi bi-patch-check"></i></div>
+                <div>
+                    <div class="dash-stat-val" th:text="${completedCount}">0</div>
+                    <div class="dash-stat-label">Đã hoàn thành</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="dash-stat">
+                <div class="dash-stat-icon red"><i class="bi bi-exclamation-triangle"></i></div>
+                <div>
+                    <div class="dash-stat-val" th:text="${needAttentionCount}">0</div>
+                    <div class="dash-stat-label">Cần chú ý</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Latest record status timeline -->
+        <div class="col-12 col-lg-4">
+            <section class="pt-card p-4 h-100">
+                <div class="pt-card-title fs-6 mb-4"><i class="bi bi-diagram-3"></i> Tiến trình hồ sơ mới nhất</div>
+
+                <div th:if="${latestRecord != null}">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-bold text-primary" th:text="${latestRecord.recordCode}">XR-001</span>
+                        <span class="small text-muted" th:text="${latestRecord.capturedAt != null ? #temporals.format(latestRecord.capturedAt, 'dd/MM/yyyy') : '-'}">-</span>
+                    </div>
+
+                    <div class="timeline">
+                        <!-- Step 1: Uploaded -->
+                        <div class="timeline-item">
+                            <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                            <div class="fw-semibold small">Ảnh đã tải lên</div>
+                            <div class="text-muted" style="font-size:.75rem;">Kỹ thuật viên chụp và lưu ảnh X-quang</div>
+                        </div>
+                        <!-- Step 2: AI -->
+                        <div class="timeline-item">
+                            <div th:switch="${latestRecord.status}">
+                                <div th:case="'PENDING_AI'" class="timeline-dot active"><i class="bi bi-arrow-repeat"></i></div>
+                                <div th:case="'AI_FAILED'" class="timeline-dot error"><i class="bi bi-x"></i></div>
+                                <div th:case="*" class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                            </div>
+                            <div class="fw-semibold small">AI phân tích</div>
+                            <div class="text-muted" style="font-size:.75rem;"
+                                 th:text="${latestRecord.aiConfidence != null ? 'Độ tin cậy ' + latestRecord.aiConfidence + '%' : 'Đang chờ phân tích...'}">-</div>
+                        </div>
+                        <!-- Step 3: Doctor -->
+                        <div class="timeline-item">
+                            <div th:switch="${latestRecord.status}">
+                                <div th:case="'DOCTOR_CONFIRMED'" class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                                <div th:case="'DOCTOR_REJECTED'" class="timeline-dot warn"><i class="bi bi-arrow-counterclockwise"></i></div>
+                                <div th:case="'PENDING_DOCTOR'" class="timeline-dot active"><i class="bi bi-person-check"></i></div>
+                                <div th:case="*" class="timeline-dot"><i class="bi bi-person"></i></div>
+                            </div>
+                            <div class="fw-semibold small">Bác sĩ xem xét</div>
+                            <div class="text-muted" style="font-size:.75rem;"
+                                 th:text="${latestRecord.doctor != null ? 'BS. ' + latestRecord.doctor.fullName : 'Chưa phân công'}">-</div>
+                        </div>
+                        <!-- Step 4: Done -->
+                        <div class="timeline-item" style="padding-bottom:0">
+                            <div th:if="${latestRecord.status == 'DOCTOR_CONFIRMED'}" class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                            <div th:unless="${latestRecord.status == 'DOCTOR_CONFIRMED'}" class="timeline-dot"></div>
+                            <div class="fw-semibold small">Hoàn thành</div>
+                            <div class="text-muted" style="font-size:.75rem;"
+                                 th:text="${latestRecord.confirmedAt != null ? #temporals.format(latestRecord.confirmedAt, 'dd/MM/yyyy HH:mm') : 'Chờ kết luận bác sĩ'}">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Risk badge -->
+                    <div class="mt-4 d-flex justify-content-between align-items-center">
+                        <span class="risk-badge"
+                              th:classappend="${latestRecord.riskLevel}"
+                              th:text="${latestRecord.riskLevel != null ? latestRecord.riskLevel : 'NONE'}">LOW</span>
+                        <a th:href="@{/patient/records/{id}(id=${latestRecord.recordId})}"
+                           class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-3">
+                            Xem chi tiết <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div th:if="${latestRecord == null}" class="text-center text-muted py-5">
+                    <i class="bi bi-folder2-open fs-2 d-block mb-2 opacity-50"></i>
+                    <p class="small mb-2">Chưa có hồ sơ nào.</p>
+                    <a th:href="@{/patient/upload}" class="btn btn-sm ms-btn ms-btn-primary text-white">Tải ảnh lên</a>
+                </div>
+            </section>
+        </div>
+
+        <!-- Records list -->
+        <div class="col-12 col-lg-8">
+            <section class="pt-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="pt-card-title fs-6"><i class="bi bi-images"></i> Hồ sơ gần đây</div>
+                    <a th:href="@{/patient/records}" class="small text-primary text-decoration-none">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+                </div>
+
+                <div th:if="${!#lists.isEmpty(records)}">
+                    <div th:each="r, i : ${records}" th:if="${i.index < 5}"
+                         class="record-row d-flex align-items-center gap-3 py-3 px-2 border-bottom">
+                        <!-- Status icon -->
+                        <div style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+                             th:classappend="${r.status == 'DOCTOR_CONFIRMED' ? 'background:#dcfce7;color:#16a34a' :
+                                             r.status == 'DOCTOR_REJECTED' ? 'background:#fee2e2;color:#dc2626' :
+                                             r.status == 'AI_FAILED'       ? 'background:#fee2e2;color:#dc2626' :
+                                             'background:#dbeafe;color:#2563eb'}"
+                             style="background:#dbeafe;color:#2563eb;">
+                            <i class="bi bi-file-earmark-medical"></i>
+                        </div>
+                        <div class="flex-grow-1 min-width-0">
+                            <div class="fw-semibold" th:text="${r.recordCode}">XR-001</div>
+                            <div class="small text-muted">
+                                <span th:text="${r.bodyPart}">Cẳng tay</span>
+                                <span class="mx-1">·</span>
+                                <span th:text="${r.capturedAt != null ? #temporals.format(r.capturedAt, 'dd/MM/yyyy') : '-'}">-</span>
+                            </div>
+                        </div>
+                        <div class="text-end flex-shrink-0">
+                            <span th:switch="${r.status}" class="d-block mb-1">
+                                <span th:case="'PENDING_AI'"       class="pt-status pt-status-pending">Chờ AI</span>
+                                <span th:case="'AI_ANALYZED'"      class="pt-status pt-status-confirmed">AI xong</span>
+                                <span th:case="'PENDING_DOCTOR'"   class="pt-status pt-status-confirmed">Chờ BS</span>
+                                <span th:case="'DOCTOR_CONFIRMED'" class="pt-status pt-status-done">Hoàn thành</span>
+                                <span th:case="'DOCTOR_REJECTED'"  class="pt-status pt-status-cancelled">Cần chụp lại</span>
+                                <span th:case="'AI_FAILED'"        class="pt-status pt-status-cancelled">Lỗi AI</span>
+                                <span th:case="*"                  class="pt-status pt-status-pending" th:text="${r.status}">-</span>
+                            </span>
+                            <a th:href="@{/patient/records/{id}(id=${r.recordId})}"
+                               class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-2">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(records)}" class="text-center text-muted py-5">
+                    <i class="bi bi-folder2-open fs-1 d-block mb-2 opacity-50"></i>
+                    <p class="mb-2 small">Chưa có hồ sơ nào.</p>
+                    <a th:href="@{/home#booking}" class="btn btn-sm ms-btn ms-btn-primary text-white">Đặt lịch khám</a>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+
+<div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
