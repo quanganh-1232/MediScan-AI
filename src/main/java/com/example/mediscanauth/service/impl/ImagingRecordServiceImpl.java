@@ -233,6 +233,20 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
             ImagingRecord savedRecord = imagingRecordRepository.save(record);
             applyAiAnalysis(savedRecord, uploadPath, imageBytes);
+            //upload 2 anh len cloudinary
+            Map<String, String> uploadedImages =
+                    cloudinaryService.uploadTechnicianImages(
+                            uploadPath.toString(),
+                            fileName,
+                            patient.getFullName(),
+                            savedRecord.getRecordCode());
+
+            String originalFileName =
+                    uploadedImages.get("original")
+                            .substring(uploadedImages.get("original")
+                                    .lastIndexOf('/') + 1);
+
+            savedRecord.setFileName(originalFileName);
             return imagingRecordRepository.save(savedRecord);
         } catch (IOException e) {
             throw new RuntimeException("Không thể lấy ảnh ngẫu nhiên hoặc phân tích ảnh X-Ray: " + e.getMessage(), e);

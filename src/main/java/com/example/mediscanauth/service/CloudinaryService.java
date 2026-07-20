@@ -2,6 +2,8 @@ package com.example.mediscanauth.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.example.mediscanauth.model.dto.CloudinaryUploadResult;
+import org.springframework.web.multipart.MultipartFile;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
@@ -11,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -99,6 +102,64 @@ public class CloudinaryService {
             System.err.println("-> [LỖI NGHIÊM TRỌNG] Thất bại trong tiến trình vẽ/tải ảnh: " + e.getMessage());
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public Map<String, String> uploadTechnicianImages(
+            String uploadDir,
+            String originalFileName,
+            String patientName,
+            String recordCode) {
+
+        try {
+
+            File originalFile = new File(uploadDir, originalFileName);
+            File aiFile = new File(uploadDir, "annotated_" + originalFileName);
+
+            if (!originalFile.exists()) {
+                throw new IOException("Original image not found.");
+            }
+
+            if (!aiFile.exists()) {
+                throw new IOException("AI image not found.");
+            }
+
+            String rootFolder =
+                    "MedicalAI/"
+                            + patientName
+                            + "/"
+                            + recordCode;
+
+            Map<?, ?> originalUpload =
+                    cloudinary.uploader().upload(
+                            originalFile,
+                            ObjectUtils.asMap(
+                                    "folder", rootFolder + "/Origin",
+                                    "use_filename", true,
+                                    "unique_filename", false));
+
+            Map<?, ?> aiUpload =
+                    cloudinary.uploader().upload(
+                            aiFile,
+                            ObjectUtils.asMap(
+                                    "folder", rootFolder + "/AI",
+                                    "use_filename", true,
+                                    "unique_filename", false));
+
+            Map<String, String> result = new HashMap<>();
+
+            result.put(
+                    "original",
+                    originalUpload.get("secure_url").toString());
+
+            result.put(
+                    "annotated",
+                    aiUpload.get("secure_url").toString());
+
+            return result;
+
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
         }
     }
 }
