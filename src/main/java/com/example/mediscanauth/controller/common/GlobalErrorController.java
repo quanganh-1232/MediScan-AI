@@ -30,4 +30,3 @@ public class GlobalErrorController implements ErrorController {
         return "redirect:/home";
     }
 }
-

@@ -212,12 +212,6 @@ public class PatientDashboardController {
         }
     }
 
-    @GetMapping("/patient/support")
-    public String support(Authentication authentication, Model model) {
-        addBaseModel(authentication, model);
-        return "patient/support";
-    }
-
     // ── KAN-36: Patient Profile ─────────────────────────────────────────────
     @GetMapping("/patient/profile")
     public String profile(Authentication authentication, Model model) {
