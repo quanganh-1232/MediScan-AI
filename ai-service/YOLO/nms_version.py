@@ -415,7 +415,7 @@ def extract_candidates(enhanced: np.ndarray,
 # ══════════════════════════════════════════════════════════════════════════════
 
 # ── Tuning parameters — adjust these if you're getting too many / too few hits ──
-FD_FRACTURE_THRESHOLD = 1.5   # minimum fractal dimension to be called a fracture
+FD_FRACTURE_THRESHOLD = 1.57   # minimum fractal dimension to be called a fracture
 FD_UPPER_BOUND        = 2.0    # physical maximum for a 2-D binary image
 ASPECT_RATIO_MIN      = 1.2    # fractures are elongated, not square
 ASPECT_RATIO_MAX      = 15.0   # very thin slivers are likely noise
@@ -467,7 +467,7 @@ def score_region(roi_mask: np.ndarray,
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SECTION 6b — YOLOv11 Detection
+# SECTION 6b — YOLOv8 Detection
 # ══════════════════════════════════════════════════════════════════════════════
 
 def run_yolo_detection(img_u8: np.ndarray,

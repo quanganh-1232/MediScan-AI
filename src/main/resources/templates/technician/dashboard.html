@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Trang chủ - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+</head>
+<body>
+
+<div th:replace="~{technician/fragments/technician-shell :: nav}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+    <div class="row g-4">
+        <!-- ============ Left rail ============ -->
+        <div class="col-12 col-xl-3 order-2 order-xl-1">
+            <div th:replace="~{technician/fragments/technician-shell :: sidebar('upload')}"></div>
+            <div class="pt-card p-3 mt-4">
+                <div class="pt-card-title mb-3">
+                    <i class="bi bi-calendar-check"></i>
+                    Hôm nay
+                </div>
+
+                <div class="small text-muted">
+                    <div class="d-flex justify-content-between">
+                        <span>Đã chụp</span>
+                        <strong>18</strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-2">
+                        <span>Đang chờ</span>
+                        <strong>6</strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-2">
+                        <span>Hoàn thành</span>
+                        <strong>12</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ============ Hero ============ -->
+        <section class="pt-hero mb-4">
+            <div class="small fw-bold text-primary mb-1">
+                MediScan AI Imaging Station
+            </div>
+
+            <h1 class="fw-bold mb-2">
+                Trạm chụp X-quang
+            </h1>
+
+            <p class="text-secondary mb-4">
+                Chụp X-quang, tải hình ảnh lên hệ thống và gửi kết quả tới AI để hỗ trợ bác sĩ chẩn đoán.
+            </p>
+
+            <div class="row g-3">
+                ...
+            </div>
+        </section>
+        <!-- ============ Main column ============ -->
+        <div class="col-12 col-xl-9 order-1 order-xl-2">
+
+            <!-- Hero -->
+            <section class="pt-hero mb-4">
+                <div class="small fw-bold text-primary mb-1">
+                    Trạm chụp X-quang
+                </div>
+
+                <h1 class="fw-bold mb-2"
+                    style="font-size:clamp(1.6rem,2.6vw,2.2rem);">
+                    Xin chào Kỹ thuật viên
+                </h1>
+
+                <p class="text-secondary mb-4">
+                    Quản lý danh sách bệnh nhân, thực hiện chụp X-quang và gửi hình ảnh
+                    sang hệ thống AI để hỗ trợ chẩn đoán.
+                </p>
+
+                <div class="row g-3">
+
+                    <div class="col-md-3 col-6">
+                        <div class="pt-hero-feature">
+                    <span class="icon">
+                        <i class="bi bi-camera"></i>
+                    </span>
+                            <span class="small">
+                        <span class="d-block fw-bold"
+                        th:text="${uploadedImageCount}">0</span>
+                        <span class="text-muted">Đã chụp hôm nay</span>
+                    </span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-6">
+                        <div class="pt-hero-feature">
+                    <span class="icon">
+                        <i class="bi bi-hourglass-split"></i>
+                    </span>
+                            <span class="small">
+                        <span class="d-block fw-bold">6</span>
+                        <span class="text-muted">Đang chờ AI</span>
+                    </span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-6">
+                        <div class="pt-hero-feature">
+                    <span class="icon">
+                        <i class="bi bi-check-circle"></i>
+                    </span>
+                            <span class="small">
+                        <span class="d-block fw-bold"
+                        th:text="${aiSuccessCount}">0</span>
+                        <span class="text-muted">Hoàn thành</span>
+                    </span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-6">
+                        <div class="pt-hero-feature">
+                    <span class="icon">
+                        <i class="bi bi-clock-history"></i>
+                    </span>
+                            <span class="small">
+                        <span class="d-block fw-bold">2 phút</span>
+                        <span class="text-muted">TB xử lý AI</span>
+                    </span>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- Quick Actions -->
+            <section class="pt-card p-4 mb-4">
+
+                <div class="pt-card-title fs-5 mb-3">
+                    <i class="bi bi-lightning-charge"></i>
+                    Thao tác nhanh
+                </div>
+
+                <div class="row g-3">
+
+                    <div class="col-md-4 d-grid">
+                        <a th:href="@{/technician/xray-upload}"
+                           class="btn ms-btn ms-btn-primary text-white">
+
+                            <i class="bi bi-camera me-2"></i>
+
+                            Chụp X-quang mới
+                        </a>
+                    </div>
+
+                    <div class="col-md-4 d-grid">
+                        <a th:href="@{/technician/overview}"
+                           class="btn ms-btn ms-btn-primary text-white">
+
+                            <i class="bi bi-clipboard-data-fill"></i>
+
+                            Tổng quan
+                        </a>
+                    </div>
+
+                    <div class="col-md-4 d-grid">
+                        <button class="btn ms-btn ms-btn-ghost border">
+
+                            <i class="bi bi-arrow-clockwise me-2"></i>
+
+                            Làm mới hàng đợi
+                        </button>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- Recent Imaging -->
+            <section class="ms-card-solid rounded-5 p-4 p-lg-5 mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2 class="h5 mb-1">Lịch sử chụp của bạn</h2>
+                        <div class="small text-muted">Xem lại các hồ sơ đã gửi</div>
+                    </div>
+                    <span class="badge bg-primary"
+                          th:text="${historyRecords != null ? historyRecords.size() : 0}">
+                    </span>
+                </div>
+                <div th:if="${#lists.isEmpty(historyRecords)}" class="text-center text-muted py-4">Chưa có hồ sơ nào được tạo.</div>
+                <div th:if="${!#lists.isEmpty(historyRecords)}" class="table-responsive">
+                    <table id="historyTable" class="table table-borderless align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Bệnh nhân</th>
+                            <th>Trạng thái</th>
+                            <th>Thời gian</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="record : ${historyRecords}">
+                            <td th:text="${record.recordCode}">XR-0001</td>
+                            <td th:text="${record.patient.fullName}">Patient Name</td>
+                            <td><span class="badge bg-secondary" th:text="${record.status}">PENDING_AI</span></td>
+                            <td th:text="${#temporals.format(record.createdAt, 'dd/MM/yyyy HH:mm')}">date</td>
+                            <td><a th:href="@{/technician/record/{id}(id=${record.recordId})}" class="btn ms-btn ms-btn-outline-primary btn-sm">Chi tiết</a></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <div class="d-flex justify-content-center mt-3">
+                        <ul class="pagination" id="historyPagination"></ul>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const rowsPerPage = 6;
+
+        const table = document.querySelector("#historyTable tbody");
+        const pagination = document.getElementById("historyPagination");
+
+        if (!table || !pagination) {
+            return;
+        }
+
+        const dataRows = Array.from(table.querySelectorAll("tr"));
+
+        if (dataRows.length <= rowsPerPage) {
+            pagination.style.display = "none";
+            return;
+        }
+
+        const pageCount = Math.ceil(dataRows.length / rowsPerPage);
+        let currentPage = 1;
+
+        function showPage(page) {
+            currentPage = page;
+
+            dataRows.forEach((row, index) => {
+                row.style.display =
+                    (index >= (page - 1) * rowsPerPage &&
+                        index < page * rowsPerPage)
+                        ? ""
+                        : "none";
+            });
+
+            updatePagination();
+        }
+
+        function updatePagination() {
+
+            pagination.innerHTML = "";
+
+            // Previous button
+            const prev = document.createElement("li");
+            prev.className = "page-item" + (currentPage === 1 ? " disabled" : "");
+
+            prev.innerHTML =
+                '<a class="page-link" href="#">Previous</a>';
+
+            prev.addEventListener("click", function (e) {
+                e.preventDefault();
+                if (currentPage > 1) {
+                    showPage(currentPage - 1);
+                }
+            });
+
+            pagination.appendChild(prev);
+
+            // Page numbers
+            for (let i = 1; i <= pageCount; i++) {
+
+                const li = document.createElement("li");
+                li.className = "page-item" + (i === currentPage ? " active" : "");
+
+                li.innerHTML =
+                    `<a class="page-link" href="#">${i}</a>`;
+
+                li.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    showPage(i);
+                });
+
+                pagination.appendChild(li);
+            }
+
+            // Next button
+            const next = document.createElement("li");
+            next.className = "page-item" + (currentPage === pageCount ? " disabled" : "");
+
+            next.innerHTML =
+                '<a class="page-link" href="#">Next</a>';
+
+            next.addEventListener("click", function (e) {
+                e.preventDefault();
+                if (currentPage < pageCount) {
+                    showPage(currentPage + 1);
+                }
+            });
+
+            pagination.appendChild(next);
+        }
+
+        showPage(1);
+
+    });
+</script>
+
+</body>
+</html>
