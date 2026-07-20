@@ -2,18 +2,56 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Thư viện chẩn đoán - MediScan AI</title>
+    <title>Thư viện hồ sơ đã chẩn đoán - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link th:href="@{/css/portal.css}" rel="stylesheet">
+    
     <style>
-        .library-card { transition: transform .15s, box-shadow .15s; display: flex; flex-direction: column; }
-        .library-card:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12); }
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .search-input-group {
+            position: relative;
+        }
+
+        .search-input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        .search-input-group .form-control {
+            padding-left: 40px;
+            border-radius: 10px;
+        }
+
+        .filter-select {
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .library-card { 
+            transition: all .2s; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%;
+        }
+
+        .library-card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 12px 40px rgba(15, 23, 42, 0.15); 
+        }
+
         .xray-thumb {
             width: 100%; height: 200px;
             object-fit: contain;
@@ -21,19 +59,35 @@
             border-radius: 12px;
             border: 1px solid #1e293b;
         }
-        .xray-thumb-placeholder {
-            width: 100%; height: 200px;
-            background: #f1f5f9;
-            border-radius: 12px;
-            border: 1px dashed #cbd5e1;
-            display: flex; align-items: center; justify-content: center;
-            color: #94a3b8; font-size: .875rem;
-        }
+
         .ai-text-truncate {
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .pagination .page-item .page-link {
+            color: #64748b;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin: 0 2px;
+            font-weight: 600;
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
         }
     </style>
 </head>
@@ -43,159 +97,293 @@
 
 <main class="container-fluid px-3 px-lg-4 py-4">
     <div class="row g-4">
-
-        <!-- ============ Sidebar ============ -->
+        
+        <!-- Sidebar -->
         <div class="col-12 col-xl-2">
             <div th:replace="~{doctor/fragments/doctor-shell :: sidebar('library')}"></div>
         </div>
 
-        <!-- ============ Main ============ -->
+        <!-- Main Content -->
         <div class="col-12 col-xl-10">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            
+            <!-- Page Header & Stats -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-collection text-primary me-2"></i>Thư viện hồ sơ đã chẩn đoán</h1>
-                    <p class="text-secondary mb-0">Các ca đã được bác sĩ xác nhận kết luận — tất cả bác sĩ đều xem được làm tư liệu.</p>
+                    <h1 class="fw-bold fs-3 mb-1">
+                        <i class="bi bi-collection-fill text-primary me-2"></i>
+                        Thư viện hồ sơ đã chẩn đoán
+                    </h1>
+                    <p class="text-secondary mb-0">Các ca đã được bác sĩ xác nhận kết luận trên hệ thống.</p>
                 </div>
-                <div class="pt-stat" style="height:auto;">
-                    <span class="pt-stat-icon ok"><i class="bi bi-clipboard2-check"></i></span>
-                    <span>
-                        <span class="pt-stat-number" th:text="${recordsPage.totalElements}">0</span>
-                        <span class="pt-stat-label d-block">ca đã xác nhận</span>
-                    </span>
+                <div class="text-end">
+                    <span class="badge bg-primary fs-6 px-3 py-2" id="totalCountLabel"
+                          th:text="${completedRecords != null ? completedRecords.size() : 0} + ' hồ sơ'">0 hồ sơ</span>
                 </div>
             </div>
 
-            <!-- Filter bar -->
-            <section class="pt-card p-4 mb-4">
-                <form th:action="@{/doctor/library}" method="get" class="row g-3 align-items-end">
-                    <div class="col-md-6">
-                        <label class="ms-label" for="q">Tìm kiếm</label>
-                        <input id="q" name="q" class="form-control ms-input"
-                               th:value="${q}" placeholder="Mã hồ sơ, bệnh nhân, chẩn đoán...">
+            <!-- Bộ lọc tìm kiếm hồ sơ (Đồng bộ theo Patient List) -->
+            <section class="card p-3 mb-4 shadow-sm border-light bg-white rounded-3">
+                <div class="row g-3">
+                    <div class="col-12 col-md-8">
+                        <div class="search-input-group">
+                            <i class="bi bi-search fs-5"></i>
+                            <input type="text" id="searchInput" class="form-control form-control-lg"
+                                   placeholder="Tìm kiếm theo Mã hồ sơ, Tên bệnh nhân..."
+                                   onkeyup="filterLibrary()">
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <label class="ms-label" for="bodyPart">Vùng chụp</label>
-                        <select id="bodyPart" name="bodyPart" class="form-select ms-input">
+                    <div class="col-12 col-md-4">
+                        <select id="bodyPartFilter"
+                                class="form-select form-select-lg filter-select text-secondary fw-semibold"
+                                onchange="filterLibrary()">
                             <option value="">Tất cả vùng chụp</option>
-                            <option th:each="part : ${bodyPartFilters}"
-                                    th:value="${part}"
-                                    th:selected="${part == bodyPart}"
-                                    th:text="${part}">Cẳng tay</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100">
-                            <i class="bi bi-funnel me-1"></i>Lọc
-                        </button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Records grid -->
-            <section class="row g-3 mb-4">
-                <div class="col-12" th:if="${recordsPage == null or recordsPage.empty}">
-                    <div class="pt-card p-5 text-center">
-                        <i class="bi bi-folder2-open display-4 text-muted d-block mb-3"></i>
-                        <h5 class="fw-bold text-dark mb-1">Chưa có ca nào trong thư viện</h5>
-                        <p class="text-muted small mb-0">Các ca sẽ xuất hiện sau khi bác sĩ xác nhận chẩn đoán.</p>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-xxl-4" th:each="record : ${recordsPage.content}">
-                    <article class="pt-card p-4 h-100 library-card">
-                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-                            <div class="min-w-0">
-                                <div class="fw-bold text-primary" th:text="${record.recordCode}">XR-0001</div>
-                                <div class="small text-muted mt-1"
-                                     th:text="${(record.patient != null ? record.patient.fullName : 'N/A') + ' — ' + (record.bodyPart != null ? record.bodyPart : 'N/A')}">
-                                    Patient — Body Part
-                                </div>
-                                <div class="small text-muted mt-1">
-                                    <i class="bi bi-clock me-1"></i>
-                                    <span th:if="${record.confirmedAt != null}"
-                                          th:text="'Xác nhận: ' + ${#temporals.format(record.confirmedAt, 'HH:mm dd/MM/yyyy')}">Xác nhận</span>
-                                    <span th:if="${record.confirmedAt == null and record.createdAt != null}"
-                                          th:text="${#temporals.format(record.createdAt, 'dd/MM/yyyy HH:mm')}">Date</span>
-                                    <span th:if="${record.confirmedAt == null and record.createdAt == null and record.capturedAt != null}"
-                                          th:text="${#temporals.format(record.capturedAt, 'dd/MM/yyyy')}">Date</span>
-                                </div>
-                            </div>
-                            <div class="text-end flex-shrink-0">
-                                <span class="pt-status pt-status-done"><i class="bi bi-check-circle-fill"></i> Đã xác nhận</span>
-                                <div class="small text-muted mt-1"
-                                     th:text="${record.aiConfidence != null ? record.aiConfidence + '%' : '–'} + ' tin cậy'">
-                                    90% tin cậy
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <img th:if="${record.fileName != null}"
-                                 th:src="@{'/uploads/' + ${record.fileName}}"
-                                 class="xray-thumb"
-                                 alt="X-Ray"
-                                 loading="lazy"
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-                            <div class="xray-thumb-placeholder" th:style="${record.fileName != null} ? 'display:none' : ''">
-                                <div class="text-center">
-                                    <i class="bi bi-image display-6 d-block mb-2"></i>
-                                    <span>Không có ảnh</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-2">
-                            <div class="small text-uppercase text-muted fw-semibold mb-1"><i class="bi bi-cpu me-1"></i>AI phân tích</div>
-                            <p class="small mb-0 ai-text-truncate text-dark"
-                               th:text="${record.aiPrediction != null ? record.aiPrediction : 'Không có dữ liệu AI'}">
-                                AI prediction text
-                            </p>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="small text-uppercase text-muted fw-semibold mb-1"><i class="bi bi-person-badge me-1"></i>Kết luận bác sĩ</div>
-                            <p class="small mb-0 ai-text-truncate text-dark"
-                               th:text="${record.doctorConclusion != null ? record.doctorConclusion : 'Chưa có kết luận'}">
-                                Doctor conclusion
-                            </p>
-                        </div>
-
-                        <a th:href="@{/doctor/record/{id}(id=${record.recordId})}"
-                           class="btn ms-btn ms-btn-ghost border text-primary w-100 mt-auto">
-                            <i class="bi bi-eye me-1"></i>Xem chi tiết
-                        </a>
-                    </article>
                 </div>
             </section>
 
-            <!-- Pagination -->
-            <nav th:if="${recordsPage != null and recordsPage.totalPages > 1}" class="mt-2">
-                <ul class="pagination justify-content-center gap-1">
-                    <li class="page-item" th:classappend="${recordsPage.first} ? 'disabled'">
-                        <a class="page-link rounded-3"
-                           th:href="@{/doctor/library(q=${q}, bodyPart=${bodyPart}, page=${recordsPage.number - 1}, size=${recordsPage.size})}">
-                            <i class="bi bi-chevron-left"></i>
-                        </a>
-                    </li>
-                    <li class="page-item"
-                        th:each="pageNum : ${#numbers.sequence(0, recordsPage.totalPages - 1)}"
-                        th:classappend="${pageNum == recordsPage.number} ? 'active'">
-                        <a class="page-link rounded-3"
-                           th:href="@{/doctor/library(q=${q}, bodyPart=${bodyPart}, page=${pageNum}, size=${recordsPage.size})}"
-                           th:text="${pageNum + 1}">1</a>
-                    </li>
-                    <li class="page-item" th:classappend="${recordsPage.last} ? 'disabled'">
-                        <a class="page-link rounded-3"
-                           th:href="@{/doctor/library(q=${q}, bodyPart=${bodyPart}, page=${recordsPage.number + 1}, size=${recordsPage.size})}">
-                            <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
+            <!-- Khối chứa danh sách hồ sơ -->
+            <div class="pt-card p-4 bg-white rounded-3 shadow-sm">
+                
+                <!-- Trạng thái trống không tìm thấy dữ liệu -->
+                <div id="emptyState" th:class="${#lists.isEmpty(completedRecords)} ? 'text-center py-5 text-muted' : 'text-center py-5 text-muted d-none'">
+                    <i class="bi bi-folder2-open display-4 d-block mb-3 opacity-50"></i>
+                    <h5>Chưa có hồ sơ nào thích hợp</h5>
+                    <p class="mb-0">Hệ thống hiện chưa có hoặc không tìm thấy hồ sơ bệnh án nào trùng khớp.</p>
+                </div>
+
+                <!-- Danh sách lưới các Grid Cards -->
+                <div th:if="${!#lists.isEmpty(completedRecords)}" class="row g-3" id="libraryContainer">
+                    <div class="col-12 col-md-6 col-lg-4 library-item-card" th:each="record : ${completedRecords}">
+                        <article class="pt-card p-4 library-card border rounded-3 bg-white h-100">
+                            <div class="d-flex justify-content-between mb-3">
+                                <div>
+                                    <div class="fw-bold text-primary target-record-code" th:text="${record.recordCode}">MS-001</div>
+                                    <div class="small text-muted">
+                                        <span class="target-patient-name" th:text="${record.patient?.fullName}">Bệnh nhân A</span>
+                                        <span> — </span>
+                                        <span class="target-body-part fw-semibold" th:text="${record.bodyPart}">Ngực</span>
+                                    </div>
+                                </div>
+                                <span class="badge bg-success align-self-start">Đã xác nhận</span>
+                            </div>
+
+                            <img th:if="${record.fileName}" th:src="@{'/uploads/' + ${record.fileName}}" 
+                                 class="xray-thumb mb-3" alt="X-ray"
+                                 onerror="this.style.display='none'">
+
+                            <div class="mb-2">
+                                <small class="text-muted fw-bold">AI dự đoán:</small>
+                                <p class="small mb-1 ai-text-truncate text-secondary" th:text="${record.aiPrediction}">Bình thường</p>
+                            </div>
+
+                            <div class="mb-3">
+                                <small class="text-muted fw-bold">Kết luận BS:</small>
+                                <p class="small mb-0 ai-text-truncate text-dark fw-medium" th:text="${record.doctorConclusion ?: 'Chưa có'}">Chưa có kết luận</p>
+                            </div>
+
+                            <a th:href="@{/doctor/records/{id}/review(id=${record.recordId})}" 
+                               class="btn btn-outline-primary w-100 fw-bold mt-auto rounded-2">
+                                <i class="bi bi-eye me-1"></i> Xem chi tiết
+                            </a>
+                        </article>
+                    </div>
+                </div>
+
+                <!-- Thanh phân trang hồ sơ Client-side -->
+                <div class="pagination-container p-3 bg-light border-top rounded-bottom-3" id="paginationWrapper"
+                     th:if="${!#lists.isEmpty(completedRecords)}">
+                    <div class="small text-muted fw-semibold">
+                        Đang hiển thị từ <span id="startRange"></span> đến <span id="endRange"></span> của <span id="totalRecords"></span> hồ sơ
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
+                    </nav>
+                </div>
+
+            </div>
         </div>
     </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Engine JavaScript Xử lý bộ lọc và phân trang đồng bộ -->
+<script>
+    const rowsPerPage = 6; // Số lượng hồ sơ hiển thị trên mỗi trang thư viện
+    let currentPage = 1;
+    let filteredRows = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+        initLibraryEngine();
+    });
+
+    function initLibraryEngine() {
+        const container = document.getElementById("libraryContainer");
+        if (!container) return;
+
+        // Lấy danh sách gốc của toàn bộ Card hồ sơ
+        filteredRows = Array.from(container.getElementsByClassName("library-item-card"));
+
+        // Tự động thu thập vùng chụp có trong danh sách để đẩy vào thanh chọn bộ lọc (Filter)
+        generateBodyPartOptions(filteredRows);
+
+        setupPagination(filteredRows.length);
+        renderPage(currentPage);
+    }
+
+    // Tự động bóc tách vùng chụp đưa vào Select Filter
+    function generateBodyPartOptions(rows) {
+        const bodyPartFilter = document.getElementById("bodyPartFilter");
+        if (!bodyPartFilter) return;
+
+        const bodyParts = new Set();
+        rows.forEach(row => {
+            const partEl = row.querySelector(".target-body-part");
+            if (partEl) {
+                const text = partEl.textContent.trim();
+                if (text) bodyParts.add(text);
+            }
+        });
+
+        bodyParts.forEach(part => {
+            const option = document.createElement("option");
+            option.value = part.toLowerCase();
+            option.textContent = part;
+            bodyPartFilter.appendChild(option);
+        });
+    }
+
+    // Xử lý bộ lọc thông minh (Chạy live khi gõ hoặc đổi vùng chụp)
+    function filterLibrary() {
+        const searchVal = document.getElementById("searchInput").value.toLowerCase().trim();
+        const partVal = document.getElementById("bodyPartFilter").value.toLowerCase().trim();
+
+        const container = document.getElementById("libraryContainer");
+        if (!container) return;
+        const allCards = Array.from(container.getElementsByClassName("library-item-card"));
+
+        filteredRows = allCards.filter(card => {
+            const codeText = card.querySelector(".target-record-code")?.textContent.toLowerCase() || "";
+            const nameText = card.querySelector(".target-patient-name")?.textContent.toLowerCase() || "";
+            const partText = card.querySelector(".target-body-part")?.textContent.toLowerCase() || "";
+
+            const matchSearch = codeText.includes(searchVal) || nameText.includes(searchVal);
+            const matchPart = (partVal === "") || (partText === partVal);
+
+            return matchSearch && matchPart;
+        });
+
+        const emptyState = document.getElementById("emptyState");
+        const paginationWrapper = document.getElementById("paginationWrapper");
+
+        if (filteredRows.length === 0) {
+            if (emptyState) emptyState.classList.remove("d-none");
+            if (paginationWrapper) paginationWrapper.style.setProperty("display", "none", "important");
+        } else {
+            if (emptyState) emptyState.classList.add("d-none");
+            if (paginationWrapper) paginationWrapper.style.setProperty("display", "flex", "important");
+        }
+
+        currentPage = 1;
+        setupPagination(filteredRows.length);
+        renderPage(currentPage);
+    }
+
+    function setupPagination(totalItems) {
+        const pageCount = Math.ceil(totalItems / rowsPerPage);
+        const container = document.getElementById("paginationContainer");
+        if (!container) return;
+        container.innerHTML = "";
+
+        if (pageCount <= 1) {
+            updatePaginationInfo(totalItems);
+            return;
+        }
+
+        // Nút lùi <<
+        createPageButton(container, "«", () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPage(currentPage);
+            }
+        }, currentPage === 1);
+
+        // Các nút số
+        for (let i = 1; i <= pageCount; i++) {
+            createPageButton(container, i, () => {
+                currentPage = i;
+                renderPage(currentPage);
+            }, false, i === currentPage);
+        }
+
+        // Nút tiến >>
+        createPageButton(container, "»", () => {
+            if (currentPage < pageCount) {
+                currentPage++;
+                renderPage(currentPage);
+            }
+        }, currentPage === pageCount);
+
+        updatePaginationInfo(totalItems);
+    }
+
+    function createPageButton(parentContainer, text, onClickAction, isDisabled = false, isActive = false) {
+        const li = document.createElement("li");
+        li.className = `page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+
+        const a = document.createElement("a");
+        a.className = "page-link";
+        a.href = "javascript:void(0);";
+        a.textContent = text;
+        a.addEventListener("click", onClickAction);
+
+        li.appendChild(a);
+        parentContainer.appendChild(li);
+    }
+
+    function renderPage(page) {
+        const container = document.getElementById("libraryContainer");
+        if (!container) return;
+        const allCards = Array.from(container.getElementsByClassName("library-item-card"));
+
+        // Ẩn toàn bộ card trước khi render trang mới
+        allCards.forEach(card => card.style.setProperty("display", "none", "important"));
+
+        const start = (page - 1) * rowsPerPage;
+        const end = Math.min(start + rowsPerPage, filteredRows.length);
+
+        for (let i = start; i < end; i++) {
+            if (filteredRows[i]) {
+                filteredRows[i].style.setProperty("display", "block", "");
+            }
+        }
+
+        updatePaginationInfo(filteredRows.length);
+
+        const paginationItems = document.querySelectorAll("#paginationContainer .page-item");
+        paginationItems.forEach(item => {
+            if (parseInt(item.textContent) === page) {
+                item.classList.add("active");
+            } else if (item.textContent !== "«" && item.textContent !== "»") {
+                item.classList.remove("active");
+            }
+        });
+    }
+
+    function updatePaginationInfo(totalItems) {
+        const start = totalItems === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+        const end = Math.min(currentPage * rowsPerPage, totalItems);
+
+        if (document.getElementById("startRange")) document.getElementById("startRange").textContent = start;
+        if (document.getElementById("endRange")) document.getElementById("endRange").textContent = end;
+        if (document.getElementById("totalRecords")) document.getElementById("totalRecords").textContent = totalItems;
+
+        const totalCountLabel = document.getElementById("totalCountLabel");
+        if (totalCountLabel) {
+            totalCountLabel.textContent = totalItems + " hồ sơ";
+        }
+    }
+</script>
 </body>
 </html>

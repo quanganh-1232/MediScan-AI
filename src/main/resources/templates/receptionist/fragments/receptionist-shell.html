@@ -23,7 +23,7 @@
                 <div class="dropdown">
                     <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="ms-avatar ms-avatar-primary"
-                              th:text="${currentUser != null ? #strings.substring(currentUser.fullName, 0, 1).toUpperCase() : 'L'}">L</span>
+                              th:text="${currentUser != null and !#strings.isEmpty(currentUser.fullName) ? #strings.substring(currentUser.fullName, 0, 1).toUpperCase() : 'L'}">L</span>
                         <span class="d-none d-md-block text-start">
                             <span class="d-block fw-bold" th:text="${currentUser != null ? currentUser.fullName : ''}">Lễ tân</span>
                             <span class="d-block small text-muted">Lễ tân</span>
@@ -50,12 +50,12 @@
 <div class="rc-sidebar" th:fragment="sidebar(active)">
     <div class="d-grid gap-1">
         <a class="rc-nav-item" th:classappend="${active == 'dashboard'} ? ' active'" th:href="@{/receptionist/dashboard}"><i class="bi bi-house"></i> Tổng quan</a>
-        <a class="rc-nav-item" th:href="@{/receptionist/dashboard(_anchor='intake')}"><i class="bi bi-calendar2-check"></i> Tiếp nhận lịch hẹn</a>
-        <a class="rc-nav-item" th:href="@{/receptionist/dashboard(_anchor='intake')}"><i class="bi bi-person-check"></i> Check-in bệnh nhân</a>
-        <a class="rc-nav-item" th:href="@{/receptionist/dashboard(_anchor='waiting')}"><i class="bi bi-people"></i> Danh sách chờ</a>
-        <a class="rc-nav-item" th:href="@{/receptionist/dashboard(_anchor='quick-register')}"><i class="bi bi-calendar2-plus"></i> Tạo lịch mới</a>
+        <a class="rc-nav-item" th:classappend="${active == 'appointments'} ? ' active'" th:href="@{/receptionist/appointments}"><i class="bi bi-calendar2-check"></i> Tiếp nhận &amp; check-in</a>
+        <a class="rc-nav-item" th:classappend="${active == 'waiting'} ? ' active'" th:href="@{/receptionist/waiting}"><i class="bi bi-people"></i> Danh sách chờ</a>
+        <a class="rc-nav-item" th:classappend="${active == 'new-appointment'} ? ' active'" th:href="@{/receptionist/appointments/new}"><i class="bi bi-calendar2-plus"></i> Tạo lịch mới</a>
+        <a class="rc-nav-item" th:classappend="${active == 'schedule'} ? ' active'" th:href="@{/receptionist/schedule}"><i class="bi bi-calendar-week"></i> Lịch bác sĩ</a>
         <hr class="my-2">
-        <a class="rc-nav-item" th:href="@{/receptionist/dashboard(_anchor='doctors')}"><i class="bi bi-person-badge"></i> Bác sĩ trực</a>
+        <a class="rc-nav-item" th:classappend="${active == 'doctors'} ? ' active'" th:href="@{/receptionist/doctors}"><i class="bi bi-person-badge"></i> Bác sĩ trực</a>
         <a class="rc-nav-item" th:href="@{/notifications}"><i class="bi bi-bell"></i> Thông báo</a>
     </div>
 </div>

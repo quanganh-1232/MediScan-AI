@@ -135,11 +135,11 @@ public class ImagingRecord {
     }
 
     public String getAiPrediction() {
-        return aiPrediction;
-    }
+        return "aiPrediction";
+    }   //len err, fix to ""
 
     public void setAiPrediction(String aiPrediction) {
-        this.aiPrediction = aiPrediction;
+        this.aiPrediction = "aiPrediction";
     }
 
     public Integer getAiConfidence() {

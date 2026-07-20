@@ -7,7 +7,7 @@
 
 import torch
 
-from anfis import AnfisNet
+from .anfis import AnfisNet
 
 
 def _mk_param(val):
@@ -101,11 +101,11 @@ class TriangularMembFunc(torch.nn.Module):
 
     def forward(self, x):
         return torch.where(
-            torch.ByteTensor(self.a < x) & torch.ByteTensor(x <= self.b),
+            (self.a < x) & (x <= self.b),
             (x - self.a) / (self.b - self.a),
             # else
             torch.where(
-                torch.ByteTensor(self.b < x) & torch.ByteTensor(x <= self.c),
+                (self.b < x) & (x <= self.c),
                 (self.c - x) / (self.c - self.b),
                 torch.zeros_like(x, requires_grad=True)))
 
@@ -167,13 +167,13 @@ class TrapezoidalMembFunc(torch.nn.Module):
     def forward(self, x):
         yvals = torch.zeros_like(x)
         if self.a < self.b:
-            incr = torch.ByteTensor(self.a < x) & torch.ByteTensor(x <= self.b)
+            incr = (self.a < x) & (x <= self.b)
             yvals[incr] = (x[incr] - self.a) / (self.b - self.a)
         if self.b < self.c:
-            decr = torch.ByteTensor(self.b < x) & torch.ByteTensor(x < self.c)
-            yvals[decr] = 1
+            level = (self.b < x) & (x < self.c)
+            yvals[level] = 1
         if self.c < self.d:
-            decr = torch.ByteTensor(self.c <= x) & torch.ByteTensor(x < self.d)
+            decr = (self.c <= x) & (x < self.d)
             yvals[decr] = (self.d - x[decr]) / (self.d - self.c)
         return yvals
 

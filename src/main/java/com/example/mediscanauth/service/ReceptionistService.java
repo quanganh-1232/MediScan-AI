@@ -2,6 +2,7 @@ package com.example.mediscanauth.service;
 
 import com.example.mediscanauth.model.Appointment;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 public interface ReceptionistService {
@@ -16,8 +17,11 @@ public interface ReceptionistService {
                                         String phone,
                                         String symptom,
                                         Long doctorId,
+                                        LocalDate scheduledDate,
                                         LocalTime scheduledTime,
                                         String receptionistEmail);
+
+    Appointment completeAppointment(Long appointmentId, String receptionistEmail);
 
     Appointment cancelAppointment(Long appointmentId, String reason, String receptionistEmail);
 

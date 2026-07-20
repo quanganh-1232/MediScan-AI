@@ -1,32 +1,56 @@
 package com.example.mediscanauth.controller.doctor;
 
 import com.example.mediscanauth.model.ImagingRecord;
-import com.example.mediscanauth.repository.PatientRepository;
-import com.example.mediscanauth.service.ImagingRecordService;
+import com.example.mediscanauth.model.Notification;
+import com.example.mediscanauth.model.Patient;
+import com.example.mediscanauth.model.User;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import com.example.mediscanauth.model.dto.DashboardDTO;
+import com.example.mediscanauth.repository.PatientRepository;
+import com.example.mediscanauth.repository.UserRepository;
+import com.example.mediscanauth.service.CloudinaryService;
+import com.example.mediscanauth.service.ImagingRecordService;
+import com.example.mediscanauth.service.NotificationService;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.security.Principal;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Controller
 public class DoctorDashboardController {
 
+    private final CloudinaryService cloudinaryService;
     private final ImagingRecordService imagingRecordService;
     private final PatientRepository patientRepository;
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public DoctorDashboardController(ImagingRecordService imagingRecordService,
-                                     PatientRepository patientRepository) {
+    // 2. Tiêm toàn bộ qua một Constructor duy nhất (Không dùng @Autowired rời rạc
+    // nữa)
+    public DoctorDashboardController(CloudinaryService cloudinaryService,
+            ImagingRecordService imagingRecordService,
+            PatientRepository patientRepository,
+            UserRepository userRepository,
+            NotificationService notificationService) {
+        this.cloudinaryService = cloudinaryService;
         this.imagingRecordService = imagingRecordService;
         this.patientRepository = patientRepository;
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
+    // ==================== Các method cũ giữ nguyên ====================
     @GetMapping("/doctor/dashboard")
     public String dashboard() {
         return "redirect:/home";
@@ -55,53 +79,117 @@ public class DoctorDashboardController {
     @GetMapping("/doctor/records/{recordId}/review")
     public String reviewDetail(@PathVariable Long recordId, Model model) {
         ImagingRecord record = imagingRecordService.getRecordById(recordId);
+        String patientName = record.getPatient() != null ? record.getPatient().getFullName() : "Unknown_Patient";
+        String recordCode = record.getRecordCode() != null ? record.getRecordCode() : "Unknown_Record";
+
+        // 2. Truyền đầy đủ 4 tham số vào hàm getDisplayImageUrl mới
+        String displayUrl = cloudinaryService.getDisplayImageUrl(
+                record.getFileName(),
+                record.getStatus(),
+                patientName,
+                recordCode);
+
         model.addAttribute("record", record);
+        model.addAttribute("displayImageUrl", displayUrl);
+        model.addAttribute("aiRegions", imagingRecordService.getAiRegionsByRecordId(recordId));
+
         patientRepository.findByUser(record.getPatient())
-                .ifPresent(profile -> model.addAttribute("profile", profile));
+                .ifPresent(p -> model.addAttribute("profile", p));
+
         return "doctor/review-detail";
     }
 
     @PostMapping("/doctor/records/{recordId}/conclusion")
     public String saveConclusion(Authentication authentication,
-                                 @PathVariable Long recordId,
-                                 @RequestParam(required = false) String conclusion,
-                                 @RequestParam(required = false) Integer bboxX,
-                                 @RequestParam(required = false) Integer bboxY,
-                                 @RequestParam(required = false) Integer bboxWidth,
-                                 @RequestParam(required = false) Integer bboxHeight,
-                                 RedirectAttributes redirectAttributes) {
+            @PathVariable Long recordId,
+            @RequestParam(required = false) String conclusion,
+            @RequestParam(required = false) String screenshotData, // <--- Nhận dữ liệu ảnh chụp màn hình ở đây
+            @RequestParam(required = false) Integer bboxX,
+            @RequestParam(required = false) Integer bboxY,
+            @RequestParam(required = false) Integer bboxWidth,
+            @RequestParam(required = false) Integer bboxHeight,
+            RedirectAttributes redirectAttributes) {
+
+        // Nếu bác sĩ có vẽ hoặc cập nhật tọa độ box
         if (bboxX != null || bboxY != null || bboxWidth != null || bboxHeight != null) {
             imagingRecordService.updateRecordCoordinates(recordId, bboxX, bboxY, bboxWidth, bboxHeight);
         }
-        imagingRecordService.confirmDoctorReview(recordId, authentication.getName(), conclusion, null);
+
+        // Truyền screenshotData vào hàm confirmDoctorReview
+        imagingRecordService.confirmDoctorReview(recordId, authentication.getName(), conclusion, null, screenshotData);
+
         redirectAttributes.addFlashAttribute("diagnosisSuccess", true);
         return "redirect:/doctor/records/pending";
     }
 
     @PostMapping("/doctor/records/reject")
     public String reject(Authentication authentication,
-                         @RequestParam Long recordId,
-                         @RequestParam(required = false) String conclusion,
-                         @RequestParam(required = false) String recommendation) {
+            @RequestParam Long recordId,
+            @RequestParam(required = false) String conclusion,
+            @RequestParam(required = false) String recommendation) {
         imagingRecordService.rejectDoctorReview(recordId, authentication.getName(), conclusion, recommendation);
         return "redirect:/doctor/records/pending";
     }
 
+    @GetMapping("/doctor/patients")
+    public String listPatients(Model model) {
+        List<Patient> patients = imagingRecordService.getAllPatients();
+        model.addAttribute("patients", patients);
+        return "doctor/patient-list";
+    }
+
+    @GetMapping("/doctor/patients/{id}")
+    public String patientDetail(@PathVariable Long id, Model model) {
+        Patient patient = imagingRecordService.getPatientById(id);
+        List<ImagingRecord> records = imagingRecordService.findForPatient(patient.getUser());
+        model.addAttribute("profile", patient);
+        model.addAttribute("records", records);
+        return "doctor/patient-profile-detail";
+    }
+
+    // ==================== LIBRARY ====================
     @GetMapping("/doctor/library")
     public String library(@RequestParam(required = false) String q,
-                          @RequestParam(required = false) String bodyPart,
-                          @RequestParam(defaultValue = "0") int page,
-                          @RequestParam(defaultValue = "8") int size,
-                          Model model) {
-        Sort sort = Sort.by(
-                new Sort.Order(Sort.Direction.DESC, "confirmedAt", Sort.NullHandling.NULLS_LAST),
-                Sort.Order.desc("createdAt")
-        );
-        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), sort);
-        model.addAttribute("recordsPage", imagingRecordService.searchConfirmedLibrary(q, bodyPart, pageable));
+            @RequestParam(required = false) String bodyPart,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size,
+            Model model,
+            Principal principal) {
+
+        String email = principal.getName();
+        Long doctorId = imagingRecordService.getDoctorIdByEmail(email);
+
+        List<DashboardDTO.QueueItemDTO> completedList = imagingRecordService.getCompletedDTOsForDoctor(doctorId);
+
+        // Filter client-side
+        if (q != null && !q.trim().isEmpty()) {
+            String keyword = q.toLowerCase().trim();
+            completedList = completedList.stream()
+                    .filter(r -> (r.getRecordCode() != null && r.getRecordCode().toLowerCase().contains(keyword)) ||
+                            (r.getPatient() != null && r.getPatient().getFullName() != null &&
+                                    r.getPatient().getFullName().toLowerCase().contains(keyword))
+                            ||
+                            (r.getBodyPart() != null && r.getBodyPart().toLowerCase().contains(keyword)) ||
+                            (r.getAiPrediction() != null && r.getAiPrediction().toLowerCase().contains(keyword)))
+                    .collect(Collectors.toList());
+        }
+
+        if (bodyPart != null && !bodyPart.isEmpty()) {
+            completedList = completedList.stream()
+                    .filter(r -> bodyPart.equals(r.getBodyPart()))
+                    .collect(Collectors.toList());
+        }
+
+        model.addAttribute("completedRecords", completedList);
+        model.addAttribute("completedCount", completedList.size());
         model.addAttribute("q", q == null ? "" : q);
         model.addAttribute("bodyPart", bodyPart == null ? "" : bodyPart);
-        model.addAttribute("bodyPartFilters", java.util.List.of("Cẳng tay", "Cổ tay", "Bàn tay", "Cẳng chân", "Cổ chân", "Bàn chân", "Xương sườn", "Vai", "Khuỷu tay", "Đầu gối"));
+
+        model.addAttribute("bodyPartFilters", java.util.List.of(
+                "Cẳng tay", "Cổ tay", "Bàn tay", "Cẳng chân",
+                "Cổ chân", "Bàn chân", "Xương sườn", "Vai",
+                "Khuỷu tay", "Đầu gối"));
+
         return "doctor/library";
     }
 
@@ -109,5 +197,30 @@ public class DoctorDashboardController {
     public String recordDetail(@PathVariable Long recordId, Model model) {
         model.addAttribute("record", imagingRecordService.getRecordById(recordId));
         return "doctor/record-detail";
+    }
+
+    // ==================== NOTIFICATIONS ====================
+    @GetMapping("/doctor/notifications")
+    public String notifications(Model model, Principal principal) {
+        String email = principal.getName();
+        Long doctorId = imagingRecordService.getDoctorIdByEmail(email);
+
+        if (doctorId != null) {
+            User currentUser = userRepository.findById(doctorId).orElse(null);
+
+            if (currentUser != null) {
+                List<Notification> notifications = notificationService.findForUser(currentUser);
+                long unreadCount = notificationService.countUnread(currentUser);
+
+                model.addAttribute("notifications", notifications);
+                model.addAttribute("unreadCount", unreadCount);
+                return "common/notifications";
+            }
+        }
+
+        // Fallback
+        model.addAttribute("notifications", List.of());
+        model.addAttribute("unreadCount", 0);
+        return "common/notifications";
     }
 }

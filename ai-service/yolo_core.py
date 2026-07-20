@@ -415,7 +415,7 @@ def extract_candidates(enhanced: np.ndarray,
 # ══════════════════════════════════════════════════════════════════════════════
 
 # ── Tuning parameters — adjust these if you're getting too many / too few hits ──
-FD_FRACTURE_THRESHOLD = 1.7   # minimum fractal dimension to be called a fracture
+FD_FRACTURE_THRESHOLD = 1.5   # minimum fractal dimension to be called a fracture
 FD_UPPER_BOUND        = 2.0    # physical maximum for a 2-D binary image
 ASPECT_RATIO_MIN      = 1.2    # fractures are elongated, not square
 ASPECT_RATIO_MAX      = 15.0   # very thin slivers are likely noise

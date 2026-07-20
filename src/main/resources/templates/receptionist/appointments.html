@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Tiếp nhận lịch hẹn - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+</head>
+<body>
+
+<div th:replace="~{receptionist/fragments/receptionist-shell :: nav}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+    <div class="row g-4">
+
+        <!-- ============ Sidebar ============ -->
+        <div class="col-12 col-xl-2">
+            <div th:replace="~{receptionist/fragments/receptionist-shell :: sidebar('appointments')}"></div>
+        </div>
+
+        <!-- ============ Main ============ -->
+        <div class="col-12 col-xl-10">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <div>
+                    <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-calendar2-check text-primary me-2"></i>Tiếp nhận &amp; check-in</h1>
+                    <p class="text-secondary mb-0">Xác nhận, check-in, hủy hoặc đánh dấu vắng mặt cho lịch hẹn của bệnh nhân.</p>
+                </div>
+                <a th:href="@{/receptionist/appointments/new}" class="btn ms-btn ms-btn-primary text-white">
+                    <i class="bi bi-plus-lg me-1"></i> Tạo lịch mới
+                </a>
+            </div>
+
+            <div th:if="${success}" class="alert alert-success ms-auth-alert mb-3"><i class="bi bi-check-circle-fill"></i><span th:text="${success}"></span></div>
+            <div th:if="${error}" class="alert alert-danger ms-auth-alert mb-3"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
+
+            <section class="pt-card p-4">
+                <form th:action="@{/receptionist/appointments}" method="get" class="row g-2 mb-3">
+                    <div class="col-12 col-md-4">
+                        <div class="ms-input-group position-relative">
+                            <input type="text" name="keyword" class="form-control ms-input" placeholder="Tìm tên/SĐT/mã lịch hẹn" th:value="${keyword}" style="padding-left:2.4rem;">
+                            <i class="bi bi-search position-absolute" style="left:0.9rem; top:50%; transform:translateY(-50%); color:var(--ms-muted);"></i>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <input type="date" name="date" class="form-control ms-input" th:value="${filterDate}">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <select name="status" class="form-select ms-input">
+                            <option value="" th:selected="${selectedStatus == ''}">Tất cả trạng thái</option>
+                            <option value="PENDING" th:selected="${selectedStatus == 'PENDING'}">Chờ xác nhận</option>
+                            <option value="CONFIRMED" th:selected="${selectedStatus == 'CONFIRMED'}">Đã xác nhận</option>
+                            <option value="CHECKED_IN" th:selected="${selectedStatus == 'CHECKED_IN'}">Đã check-in</option>
+                            <option value="COMPLETED" th:selected="${selectedStatus == 'COMPLETED'}">Hoàn thành</option>
+                            <option value="CANCELLED" th:selected="${selectedStatus == 'CANCELLED'}">Đã hủy</option>
+                            <option value="MISSED" th:selected="${selectedStatus == 'MISSED'}">Vắng mặt</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn ms-btn ms-btn-primary text-white flex-grow-1"><i class="bi bi-funnel me-1"></i>Lọc</button>
+                        <a th:href="@{/receptionist/appointments}" class="btn ms-btn ms-btn-ghost border text-primary" title="Đặt lại"><i class="bi bi-x-lg"></i></a>
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="pt-table">
+                        <thead>
+                        <tr>
+                            <th>Mã lịch hẹn</th>
+                            <th>Bệnh nhân</th>
+                            <th>Bác sĩ</th>
+                            <th>Giờ hẹn</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="a : ${appointmentsPage.content}">
+                            <td><span class="fw-bold text-primary" th:text="${a.appointmentCode}">APT-001</span></td>
+                            <td>
+                                <div class="fw-semibold" th:text="${a.patient != null ? a.patient.fullName : 'Không rõ'}">Nguyễn Văn An</div>
+                                <div class="small text-muted" th:text="${a.patient != null and a.patient.phone != null ? a.patient.phone : ''}">0901 234 567</div>
+                            </td>
+                            <td th:text="${a.doctor != null ? 'BS. ' + a.doctor.fullName : 'Chưa gán'}">BS. Trần Minh Đức</td>
+                            <td>
+                                <div class="fw-semibold" th:text="${#temporals.format(a.scheduledTime, 'HH:mm')}">08:30</div>
+                                <div class="small text-muted" th:text="${#temporals.format(a.scheduledTime, 'dd/MM/yyyy')}">23/05</div>
+                            </td>
+                            <td>
+                                <span th:switch="${a.status}">
+                                    <span th:case="'PENDING'" class="pt-status pt-status-pending">Chờ xác nhận</span>
+                                    <span th:case="'CONFIRMED'" class="pt-status pt-status-confirmed">Đã xác nhận</span>
+                                    <span th:case="'SCHEDULED'" class="pt-status pt-status-confirmed">Đã đặt lịch</span>
+                                    <span th:case="'CHECKED_IN'" class="pt-status pt-status-checkedin">Đã check-in</span>
+                                    <span th:case="'TRIAGED'" class="pt-status pt-status-checkedin">Đã khám sơ bộ</span>
+                                    <span th:case="'IN_PROGRESS'" class="pt-status pt-status-confirmed">Đang khám</span>
+                                    <span th:case="'COMPLETED'" class="pt-status pt-status-done">Hoàn thành</span>
+                                    <span th:case="'CANCELLED'" class="pt-status pt-status-cancelled">Đã hủy</span>
+                                    <span th:case="'MISSED'" class="pt-status pt-status-cancelled">Vắng mặt</span>
+                                    <span th:case="*" class="pt-status pt-status-pending" th:text="${a.status}">-</span>
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <form th:if="${a.status == 'PENDING' or a.status == 'SCHEDULED'}"
+                                          th:action="@{/receptionist/appointments/{id}/confirm(id=${a.appointmentId})}" method="post">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                        <input type="hidden" name="redirectTo" th:value="${backUrl}"/>
+                                        <button type="submit" class="btn btn-sm ms-btn ms-btn-primary text-white px-2">Xác nhận</button>
+                                    </form>
+                                    <form th:if="${a.status == 'CONFIRMED'}"
+                                          th:action="@{/receptionist/appointments/{id}/checkin(id=${a.appointmentId})}" method="post">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                        <input type="hidden" name="redirectTo" th:value="${backUrl}"/>
+                                        <button type="submit" class="btn btn-sm ms-btn ms-btn-primary text-white px-2">Check-in</button>
+                                    </form>
+                                    <form th:if="${a.status == 'IN_PROGRESS'}"
+                                          th:action="@{/receptionist/appointments/{id}/complete(id=${a.appointmentId})}" method="post">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                        <input type="hidden" name="redirectTo" th:value="${backUrl}"/>
+                                        <button type="submit" class="btn btn-sm ms-btn ms-btn-primary text-white px-2">Hoàn tất</button>
+                                    </form>
+                                    <a th:href="@{/receptionist/appointments/{id}(id=${a.appointmentId})}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-2">Chi tiết</a>
+                                    <div class="dropdown" th:if="${a.status != 'COMPLETED' and a.status != 'CANCELLED' and a.status != 'MISSED'}">
+                                        <button type="button" class="btn btn-sm ms-btn ms-btn-ghost border px-2" data-bs-toggle="dropdown" aria-expanded="false" title="Thêm">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li th:if="${a.status == 'PENDING' or a.status == 'SCHEDULED' or a.status == 'CONFIRMED'}">
+                                                <form th:action="@{/receptionist/appointments/{id}/missed(id=${a.appointmentId})}" method="post">
+                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                                    <input type="hidden" name="redirectTo" th:value="${backUrl}"/>
+                                                    <button type="submit" class="dropdown-item text-warning">
+                                                        <i class="bi bi-person-x me-1"></i> Đánh dấu vắng mặt
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form th:action="@{/receptionist/appointments/{id}/cancel(id=${a.appointmentId})}" method="post">
+                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                                    <input type="hidden" name="redirectTo" th:value="${backUrl}"/>
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="bi bi-x-circle me-1"></i> Hủy lịch hẹn
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(appointmentsPage.content)}">
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-calendar2-x fs-3 d-block mb-2 opacity-50"></i>
+                                Không tìm thấy lịch hẹn nào phù hợp.
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <nav th:if="${appointmentsPage.totalPages > 1}" class="mt-2">
+                    <ul class="pagination justify-content-center gap-1 mb-0">
+                        <li class="page-item" th:classappend="${appointmentsPage.first} ? 'disabled'">
+                            <a class="page-link rounded-3"
+                               th:href="@{/receptionist/appointments(keyword=${keyword}, date=${filterDate}, status=${selectedStatus}, page=${appointmentsPage.number - 1})}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item"
+                            th:each="pageNum : ${#numbers.sequence(0, appointmentsPage.totalPages - 1)}"
+                            th:classappend="${pageNum == appointmentsPage.number} ? 'active'">
+                            <a class="page-link rounded-3"
+                               th:href="@{/receptionist/appointments(keyword=${keyword}, date=${filterDate}, status=${selectedStatus}, page=${pageNum})}"
+                               th:text="${pageNum + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${appointmentsPage.last} ? 'disabled'">
+                            <a class="page-link rounded-3"
+                               th:href="@{/receptionist/appointments(keyword=${keyword}, date=${filterDate}, status=${selectedStatus}, page=${appointmentsPage.number + 1})}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </section>
+        </div>
+    </div>
+</main>
+
+<!-- ============ Double-booking conflict popup ============ -->
+<div class="modal fade" id="conflictModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:48px;height:48px;border-radius:50%;background:#fff3cd;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold mb-0">Trùng lịch bác sĩ</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <p class="mb-0" th:text="${conflictError}">Bác sĩ đã có lịch hẹn khác vào thời điểm này.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn ms-btn ms-btn-primary text-white px-4" data-bs-dismiss="modal">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:if="${conflictError}">
+    document.addEventListener('DOMContentLoaded', function () {
+        new bootstrap.Modal(document.getElementById('conflictModal')).show();
+    });
+</script>
+</body>
+</html>
