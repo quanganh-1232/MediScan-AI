@@ -87,12 +87,12 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
         String formattedTime = appointment.getScheduledTime() != null ? appointment.getScheduledTime().format(TIME_FORMAT) : "";
         if (appointment.getDoctor() != null) {
-            notificationService.sendNotification(appointment.getDoctor(), "Xác nhận lịch hẹn #" + appointment.getAppointmentCode(),
-                    "Lịch hẹn khám vào " + formattedTime + " đã được xác nhận.", appointment.getAppointmentId());
+            notificationService.sendNotification(appointment.getDoctor(), "Xác nhận lịch hẹn khám",
+                    "Lịch hẹn khám lúc " + formattedTime + " đã được xác nhận.", null);
         }
         if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
-            notificationService.sendNotification(appointment.getPatient().getUser(), "Lịch hẹn đã được xác nhận #" + appointment.getAppointmentCode(),
-                    "Lịch hẹn khám vào " + formattedTime + " đã được lễ tân xác nhận.", appointment.getAppointmentId());
+            notificationService.sendNotification(appointment.getPatient().getUser(), "Lịch hẹn đã được xác nhận",
+                    "Lịch hẹn khám của bạn vào " + formattedTime + " đã được lễ tân xác nhận.", null);
         }
         return appointment;
     }
@@ -118,11 +118,11 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         String formattedTime = appointment.getScheduledTime() != null ? appointment.getScheduledTime().format(TIME_FORMAT) : "";
         String patientName = appointment.getPatient() != null ? appointment.getPatient().getFullName() : "bệnh nhân";
         if (appointment.getDoctor() != null) {
-            notificationService.sendNotification(appointment.getDoctor(), "Bệnh nhân đã check-in #" + appointment.getAppointmentCode(),
-                    "Bệnh nhân " + patientName + " đã check-in lúc " + formattedTime + ", đang trong danh sách chờ.", appointment.getAppointmentId());
+            notificationService.sendNotification(appointment.getDoctor(), "Bệnh nhân đã check-in",
+                    "Bệnh nhân " + patientName + " đã check-in lúc " + formattedTime + ", đang trong danh sách chờ khám.", null);
         }
-        notificationService.notifyRoleUsers(RECEPTIONIST_ROLE_NAMES, "Check-in bệnh nhân #" + appointment.getAppointmentCode(),
-                "Bệnh nhân " + patientName + " đã check-in tại quầy.", appointment.getAppointmentId());
+        notificationService.notifyRoleUsers(RECEPTIONIST_ROLE_NAMES, "Bệnh nhân đã check-in",
+                "Bệnh nhân " + patientName + " đã check-in tại quầy.", null);
         return appointment;
     }
 
@@ -154,8 +154,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
         String formattedTime = appointment.getScheduledTime() != null ? appointment.getScheduledTime().format(TIME_FORMAT) : "";
         String patientName = appointment.getPatient() != null ? appointment.getPatient().getFullName() : "bệnh nhân";
-        notificationService.sendNotification(doctor, "Phân công ca khám mới #" + appointment.getAppointmentCode(),
-                "Bạn đã được phân công phụ trách bệnh nhân " + patientName + " lúc " + formattedTime + ".", appointment.getAppointmentId());
+        notificationService.sendNotification(doctor, "Phân công ca khám mới",
+                "Bạn đã được phân công phụ trách khám cho bệnh nhân " + patientName + " lúc " + formattedTime + ".", null);
         return appointment;
     }
 
@@ -210,11 +210,11 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         logStatusChange(appointment, "CONFIRMED", receptionist, "Đăng ký nhanh tại quầy lễ tân cho khách vãng lai.");
 
         String formattedTime = scheduledAt.format(TIME_FORMAT);
-        notificationService.notifyRoleUsers(RECEPTIONIST_ROLE_NAMES, "Tiếp nhận Walk-in mới #" + appointment.getAppointmentCode(),
-                "Đã đăng ký ca khám vãng lai cho bệnh nhân " + cleanFullName + " lúc " + formattedTime + ".", appointment.getAppointmentId());
+        notificationService.notifyRoleUsers(RECEPTIONIST_ROLE_NAMES, "Tiếp nhận bệnh nhân vãng lai",
+                "Đã đăng ký thành công ca khám vãng lai cho bệnh nhân " + cleanFullName + " lúc " + formattedTime + ".", null);
         if (doctor != null) {
-            notificationService.sendNotification(doctor, "Phân công ca khám vãng lai #" + appointment.getAppointmentCode(),
-                    "Bạn có ca khám vãng lai mới với bệnh nhân " + cleanFullName + " lúc " + formattedTime + ".", appointment.getAppointmentId());
+            notificationService.sendNotification(doctor, "Phân công ca khám vãng lai",
+                    "Bạn có ca khám vãng lai mới với bệnh nhân " + cleanFullName + " lúc " + formattedTime + ".", null);
         }
         return appointment;
     }
@@ -240,12 +240,12 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
         String formattedTime = appointment.getScheduledTime() != null ? appointment.getScheduledTime().format(TIME_FORMAT) : "";
         if (appointment.getDoctor() != null) {
-            notificationService.sendNotification(appointment.getDoctor(), "Lịch hẹn đã bị hủy #" + appointment.getAppointmentCode(),
-                    "Lịch hẹn khám lúc " + formattedTime + " đã bị hủy.", appointment.getAppointmentId());
+            notificationService.sendNotification(appointment.getDoctor(), "Hủy lịch hẹn khám",
+                    "Lịch hẹn khám lúc " + formattedTime + " đã bị hủy.", null);
         }
         if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
-            notificationService.sendNotification(appointment.getPatient().getUser(), "Lịch hẹn đã bị hủy #" + appointment.getAppointmentCode(),
-                    "Lịch hẹn khám của bạn vào " + formattedTime + " đã bị hủy.", appointment.getAppointmentId());
+            notificationService.sendNotification(appointment.getPatient().getUser(), "Hủy lịch hẹn khám",
+                    "Lịch hẹn khám của bạn vào " + formattedTime + " đã bị hủy.", null);
         }
         return appointment;
     }
@@ -279,12 +279,12 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
                 String patientName = appointment.getPatient() != null ? appointment.getPatient().getFullName() : "bệnh nhân";
                 if (appointment.getDoctor() != null) {
-                    notificationService.sendNotification(appointment.getDoctor(), "Mời bệnh nhân vào khám #" + appointment.getAppointmentCode(),
-                            "Bệnh nhân " + patientName + " đang được mời vào phòng khám.", appointment.getAppointmentId());
+                    notificationService.sendNotification(appointment.getDoctor(), "Mời bệnh nhân vào khám",
+                            "Bệnh nhân " + patientName + " đang được mời vào phòng khám.", null);
                 }
                 if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
-                    notificationService.sendNotification(appointment.getPatient().getUser(), "Đến lượt khám #" + appointment.getAppointmentCode(),
-                            "Mời bạn vào phòng khám.", appointment.getAppointmentId());
+                    notificationService.sendNotification(appointment.getPatient().getUser(), "Đến lượt khám",
+                            "Mời bạn vào phòng khám.", null);
                 }
                 return appointment;
             }
@@ -307,11 +307,11 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
         String patientName = appointment.getPatient() != null ? appointment.getPatient().getFullName() : "bệnh nhân";
         if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
-            notificationService.sendNotification(appointment.getPatient().getUser(), "Hoàn tất ca khám #" + appointment.getAppointmentCode(),
-                    "Buổi khám của bạn đã hoàn tất. Cảm ơn bạn!", appointment.getAppointmentId());
+            notificationService.sendNotification(appointment.getPatient().getUser(), "Hoàn tất ca khám",
+                    "Buổi khám của bạn đã hoàn tất. Cảm ơn bạn!", null);
         }
-        notificationService.notifyRoleUsers(RECEPTIONIST_ROLE_NAMES, "Hoàn tất ca khám #" + appointment.getAppointmentCode(),
-                "Ca khám của bệnh nhân " + patientName + " đã hoàn thành.", appointment.getAppointmentId());
+        notificationService.notifyRoleUsers(RECEPTIONIST_ROLE_NAMES, "Hoàn tất ca khám",
+                "Ca khám của bệnh nhân " + patientName + " đã hoàn tất.", null);
         return appointment;
     }
 

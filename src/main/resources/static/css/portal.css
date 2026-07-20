@@ -411,13 +411,14 @@ body {
 }
 
 .rc-nav-item:hover {
-    background: rgba(26, 110, 244, 0.06);
-    color: var(--ms-primary);
+    background: #f0f6ff;
+    color: #1a6ef4;
 }
 
 .rc-nav-item.active {
-    background: rgba(26, 110, 244, 0.1);
-    color: var(--ms-primary);
+    background: linear-gradient(135deg, #1a6ef4 0%, #114ec2 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(26, 110, 244, 0.25);
 }
 
 .rc-nav-item i { font-size: 1.05rem; }
@@ -606,26 +607,72 @@ body {
     .rc-sidebar { position: static; }
 }
 
-.btn-teal {
-    background-color: #0f766e;
+.btn-teal, .btn-emerald, .btn-primary-blue {
+    background-color: #1a6ef4 !important;
     color: #ffffff !important;
-    border: none;
+    border: none !important;
 }
-.btn-teal:hover, .btn-teal:focus {
-    background-color: #0d655e;
+.btn-teal:hover, .btn-teal:focus, .btn-emerald:hover, .btn-emerald:focus, .btn-primary-blue:hover {
+    background-color: #114ec2 !important;
     color: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(15, 118, 110, 0.3);
+    box-shadow: 0 4px 14px rgba(26, 110, 244, 0.3) !important;
+}
+
+.btn-outline-teal {
+    border: 1px solid #1a6ef4 !important;
+    color: #1a6ef4 !important;
+    background: transparent !important;
+}
+
+.btn-outline-teal:hover {
+    background: #1a6ef4 !important;
+    color: #ffffff !important;
+}
+
+.text-teal {
+    color: #1a6ef4 !important;
+}
+
+.bg-teal {
+    background-color: #1a6ef4 !important;
+}
+
+.bg-teal-subtle {
+    background-color: #eff6ff !important;
+}
+
+.border-teal {
+    border-color: #1a6ef4 !important;
+}
+
+/* Clean Notification Item (No Inner Icon, Blue Accent) */
+.ms-notif-item {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    background: #ffffff;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    display: block;
+}
+
+.ms-notif-item.unread {
+    background: #f0f7ff;
+    border-left: 4px solid #1a6ef4;
+}
+
+.ms-notif-item:hover {
+    background: #f8fafc;
 }
 
 /* ==========================================================================
-   RECEPTIONIST OVERVIEW MEDICAL DASHBOARD STYLES
+   RECEPTIONIST OVERVIEW MEDICAL DASHBOARD STYLES (Ocean Blue Brand Theme)
    ========================================================================== */
 .rc-dash-header {
-    background: linear-gradient(135deg, #0f766e 0%, #1e40af 100%);
+    background: linear-gradient(135deg, #114ec2 0%, #1a6ef4 100%);
     border-radius: 20px;
     color: #ffffff;
     padding: 1.5rem 1.8rem;
-    box-shadow: 0 12px 32px rgba(15, 118, 110, 0.2);
+    box-shadow: 0 12px 32px rgba(26, 110, 244, 0.25);
     position: relative;
     overflow: hidden;
 }
@@ -807,10 +854,10 @@ body {
 }
 
 .rc-filter-tab.active {
-    background: #0f766e;
+    background: #1a6ef4;
     color: #ffffff;
-    border-color: #0f766e;
-    box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+    border-color: #1a6ef4;
+    box-shadow: 0 4px 12px rgba(26, 110, 244, 0.25);
 }
 
 /* Patient Queue Stream Item */
