@@ -106,24 +106,16 @@
             <button class="chat-chip" onclick="sendChip(this)">Đau khớp gối</button>
             <button class="chat-chip" onclick="sendChip(this)">Đau cổ tay</button>
             <button class="chat-chip" onclick="sendChip(this)">Nghi gãy xương</button>
-            <button class="chat-chip" onclick="chatImageUpload()" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;">
-                <i class="bi bi-image me-1"></i>Gửi ảnh X-quang
-            </button>
         </div>
 
         <div class="chatbot-input">
-            <button class="btn p-0 me-1" onclick="chatImageUpload()" title="Gui anh X-quang" style="color:#2563eb;font-size:1.1rem;flex-shrink:0;">
-                <i class="bi bi-image"></i>
-            </button>
-            <input type="text" id="chatInput" placeholder="Nhap tin nhan..." onkeydown="if(event.key==='Enter'){sendChat();}">
-            <button class="chatbot-send" onclick="sendChat()" title="Gui"><i class="bi bi-send"></i></button>
+            <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." onkeydown="if(event.key==='Enter'){sendChat();}">
+            <button class="chatbot-send" onclick="sendChat()" title="Gửi"><i class="bi bi-send"></i></button>
         </div>
-        <input type="file" id="chatFileInput" accept="image/*" style="display:none" onchange="handleChatImage(this)">
-        <div class="chatbot-disclaimer"><i class="bi bi-shield-check me-1"></i>Chatbot chi mang tinh tham khao, khong thay the chan doan bac si.</div>
+        <div class="chatbot-disclaimer"><i class="bi bi-shield-check me-1"></i>Chatbot chỉ mang tính tham khảo, không thay thế chẩn đoán bác sĩ.</div>
     </div>
 
     <style>
-        .chat-bubble img.chat-xray-thumb { max-width:160px; border-radius:8px; display:block; margin-top:.4rem; }
         .chat-typing { display:flex; gap:4px; align-items:center; padding:.4rem 0; }
         .chat-typing span { width:7px; height:7px; border-radius:50%; background:#2563eb; animation:typingBounce 1.2s infinite; }
         .chat-typing span:nth-child(2){animation-delay:.2s} .chat-typing span:nth-child(3){animation-delay:.4s}
@@ -664,65 +656,6 @@ Hoặc liên hệ trực tiếp với đội ngũ hỗ trợ tại phòng khám.
         }
         function sendChip(btn){appendMessage(btn.textContent,'user');botReply(btn.textContent);}
 
-        // Image upload to AI
-        function chatImageUpload(){
-            if(!document.getElementById('chatbotPanel').classList.contains('open'))toggleChatPopup();
-            document.getElementById('chatFileInput').click();
-        }
-        function handleChatImage(input){
-            const file=input.files[0]; if(!file)return; input.value='';
-            // Preview
-            const body=document.getElementById('chatBody');
-            const row=document.createElement('div'); row.className='chat-row user';
-            const bub=document.createElement('div'); bub.className='chat-bubble';
-            const reader=new FileReader();
-            reader.onload=ev=>{
-                bub.innerHTML='<i class="bi bi-image me-1"></i>Anh X-quang<br><img class="chat-xray-thumb" src="'+ev.target.result+'" alt="X-quang"><span class="chat-time">'+nowTime()+'</span>';
-            };
-            reader.readAsDataURL(file);
-            row.appendChild(bub); body.appendChild(row); body.scrollTop=body.scrollHeight;
-
-            // Bot typing
-            showTyping();
-            appendBotHTML('Đang gửi ảnh lên AI phân tích... Vui lòng chờ trong giây lát.');
-
-            // Send XHR
-            const fd=new FormData();
-            fd.append('xrayImage',file);
-            fd.append('bodyPart','Chua xac dinh');
-            const token=document.getElementById('csrfToken').dataset.token;
-            const header=document.getElementById('csrfHeader').dataset.header;
-            const xhr=new XMLHttpRequest();
-            xhr.open('POST','/patient/upload');
-            if(token)xhr.setRequestHeader(header,token);
-            xhr.onload=()=>{
-                hideTyping();
-                try{
-                    const res=JSON.parse(xhr.responseText);
-                    if(res.success){
-                        const risk=res.riskLevel||'NONE';
-                        let em = '';
-                        if(risk==='HIGH') em='<i class="bi bi-exclamation-octagon-fill text-danger"></i>';
-                        else if(risk==='MEDIUM') em='<i class="bi bi-exclamation-triangle-fill text-warning"></i>';
-                        else if(risk==='LOW') em='<i class="bi bi-check-circle-fill text-success"></i>';
-                        const txt=risk==='HIGH'?'Nguy cơ cao - Cần khám ngay':risk==='MEDIUM'?'Nguy cơ trung bình - Theo dõi thêm':risk==='LOW'?'Nguy cơ thấp - Không có dấu hiệu nghiêm trọng':'Chưa xác định';
-                        appendBotHTML(
-                            'Phân tích AI hoàn tất!'+
-                            '<div class="chat-result-card '+risk+'">'+
-                            em+' <strong>'+txt+'</strong><br>'+
-                            'Độ tin cậy: <strong>'+(res.aiConfidence||'-')+'%</strong><br>'+
-                            'Mã hồ sơ: <strong>'+(res.recordCode||'-')+'</strong>'+
-                            '</div>'+
-                            '<a class="chat-link-btn" href="/patient/records/'+res.recordId+'">Xem chi tiết hồ sơ</a>'
-                        );
-                    } else {
-                        appendBotHTML('Không thể phân tích ảnh: '+(res.message||'Lỗi không xác định.')+'<br>Vui lòng thử lại hoặc liên hệ phòng khám.');
-                    }
-                }catch(e){appendBotHTML('Lỗi kết nối. Vui lòng thử lại.');}
-            };
-            xhr.onerror=()=>{hideTyping();appendBotHTML('Không kết nối được với máy chủ. Kiểm tra mạng và thử lại.');};
-            xhr.send(fd);
-        }
     </script>
 </div>
 
