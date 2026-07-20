@@ -24,6 +24,8 @@ public class DashboardDTO {
         private String aiPrediction;
         private Double aiConfidence;
         private String status;
+        private String fileName;           
+        private String doctorConclusion;
     }
 
     @Data

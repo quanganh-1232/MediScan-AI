@@ -1,120 +1,409 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <title>Hồ sơ chi tiết bệnh nhân - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }</style>
-</head>
-<body>
-<div class="ms-shell">
-    <div th:replace="~{common/fragments/app-header :: header('Patient Diagnostics', 'Bác sĩ', 'ms-avatar-purple')}"></div>
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        }
 
-    <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
-        <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-3">
-                <div th:replace="~{common/fragments/app-sidebar :: sidebar('doctor', 'Patient Diagnostics', 'Bác sĩ', 'ms-avatar-purple', 'patients')}"></div>
+        .search-input-group {
+            position: relative;
+        }
+
+        .search-input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        .search-input-group .form-control {
+            padding-left: 40px;
+            border-radius: 10px;
+        }
+
+        .filter-select {
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .pagination .page-item .page-link {
+            color: #64748b;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin: 0 2px;
+            font-weight: 600;
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+        }
+
+        .ms-table th,
+        .ms-table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 12px 16px;
+            vertical-align: middle;
+        }
+        
+        /* Custom avatar mini cho layout ngang */
+        .ms-avatar-horizontal {
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #e0e7ff;
+            color: #4f46e5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div th:replace="~{doctor/fragments/doctor-shell :: nav}"></div>
+
+    <main class="container-fluid px-3 px-lg-4 py-4">
+        <div class="row g-4">
+
+            <div class="col-12 col-xl-2">
+                <div th:replace="~{doctor/fragments/doctor-shell :: sidebar('patients')}"></div>
             </div>
 
-            <div class="col-12 col-xl-9">
-                <section class="ms-page-hero mb-4">
-                    <div>
-                        <a th:href="@{/doctor/patients}" class="text-decoration-none fw-semibold small text-primary">&lt; Quay lại danh sách</a>
-                        <h1 class="ms-display display-6 mt-2 mb-2">Hồ sơ lâm sàng bệnh nhân</h1>
-                        <p class="ms-subtle mb-0">Thông tin chi tiết hành chính và toàn bộ lịch sử các ca quét AI X-quang của bệnh nhân.</p>
+            <div class="col-12 col-xl-10">
+                
+                <section class="mb-4">
+                    <a th:href="@{/doctor/patients}" class="text-decoration-none fw-semibold small text-primary">
+                        <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+                    </a>
+                    <h1 class="fw-bold fs-3 mt-2 mb-1">Hồ sơ lâm sàng bệnh nhân</h1>
+                    <p class="text-secondary mb-0">Thông tin chi tiết hành chính và toàn bộ lịch sử các ca quét AI X-quang của bệnh nhân.</p>
+                </section>
+
+                <section class="card p-4 mb-4 shadow-sm border-light bg-white rounded-3">
+                    <div class="row align-items-center g-3">
+                        <div class="col-12 col-md-auto d-flex align-items-center gap-3 border-end-md pe-md-4">
+                            <div class="ms-avatar-horizontal fs-4 fw-bold">
+                                <span th:text="${profile.user != null ? #strings.substring(profile.user.fullName,0,1).toUpperCase() : #strings.substring(profile.fullName,0,1).toUpperCase()}">B</span>
+                            </div>
+                            <div>
+                                <h3 class="fw-bold text-dark fs-5 mb-1" th:text="${profile.user != null ? profile.user.fullName : profile.fullName}">N/A</h3>
+                                <div class="text-muted small mb-1" th:text="'Mã BN: BN-' + ${profile.patientId}">BN-000</div>
+                                <span class="badge bg-light text-primary border border-primary-subtle" th:text="${profile.gender != null ? profile.gender : 'N/A'}">Nam</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 col-sm-6 col-md">
+                            <div class="ps-md-2">
+                                <span class="small text-uppercase text-muted fw-semibold d-block">Ngày sinh</span>
+                                <span class="fw-bold text-dark" th:text="${profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 col-sm-6 col-md">
+                            <div>
+                                <span class="small text-uppercase text-muted fw-semibold d-block">Số điện thoại</span>
+                                <span class="fw-bold text-dark" th:text="${profile.phone != null ? profile.phone : 'N/A'}">N/A</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 col-md-4">
+                            <div>
+                                <span class="small text-uppercase text-muted fw-semibold d-block">Địa chỉ thường trú</span>
+                                <p class="mb-0 small text-secondary fw-medium mt-1 text-truncate" th:text="${profile.address != null ? profile.address : 'Chưa cập nhật địa chỉ'}"></p>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
-                <div class="row g-4">
-                    <div class="col-12 col-lg-4">
-                        <div class="ms-card-solid rounded-5 p-4 text-center mb-3">
-                            <div class="d-flex justify-content-center mb-3">
-                                <span class="ms-avatar ms-avatar-purple fs-3 p-4 fw-bold"
-                                      th:text="${profile.user != null ? #strings.substring(profile.user.fullName,0,1).toUpperCase() : #strings.substring(profile.fullName,0,1).toUpperCase()}">B</span>
-                            </div>
-                            <h3 class="fw-bold text-dark mb-1" th:text="${profile.user != null ? profile.user.fullName : profile.fullName}">N/A</h3>
-                            <div class="text-muted small mb-3" th:text="'Mã BN: BN-' + ${profile.patientId}">BN-000</div>
-                            <span class="ms-pill ms-pill-soft" th:text="${profile.gender != null ? profile.gender : 'N/A'}">Nam</span>
-
-                            <hr class="my-4 opacity-10">
-
-                            <div class="text-start">
-                                <div class="mb-3">
-                                    <span class="small text-uppercase text-muted fw-semibold d-block">Ngày sinh</span>
-                                    <span class="fw-bold text-dark" th:text="${profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
-                                </div>
-                                <div class="mb-3">
-                                    <span class="small text-uppercase text-muted fw-semibold d-block">Số điện thoại</span>
-                                    <span class="fw-bold text-dark" th:text="${profile.phone != null ? profile.phone : 'N/A'}">N/A</span>
-                                </div>
-                                <div class="mb-0">
-                                    <span class="small text-uppercase text-muted fw-semibold d-block">Địa chỉ thường trú</span>
-                                    <p class="mb-0 small ms-subtle mt-1" th:text="${profile.address != null ? profile.address : 'Chưa cập nhật địa chỉ'}"></p>
-                                </div>
-                            </div>
-                        </div>
+                <div class="p-4 bg-white rounded-3 shadow-sm border border-light">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="fw-bold fs-5 mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Lịch sử chụp X-quang</h2>
+                        <span class="badge bg-primary fs-6 px-3 py-2" id="totalCountLabel" 
+                              th:text="${records != null ? records.size() : 0} + ' ca'">0 ca</span>
                     </div>
 
-                    <div class="col-12 col-lg-8">
-                        <div class="ms-card-solid rounded-5 p-4 p-lg-5 h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h2 class="ms-section-title h4 mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Lịch sử chụp X-quang</h2>
-                                <span class="ms-badge ms-badge-soft" th:text="${records != null ? records.size() + ' ca' : '0 ca'}">0 ca</span>
+                    <section th:if="${!#lists.isEmpty(records)}" class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-8 col-lg-9">
+                                <div class="search-input-group">
+                                    <i class="bi bi-search fs-5"></i>
+                                    <input type="text" id="searchInput" class="form-control form-control-lg"
+                                           placeholder="Tìm kiếm theo Mã ca, Vị trí chụp, Kết quả dự đoán..."
+                                           onkeyup="filterRecordsTable()">
+                                </div>
                             </div>
-
-                            <div th:if="${#lists.isEmpty(records)}" class="text-center py-5 text-muted">
-                                <i class="bi bi-folder-x display-5 d-block mb-2 opacity-25"></i>
-                                <p class="small mb-0">Bệnh nhân chưa có lịch sử ca chụp nào trên hệ thống.</p>
-                            </div>
-
-                            <div th:if="${!#lists.isEmpty(records)}" class="table-responsive">
-                                <table class="ms-table">
-                                    <thead>
-                                    <tr>
-                                        <th>Mã ca</th>
-                                        <th>Vị trí chụp</th>
-                                        <th>Dự đoán AI</th>
-                                        <th>Trạng thái</th>
-                                        <th class="text-end">Hành động</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr th:each="r : ${records}">
-                                        <td><span class="fw-bold text-dark" th:text="${r.recordCode}">XR-001</span></td>
-                                        <td class="fw-semibold text-secondary" th:text="${r.bodyPart}">Lồng ngực</td>
-                                        <td>
-                                            <div class="fw-bold text-danger mb-1" th:text="${r.aiPrediction}">Bất thường</div>
-                                            <div class="ms-progress-bar" style="max-width: 100px;">
-                                                <div class="ms-progress-fill bg-danger" th:style="${'width:' + (r.aiConfidence != null ? r.aiConfidence : 0) + '%'}"></div>
-                                            </div>
-                                            <div class="small text-muted mt-1" style="font-size: 0.7rem;" th:text="'Tin cậy: ' + ${r.aiConfidence} + '%'">0%</div>
-                                        </td>
-                                        <td>
-                                            <span class="ms-badge"
-                                                  th:classappend="${r.status == 'DONE' ? 'ms-badge-soft' : 'ms-badge-warning'}"
-                                                  th:text="${r.status}">PENDING</span>
-                                        </td>
-                                        <td class="text-end">
-                                            <a th:href="@{'/doctor/records/' + ${r.recordId} + '/review'}" class="btn ms-btn ms-btn-ghost border-secondary bg-white btn-sm px-2">
-                                                <i class="bi bi-eye-fill"></i> Đọc ca
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
+                            <div class="col-12 col-md-4 col-lg-3">
+                                <select id="statusFilter" class="form-select form-select-lg filter-select text-secondary fw-semibold" onchange="filterRecordsTable()">
+                                    <option value="">Tất cả trạng thái</option>
+                                </select>
                             </div>
                         </div>
+                    </section>
+
+                    <div id="emptyStateHistory" th:class="${#lists.isEmpty(records)} ? 'text-center py-5 text-muted' : 'text-center py-5 text-muted d-none'">
+                        <i class="bi bi-folder-x display-4 d-block mb-3 opacity-50"></i>
+                        <h5>Không tìm thấy dữ liệu phù hợp</h5>
+                        <p class="mb-0">Hệ thống chưa ghi nhận lịch sử chụp hoặc bộ lọc tìm kiếm của bạn không trùng khớp kết quả.</p>
                     </div>
+
+                    <div th:if="${!#lists.isEmpty(records)}" class="table-responsive">
+                        <table class="table table-hover align-middle ms-table w-100" id="recordsTable">
+                            <thead class="table-light">
+                            <tr>
+                                <th style="width: 15%">Mã ca</th>
+                                <th style="width: 25%">Vị trí chụp</th>
+                                <th style="width: 30%">Dự đoán AI</th>
+                                <th style="width: 15%">Trạng thái</th>
+                                <th style="width: 15%" class="text-end">Hành động</th>
+                            </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                            <tr th:each="r : ${records}">
+                                <td><span class="fw-bold text-primary" th:text="${r.recordCode}">XR-001</span></td>
+                                <td class="fw-bold text-dark" th:text="${r.bodyPart}">Lồng ngực</td>
+                                <td>
+                                    <div class="fw-bold text-danger mb-1" th:text="${r.aiPrediction}">Bất thường</div>
+                                    <div class="progress" style="height: 6px; max-width: 160px;">
+                                        <div class="progress-bar bg-danger" role="progressbar" th:style="${'width:' + (r.aiConfidence != null ? r.aiConfidence : 0) + '%'}" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <div class="small text-muted mt-1" style="font-size: 0.75rem;" th:text="'Độ tin cậy: ' + ${r.aiConfidence} + '%'">0%</div>
+                                </td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${r.status == 'DONE' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle'}"
+                                          th:text="${r.status}">PENDING</span>
+                                </td>
+                                <td class="text-end">
+                                    <a th:href="@{'/doctor/records/' + ${r.recordId} + '/review'}" class="btn btn-sm btn-outline-primary fw-bold rounded-2">
+                                        <i class="bi bi-eye-fill"></i> Đọc ca
+                                    </a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination-container p-3 bg-light border-top rounded-bottom-3" id="paginationWrapper"
+                         th:if="${!#lists.isEmpty(records)}">
+                        <div class="small text-muted fw-semibold" id="paginationInfo">
+                            Đang hiển thị từ <span id="startRange"></span> đến <span id="endRange"></span> của <span id="totalRecords"></span> ca chụp
+                        </div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
+                        </nav>
+                    </div>
+
                 </div>
             </div>
         </div>
     </main>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const rowsPerPage = 5; 
+        let currentPage = 1;
+        let filteredRows = [];
+
+        document.addEventListener("DOMContentLoaded", function () {
+            initTableEngine();
+        });
+
+        function initTableEngine() {
+            const tableBody = document.getElementById("tableBody");
+            if (!tableBody) return;
+
+            filteredRows = Array.from(tableBody.querySelectorAll("tr"));
+
+            // Trích xuất options động cho bộ lọc trạng thái
+            generateStatusFilterOptions(filteredRows);
+
+            setupPagination(filteredRows.length);
+            renderPage(currentPage);
+        }
+
+        function generateStatusFilterOptions(rows) {
+            const statusFilter = document.getElementById("statusFilter");
+            if (!statusFilter) return;
+
+            const statuses = new Set();
+
+            rows.forEach(row => {
+                const cells = row.getElementsByTagName("td");
+                if (cells.length >= 4) {
+                    const statusText = cells[3].textContent.trim();
+                    if (statusText && statusText !== "—") {
+                        statuses.add(statusText);
+                    }
+                }
+            });
+
+            statuses.forEach(status => {
+                const option = document.createElement("option");
+                option.value = status;
+                option.textContent = status;
+                statusFilter.appendChild(option);
+            });
+        }
+
+        function filterRecordsTable() {
+            const searchVal = document.getElementById("searchInput").value.toLowerCase().trim();
+            const statusVal = document.getElementById("statusFilter").value.toLowerCase().trim();
+
+            const tableBody = document.getElementById("tableBody");
+            if (!tableBody) return;
+            const allRows = Array.from(tableBody.getElementsByTagName("tr"));
+
+            filteredRows = allRows.filter(row => {
+                const cells = row.getElementsByTagName("td");
+                if (cells.length < 4) return false;
+
+                const codeText = cells[0].textContent.toLowerCase();
+                const partText = cells[1].textContent.toLowerCase();
+                const predictionText = cells[2].querySelector('.fw-bold') ? cells[2].querySelector('.fw-bold').textContent.toLowerCase() : '';
+                const statusText = cells[3].textContent.toLowerCase().trim();
+
+                const matchSearch = codeText.includes(searchVal) || partText.includes(searchVal) || predictionText.includes(searchVal);
+                const matchStatus = (statusVal === "") || (statusText === statusVal);
+
+                return matchSearch && matchStatus;
+            });
+
+            const emptyState = document.getElementById("emptyStateHistory");
+            const paginationWrapper = document.getElementById("paginationWrapper");
+            const tableResponsive = document.querySelector(".table-responsive");
+
+            if (filteredRows.length === 0) {
+                if (emptyState) emptyState.classList.remove("d-none");
+                if (tableResponsive) tableResponsive.classList.add("d-none");
+                if (paginationWrapper) paginationWrapper.style.setProperty("display", "none", "important");
+            } else {
+                if (emptyState) emptyState.classList.add("d-none");
+                if (tableResponsive) tableResponsive.classList.remove("d-none");
+                if (paginationWrapper) paginationWrapper.style.setProperty("display", "flex", "important");
+            }
+
+            currentPage = 1;
+            setupPagination(filteredRows.length);
+            renderPage(currentPage);
+        }
+
+        function setupPagination(totalItems) {
+            const pageCount = Math.ceil(totalItems / rowsPerPage);
+            const container = document.getElementById("paginationContainer");
+            if (!container) return;
+            container.innerHTML = "";
+
+            if (pageCount <= 1) {
+                updatePaginationInfo(totalItems);
+                return;
+            }
+
+            createPageButton(container, "«", () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderPage(currentPage);
+                }
+            }, currentPage === 1);
+
+            for (let i = 1; i <= pageCount; i++) {
+                createPageButton(container, i, () => {
+                    currentPage = i;
+                    renderPage(currentPage);
+                }, false, i === currentPage);
+            }
+
+            createPageButton(container, "»", () => {
+                if (currentPage < pageCount) {
+                    currentPage++;
+                    renderPage(currentPage);
+                }
+            }, currentPage === pageCount);
+
+            updatePaginationInfo(totalItems);
+        }
+
+        function createPageButton(parentContainer, text, onClickAction, isDisabled = false, isActive = false) {
+            const li = document.createElement("li");
+            li.className = `page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+
+            const a = document.createElement("a");
+            a.className = "page-link";
+            a.href = "javascript:void(0);";
+            a.textContent = text;
+            a.addEventListener("click", onClickAction);
+
+            li.appendChild(a);
+            parentContainer.appendChild(li);
+        }
+
+        function renderPage(page) {
+            const tableBody = document.getElementById("tableBody");
+            if (!tableBody) return;
+            const allRows = Array.from(tableBody.querySelectorAll("tr"));
+
+            allRows.forEach(row => row.style.display = "none");
+
+            const start = (page - 1) * rowsPerPage;
+            const end = Math.min(start + rowsPerPage, filteredRows.length);
+
+            for (let i = start; i < end; i++) {
+                if (filteredRows[i]) filteredRows[i].style.display = "";
+            }
+
+            updatePaginationInfo(filteredRows.length);
+
+            const paginationItems = document.querySelectorAll("#paginationContainer .page-item");
+            paginationItems.forEach(item => {
+                if (parseInt(item.textContent) === page) {
+                    item.classList.add("active");
+                } else if (item.textContent !== "«" && item.textContent !== "»") {
+                    item.classList.remove("active");
+                }
+            });
+        }
+
+        function updatePaginationInfo(totalItems) {
+            const start = totalItems === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+            const end = Math.min(currentPage * rowsPerPage, totalItems);
+
+            if (document.getElementById("startRange")) document.getElementById("startRange").textContent = start;
+            if (document.getElementById("endRange")) document.getElementById("endRange").textContent = end;
+            if (document.getElementById("totalRecords")) document.getElementById("totalRecords").textContent = totalItems;
+
+            const totalCountLabel = document.getElementById("totalCountLabel");
+            if (totalCountLabel) {
+                totalCountLabel.textContent = totalItems + " ca";
+            }
+        }
+    </script>
 </body>
+
 </html>

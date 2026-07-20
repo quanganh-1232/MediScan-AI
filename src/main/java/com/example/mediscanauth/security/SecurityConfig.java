@@ -31,14 +31,23 @@ public class SecurityConfig {
                         .ignoringRequestMatchers("/api/**")
                 )
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/doctor/**").hasRole("DOCTOR")
-                        .requestMatchers("/technician/**").hasRole("TECHNICIAN")
-                        .requestMatchers("/receptionist/**").hasRole("RECEPTIONIST")
-                        .requestMatchers("/patient/**").hasRole("PATIENT")
-                        .anyRequest().authenticated()
-                )
+                    .requestMatchers(
+                            "/", 
+                            "/login", 
+                            "/register", 
+                            "/css/**", 
+                            "/js/**", 
+                            "/images/**", 
+                            "/uploads/**", 
+                            "/favicon.ico"
+                    ).permitAll()
+                    .requestMatchers("/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/doctor/**").hasRole("DOCTOR")
+                    .requestMatchers("/technician/**").hasRole("TECHNICIAN")
+                    .requestMatchers("/receptionist/**").hasRole("RECEPTIONIST")
+                    .requestMatchers("/patient/**").hasRole("PATIENT")
+                    .anyRequest().authenticated()
+            )
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")

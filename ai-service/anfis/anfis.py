@@ -182,7 +182,11 @@ class ConsequentLayer(torch.nn.Module):
     def __init__(self, d_in, d_rule, d_out):
         super(ConsequentLayer, self).__init__()
         c_shape = torch.Size([d_rule, d_out, d_in+1])
-        self._coeff = torch.zeros(c_shape, dtype=dtype, requires_grad=True)
+        # Registered as a buffer (not a bare attribute) so it is actually
+        # included in state_dict()/deepcopy — without this, saving and
+        # reloading a hybrid-learning model silently drops the LSE-fitted
+        # coefficients, which is most of what the model learned.
+        self.register_buffer('_coeff', torch.zeros(c_shape, dtype=dtype, requires_grad=True))
 
     @property
     def coeff(self):
@@ -218,17 +222,17 @@ class ConsequentLayer(torch.nn.Module):
         weighted_x = torch.einsum('bp, bq -> bpq', weights, x_plus)
         # Can't have value 0 for weights, or LSE won't work:
         weighted_x[weighted_x == 0] = 1e-12
-        # Squash x and y down to 2D matrices for gels:
+        # Squash x and y down to 2D matrices for the least-squares solve:
         weighted_x_2d = weighted_x.view(weighted_x.shape[0], -1)
         y_actual_2d = y_actual.view(y_actual.shape[0], -1)
-        # Use gels to do LSE, then pick out the solution rows:
+        # torch.gels was removed after PyTorch 1.2; torch.linalg.lstsq is the
+        # modern replacement and already returns just the solution rows.
         try:
-            coeff_2d, _ = torch.gels(y_actual_2d, weighted_x_2d)
+            coeff_2d = torch.linalg.lstsq(weighted_x_2d, y_actual_2d).solution
         except RuntimeError as e:
-            print('Internal error in gels', e)
+            print('Internal error in lstsq', e)
             print('Weights are:', weighted_x)
             raise e
-        coeff_2d = coeff_2d[0:weighted_x_2d.shape[1]]
         # Reshape to 3D tensor: divide by rules, n_in+1, then swap last 2 dims
         self.coeff = coeff_2d.view(weights.shape[1], x.shape[1]+1, -1)\
             .transpose(1, 2)
@@ -307,7 +311,7 @@ class AnfisNet(torch.nn.Module):
         varnames = [v for v, _ in invardefs]
         mfdefs = [FuzzifyVariable(mfs) for _, mfs in invardefs]
         self.num_in = len(invardefs)
-        self.num_rules = np.prod([len(mfs) for _, mfs in invardefs])
+        self.num_rules = int(np.prod([len(mfs) for _, mfs in invardefs]))
         if self.hybrid:
             cl = ConsequentLayer(self.num_in, self.num_rules, self.num_out)
         else:

@@ -1,12 +1,15 @@
 package com.example.mediscanauth.controller.receptionist;
 
+import com.example.mediscanauth.exception.customize.DoctorScheduleConflictException;
 import com.example.mediscanauth.model.Appointment;
+import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.AppointmentStatusHistoryRepository;
 import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.ReceptionistService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,13 +19,24 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Controller
 public class ReceptionistDashboardController {
+
+    private static final List<String> DOCTOR_ROLE_NAMES = List.of("DOCTOR", "ROLE_DOCTOR");
+    private static final LocalTime SCHEDULE_OPEN = LocalTime.of(6, 0);
+    private static final LocalTime SCHEDULE_CLOSE = LocalTime.of(21, 0);
+    private static final int SCHEDULE_TOTAL_MINUTES = (int) Duration.between(SCHEDULE_OPEN, SCHEDULE_CLOSE).toMinutes();
+    private static final int SCHEDULE_SLOT_MINUTES = 30;
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentStatusHistoryRepository appointmentStatusHistoryRepository;
@@ -39,54 +53,143 @@ public class ReceptionistDashboardController {
         this.receptionistService = receptionistService;
     }
 
+    /**
+     * Overview: numbers only, no actions — so a receptionist can never end up on a page
+     * where a button does nothing.
+     */
     @GetMapping("/receptionist/dashboard")
-    public String dashboard(@RequestParam(required = false) String keyword,
-                            @RequestParam(required = false)
-                            @org.springframework.format.annotation.DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
-                            @RequestParam(required = false) String status,
-                            @RequestParam(defaultValue = "0") int page,
-                            Model model) {
+    public String dashboard(Model model) {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
 
-        List<Appointment> todayAppointments =
-                appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay);
+        List<Appointment> todayAppointments = appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay);
+        List<User> doctorsOnDuty = userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(DOCTOR_ROLE_NAMES, "ACTIVE");
 
+        // Stat counts
+        long todayCount = todayAppointments.size();
+        long pendingCount = todayAppointments.stream().filter(a -> "PENDING".equals(a.getStatus())).count();
+        long confirmedCount = todayAppointments.stream().filter(a -> "CONFIRMED".equals(a.getStatus()) || "SCHEDULED".equals(a.getStatus())).count();
+        long checkedInCount = todayAppointments.stream().filter(a -> "CHECKED_IN".equals(a.getStatus())).count();
+        long inProgressCount = todayAppointments.stream().filter(a -> "IN_PROGRESS".equals(a.getStatus()) || "TRIAGED".equals(a.getStatus())).count();
+        long completedCount = todayAppointments.stream().filter(a -> "COMPLETED".equals(a.getStatus())).count();
+        long cancelledCount = todayAppointments.stream().filter(a -> "CANCELLED".equals(a.getStatus()) || "MISSED".equals(a.getStatus())).count();
+        long unassignedCount = todayAppointments.stream().filter(a -> a.getDoctor() == null).count();
+
+        // Shift calculations (Morning 06-12, Afternoon 12-17, Evening 17-21)
+        long morningShiftCount = todayAppointments.stream()
+                .filter(a -> a.getScheduledTime().getHour() >= 6 && a.getScheduledTime().getHour() < 12)
+                .count();
+        long afternoonShiftCount = todayAppointments.stream()
+                .filter(a -> a.getScheduledTime().getHour() >= 12 && a.getScheduledTime().getHour() < 17)
+                .count();
+        long eveningShiftCount = todayAppointments.stream()
+                .filter(a -> a.getScheduledTime().getHour() >= 17 && a.getScheduledTime().getHour() < 21)
+                .count();
+
+        // Hourly breakdown (06:00 to 20:00)
+        List<String> hourlyLabels = List.of("06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00");
+        List<Integer> hourlyData = new ArrayList<>();
+        int maxHourlyCount = 0;
+        String peakHourRange = "N/A";
+        for (int h = 6; h <= 20; h++) {
+            final int hour = h;
+            int count = (int) todayAppointments.stream()
+                    .filter(a -> a.getScheduledTime().getHour() == hour)
+                    .count();
+            hourlyData.add(count);
+            if (count > maxHourlyCount) {
+                maxHourlyCount = count;
+                peakHourRange = String.format("%02d:00 - %02d:00", h, h + 1);
+            }
+        }
+
+        // Doctor Workloads
+        List<DoctorWorkloadDto> doctorWorkloads = new ArrayList<>();
+        for (User doctor : doctorsOnDuty) {
+            long docCount = todayAppointments.stream()
+                    .filter(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId()))
+                    .count();
+            long docCompleted = todayAppointments.stream()
+                    .filter(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId()) && "COMPLETED".equals(a.getStatus()))
+                    .count();
+            doctorWorkloads.add(new DoctorWorkloadDto(doctor, docCount, docCompleted));
+        }
+
+        // Waiting appointments (CHECKED_IN queue)
+        List<Appointment> waitingAppointments = todayAppointments.stream()
+                .filter(a -> "CHECKED_IN".equals(a.getStatus()))
+                .toList();
+
+        model.addAttribute("todayCount", todayCount);
+        model.addAttribute("waitingCheckinCount", pendingCount + confirmedCount);
+        model.addAttribute("receivedCount", checkedInCount + inProgressCount + completedCount);
+        model.addAttribute("waitingCount", checkedInCount);
+        model.addAttribute("pendingCount", pendingCount);
+        model.addAttribute("confirmedCount", confirmedCount);
+        model.addAttribute("inProgressCount", inProgressCount);
+        model.addAttribute("completedCount", completedCount);
+        model.addAttribute("cancelledCount", cancelledCount);
+        model.addAttribute("unassignedCount", unassignedCount);
+        model.addAttribute("doctorsOnDutyCount", doctorsOnDuty.size());
+        model.addAttribute("doctorsOnDuty", doctorsOnDuty);
+        model.addAttribute("todayAppointments", todayAppointments);
+        model.addAttribute("waitingAppointments", waitingAppointments);
+        model.addAttribute("today", LocalDate.now());
+
+        model.addAttribute("morningShiftCount", morningShiftCount);
+        model.addAttribute("afternoonShiftCount", afternoonShiftCount);
+        model.addAttribute("eveningShiftCount", eveningShiftCount);
+        model.addAttribute("hourlyLabels", hourlyLabels);
+        model.addAttribute("hourlyData", hourlyData);
+        model.addAttribute("peakHourRange", peakHourRange);
+        model.addAttribute("maxHourlyCount", maxHourlyCount);
+        model.addAttribute("doctorWorkloads", doctorWorkloads);
+
+        return "receptionist/dashboard";
+    }
+
+    /**
+     * Tiếp nhận lịch hẹn & check-in: search/filter table with the confirm/check-in/
+     * cancel/no-show actions.
+     */
+    @GetMapping("/receptionist/appointments")
+    public String appointments(@RequestParam(required = false) String keyword,
+                               @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+                               @RequestParam(required = false) String status,
+                               @RequestParam(defaultValue = "0") int page,
+                               Model model) {
         LocalDateTime dateFrom = date != null ? date.atStartOfDay() : null;
         LocalDateTime dateTo = date != null ? date.plusDays(1).atStartOfDay() : null;
         Page<Appointment> appointmentsPage = appointmentRepository.searchAppointments(
                 keyword, dateFrom, dateTo, status, PageRequest.of(Math.max(page, 0), 10));
 
-        model.addAttribute("todayCount", appointmentRepository.countByScheduledTimeBetween(startOfDay, endOfDay));
-        model.addAttribute("waitingCheckinCount", appointmentRepository.countByStatusIn(List.of("PENDING", "CONFIRMED", "SCHEDULED")));
-        model.addAttribute("receivedCount", appointmentRepository.countByStatusIn(List.of("CHECKED_IN", "TRIAGED", "IN_PROGRESS", "COMPLETED")));
-        model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
-                List.of("DOCTOR", "ROLE_DOCTOR"), "ACTIVE"));
-        model.addAttribute("todayAppointments", todayAppointments);
-        model.addAttribute("waitingList", appointmentRepository.findByStatusOrderByScheduledTimeAsc("CHECKED_IN"));
         model.addAttribute("appointmentsPage", appointmentsPage);
         model.addAttribute("keyword", keyword == null ? "" : keyword);
         model.addAttribute("filterDate", date);
         model.addAttribute("selectedStatus", status == null ? "" : status);
-        model.addAttribute("today", LocalDate.now());
-        return "receptionist/dashboard";
+        model.addAttribute("backUrl", buildBackUrl(keyword, date, status, appointmentsPage.getNumber()));
+        return "receptionist/appointments";
     }
 
     @PostMapping("/receptionist/appointments/{id}/confirm")
     public String confirmAppointment(@PathVariable("id") Long appointmentId,
+                                     @RequestParam(required = false) String redirectTo,
                                      Authentication authentication,
                                      RedirectAttributes redirectAttributes) {
         try {
             receptionistService.confirmAppointment(appointmentId, authentication.getName());
             redirectAttributes.addFlashAttribute("success", "Đã xác nhận lịch hẹn.");
+        } catch (DoctorScheduleConflictException ex) {
+            redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/receptionist/dashboard";
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
     }
 
     @PostMapping("/receptionist/appointments/{id}/checkin")
     public String checkInAppointment(@PathVariable("id") Long appointmentId,
+                                     @RequestParam(required = false) String redirectTo,
                                      Authentication authentication,
                                      RedirectAttributes redirectAttributes) {
         try {
@@ -95,17 +198,22 @@ public class ReceptionistDashboardController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/receptionist/dashboard";
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
     }
 
     @GetMapping("/receptionist/appointments/{id}")
-    public String appointmentDetail(@PathVariable("id") Long appointmentId, Model model) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lịch hẹn."));
+    public String appointmentDetail(@PathVariable("id") Long appointmentId, Model model,
+                                    RedirectAttributes redirectAttributes) {
+        java.util.Optional<Appointment> found = appointmentRepository.findById(appointmentId);
+        if (found.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy lịch hẹn.");
+            return "redirect:/receptionist/appointments";
+        }
+        Appointment appointment = found.get();
         model.addAttribute("appointment", appointment);
         model.addAttribute("history", appointmentStatusHistoryRepository.findByAppointmentOrderByCreatedAtAsc(appointment));
         model.addAttribute("doctors", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
-                List.of("DOCTOR", "ROLE_DOCTOR"), "ACTIVE"));
+                DOCTOR_ROLE_NAMES, "ACTIVE"));
         return "receptionist/appointment-detail";
     }
 
@@ -118,16 +226,32 @@ public class ReceptionistDashboardController {
         try {
             receptionistService.assignDoctor(appointmentId, doctorId, note, authentication.getName());
             redirectAttributes.addFlashAttribute("success", "Đã điều hướng bệnh nhân đến bác sĩ.");
+        } catch (DoctorScheduleConflictException ex) {
+            redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/receptionist/appointments/" + appointmentId;
     }
 
+    @PostMapping("/receptionist/appointments/{id}/complete")
+    public String completeAppointment(@PathVariable("id") Long appointmentId,
+                                      @RequestParam(required = false) String redirectTo,
+                                      Authentication authentication,
+                                      RedirectAttributes redirectAttributes) {
+        try {
+            receptionistService.completeAppointment(appointmentId, authentication.getName());
+            redirectAttributes.addFlashAttribute("success", "Đã hoàn tất buổi khám.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
+    }
+
     @PostMapping("/receptionist/appointments/{id}/cancel")
     public String cancelAppointment(@PathVariable("id") Long appointmentId,
                                     @RequestParam(required = false) String reason,
-                                    @RequestParam(required = false, defaultValue = "/receptionist/dashboard") String redirectTo,
+                                    @RequestParam(required = false) String redirectTo,
                                     Authentication authentication,
                                     RedirectAttributes redirectAttributes) {
         try {
@@ -136,12 +260,12 @@ public class ReceptionistDashboardController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:" + safeRedirect(redirectTo, appointmentId);
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
     }
 
     @PostMapping("/receptionist/appointments/{id}/missed")
     public String markMissed(@PathVariable("id") Long appointmentId,
-                             @RequestParam(required = false, defaultValue = "/receptionist/dashboard") String redirectTo,
+                             @RequestParam(required = false) String redirectTo,
                              Authentication authentication,
                              RedirectAttributes redirectAttributes) {
         try {
@@ -150,19 +274,16 @@ public class ReceptionistDashboardController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:" + safeRedirect(redirectTo, appointmentId);
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
     }
 
     /**
-     * Only allow redirecting back to the receptionist dashboard or this appointment's own
-     * detail page, to avoid an open-redirect via the redirectTo request parameter.
+     * Danh sách chờ: full CHECKED_IN queue + "call next" action.
      */
-    private String safeRedirect(String redirectTo, Long appointmentId) {
-        String detailPath = "/receptionist/appointments/" + appointmentId;
-        if (detailPath.equals(redirectTo)) {
-            return detailPath;
-        }
-        return "/receptionist/dashboard";
+    @GetMapping("/receptionist/waiting")
+    public String waitingList(Model model) {
+        model.addAttribute("waitingList", appointmentRepository.findByStatusOrderByScheduledTimeAsc("CHECKED_IN"));
+        return "receptionist/waiting";
     }
 
     @PostMapping("/receptionist/appointments/call-next")
@@ -175,7 +296,70 @@ public class ReceptionistDashboardController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/receptionist/dashboard";
+        return "redirect:/receptionist/waiting";
+    }
+
+    /**
+     * Tạo lịch mới: walk-in quick registration form.
+     */
+    @GetMapping("/receptionist/appointments/new")
+    public String newWalkInForm(Model model) {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+        List<User> doctorsOnDuty = userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
+                DOCTOR_ROLE_NAMES, "ACTIVE");
+        List<Appointment> todayAppointments = appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay);
+
+        List<DoctorWorkloadDto> doctorWorkloads = new ArrayList<>();
+        for (User doctor : doctorsOnDuty) {
+            long docCount = todayAppointments.stream()
+                    .filter(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId()))
+                    .count();
+            long docCompleted = todayAppointments.stream()
+                    .filter(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId()) && "COMPLETED".equals(a.getStatus()))
+                    .count();
+            doctorWorkloads.add(new DoctorWorkloadDto(doctor, docCount, docCompleted));
+        }
+
+        List<Appointment> recentTodayAppointments = todayAppointments.stream()
+                .sorted((a, b) -> b.getAppointmentId().compareTo(a.getAppointmentId()))
+                .limit(5)
+                .toList();
+
+        model.addAttribute("doctorsOnDuty", doctorsOnDuty);
+        model.addAttribute("doctorWorkloads", doctorWorkloads);
+        model.addAttribute("timeSlots", buildTimeSlots());
+        model.addAttribute("defaultTimeSlot", roundUpToSlot(LocalTime.now()));
+        model.addAttribute("todayCount", todayAppointments.size());
+        model.addAttribute("recentAppointments", recentTodayAppointments);
+        model.addAttribute("today", LocalDate.now());
+        return "receptionist/new-appointment";
+    }
+
+    /**
+     * Fixed 30-minute booking slots (06:00, 06:30, ... 20:30) so walk-ins
+     * always land on the same grid the doctor-conflict check uses, instead
+     * of letting the receptionist type an arbitrary time like 09:07.
+     */
+    private List<LocalTime> buildTimeSlots() {
+        List<LocalTime> slots = new ArrayList<>();
+        for (LocalTime t = SCHEDULE_OPEN; t.isBefore(SCHEDULE_CLOSE); t = t.plusMinutes(SCHEDULE_SLOT_MINUTES)) {
+            slots.add(t);
+        }
+        return slots;
+    }
+
+    private LocalTime roundUpToSlot(LocalTime time) {
+        if (time.isBefore(SCHEDULE_OPEN)) {
+            return SCHEDULE_OPEN;
+        }
+        long minutesFromOpen = Duration.between(SCHEDULE_OPEN, time).toMinutes();
+        long roundedUp = ((minutesFromOpen + SCHEDULE_SLOT_MINUTES - 1) / SCHEDULE_SLOT_MINUTES) * SCHEDULE_SLOT_MINUTES;
+        LocalTime slot = SCHEDULE_OPEN.plusMinutes(roundedUp);
+        return slot.isAfter(SCHEDULE_CLOSE.minusMinutes(SCHEDULE_SLOT_MINUTES))
+                ? SCHEDULE_CLOSE.minusMinutes(SCHEDULE_SLOT_MINUTES)
+                : slot;
     }
 
     @PostMapping("/receptionist/appointments/walk-in")
@@ -183,18 +367,187 @@ public class ReceptionistDashboardController {
                                           @RequestParam String phone,
                                           @RequestParam(required = false) String symptom,
                                           @RequestParam(required = false) Long doctorId,
-                                          @RequestParam(required = false)
-                                          @org.springframework.format.annotation.DateTimeFormat(pattern = "HH:mm") LocalTime scheduledTime,
+                                          @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate scheduledDate,
+                                          @RequestParam(required = false) @DateTimeFormat(pattern = "HH:mm") LocalTime scheduledTime,
                                           Authentication authentication,
                                           RedirectAttributes redirectAttributes) {
         try {
             Appointment appointment = receptionistService.createWalkInAppointment(
-                    fullName, phone, symptom, doctorId, scheduledTime, authentication.getName());
+                    fullName, phone, symptom, doctorId, scheduledDate, scheduledTime, authentication.getName());
             redirectAttributes.addFlashAttribute("success",
                     "Đã đăng ký lịch hẹn " + appointment.getAppointmentCode() + " cho khách vãng lai.");
+        } catch (DoctorScheduleConflictException ex) {
+            redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
+            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledDate, scheduledTime);
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledDate, scheduledTime);
         }
-        return "redirect:/receptionist/dashboard";
+        return "redirect:/receptionist/appointments/new";
+    }
+
+    /**
+     * On validation failure, keep what the receptionist already typed so a
+     * mistake in one field doesn't force re-entering the whole walk-in form.
+     */
+    private void addWalkInFormBackFill(RedirectAttributes redirectAttributes,
+                                       String fullName, String phone, String symptom,
+                                       Long doctorId, LocalDate scheduledDate, LocalTime scheduledTime) {
+        redirectAttributes.addFlashAttribute("formFullName", fullName);
+        redirectAttributes.addFlashAttribute("formPhone", phone);
+        redirectAttributes.addFlashAttribute("formSymptom", symptom);
+        redirectAttributes.addFlashAttribute("formDoctorId", doctorId);
+        redirectAttributes.addFlashAttribute("formScheduledDate", scheduledDate);
+        redirectAttributes.addFlashAttribute("formScheduledTime", scheduledTime);
+    }
+
+    /**
+     * Bác sĩ trực: view-only.
+     */
+    @GetMapping("/receptionist/doctors")
+    public String doctorsOnDuty(Model model) {
+        model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
+                DOCTOR_ROLE_NAMES, "ACTIVE"));
+        return "receptionist/doctors";
+    }
+
+    /**
+     * Lịch bác sĩ theo ngày: timeline trực quan giúp lễ tân thấy ngay khung giờ
+     * trống/bận của từng bác sĩ trước khi đặt lịch, thay vì phải đoán hoặc chờ
+     * popup trùng lịch khi submit form.
+     */
+    @GetMapping("/receptionist/schedule")
+    public String schedule(@RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+                           Model model) {
+        LocalDate selectedDate = date != null ? date : LocalDate.now();
+        LocalDateTime startOfDay = selectedDate.atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+        List<User> doctors = userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(DOCTOR_ROLE_NAMES, "ACTIVE");
+        List<Appointment> dayAppointments = appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay);
+
+        List<DoctorScheduleRow> scheduleRows = new ArrayList<>();
+        for (User doctor : doctors) {
+            List<ScheduleSlot> slots = new ArrayList<>();
+            for (Appointment appointment : dayAppointments) {
+                if (appointment.getDoctor() != null && appointment.getDoctor().getUserId().equals(doctor.getUserId())) {
+                    slots.add(toScheduleSlot(appointment));
+                }
+            }
+            scheduleRows.add(new DoctorScheduleRow(doctor, slots));
+        }
+        List<ScheduleSlot> unassignedSlots = dayAppointments.stream()
+                .filter(a -> a.getDoctor() == null)
+                .map(this::toScheduleSlot)
+                .toList();
+
+        model.addAttribute("scheduleRows", scheduleRows);
+        model.addAttribute("unassignedSlots", unassignedSlots);
+        model.addAttribute("selectedDate", selectedDate);
+        model.addAttribute("hourMarks", IntStream.rangeClosed(SCHEDULE_OPEN.getHour(), SCHEDULE_CLOSE.getHour()).boxed().toList());
+        return "receptionist/schedule";
+    }
+
+    private ScheduleSlot toScheduleSlot(Appointment appointment) {
+        LocalTime time = appointment.getScheduledTime().toLocalTime();
+        int minutesFromOpen = (int) Duration.between(SCHEDULE_OPEN, time).toMinutes();
+        double leftPercent = Math.max(0, Math.min(100, minutesFromOpen * 100.0 / SCHEDULE_TOTAL_MINUTES));
+        double widthPercent = Math.min(100 - leftPercent, SCHEDULE_SLOT_MINUTES * 100.0 / SCHEDULE_TOTAL_MINUTES);
+        return new ScheduleSlot(appointment, leftPercent, widthPercent);
+    }
+
+    /**
+     * Presentation-only wrappers so the timeline template can position each
+     * appointment chip with a plain percentage, instead of doing time-math in Thymeleaf.
+     */
+    public static class ScheduleSlot {
+        private final Appointment appointment;
+        private final double leftPercent;
+        private final double widthPercent;
+
+        public ScheduleSlot(Appointment appointment, double leftPercent, double widthPercent) {
+            this.appointment = appointment;
+            this.leftPercent = leftPercent;
+            this.widthPercent = widthPercent;
+        }
+
+        public Appointment getAppointment() {
+            return appointment;
+        }
+
+        public double getLeftPercent() {
+            return leftPercent;
+        }
+
+        public double getWidthPercent() {
+            return widthPercent;
+        }
+    }
+
+    public static class DoctorScheduleRow {
+        private final User doctor;
+        private final List<ScheduleSlot> slots;
+
+        public DoctorScheduleRow(User doctor, List<ScheduleSlot> slots) {
+            this.doctor = doctor;
+            this.slots = slots;
+        }
+
+        public User getDoctor() {
+            return doctor;
+        }
+
+        public List<ScheduleSlot> getSlots() {
+            return slots;
+        }
+    }
+
+    public static class DoctorWorkloadDto {
+        private final User doctor;
+        private final long totalAppointments;
+        private final long completedAppointments;
+
+        public DoctorWorkloadDto(User doctor, long totalAppointments, long completedAppointments) {
+            this.doctor = doctor;
+            this.totalAppointments = totalAppointments;
+            this.completedAppointments = completedAppointments;
+        }
+
+        public User getDoctor() {
+            return doctor;
+        }
+
+        public long getTotalAppointments() {
+            return totalAppointments;
+        }
+
+        public long getCompletedAppointments() {
+            return completedAppointments;
+        }
+    }
+
+    /**
+     * Only allow redirecting back within the receptionist module, to avoid an open-redirect
+     * via the redirectTo request parameter.
+     */
+    private String safeRedirect(String redirectTo, String fallback) {
+        if (redirectTo != null && redirectTo.startsWith("/receptionist/") && !redirectTo.contains("://")) {
+            return redirectTo;
+        }
+        return fallback;
+    }
+
+    private String buildBackUrl(String keyword, LocalDate date, String status, int page) {
+        StringBuilder url = new StringBuilder("/receptionist/appointments?page=").append(page);
+        if (keyword != null && !keyword.isBlank()) {
+            url.append("&keyword=").append(URLEncoder.encode(keyword, StandardCharsets.UTF_8));
+        }
+        if (date != null) {
+            url.append("&date=").append(date);
+        }
+        if (status != null && !status.isBlank()) {
+            url.append("&status=").append(status);
+        }
+        return url.toString();
     }
 }

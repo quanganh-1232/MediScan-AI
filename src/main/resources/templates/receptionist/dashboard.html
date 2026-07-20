@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Lễ tân - MediScan AI</title>
+    <title>Tổng Quan Tiếp Nhận - MediScan AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link th:href="@{/css/portal.css}" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -19,313 +21,561 @@
 <main class="container-fluid px-3 px-lg-4 py-4">
     <div class="row g-4">
 
-        <!-- ============ Sidebar ============ -->
+        <!-- Sidebar -->
         <div class="col-12 col-xl-2">
             <div th:replace="~{receptionist/fragments/receptionist-shell :: sidebar('dashboard')}"></div>
         </div>
 
-        <!-- ============ Main ============ -->
-        <div class="col-12 col-xl-7">
-            <div th:if="${success}" class="alert alert-success ms-auth-alert mb-3"><i class="bi bi-check-circle-fill"></i><span th:text="${success}"></span></div>
-            <div th:if="${error}" class="alert alert-danger ms-auth-alert mb-3"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
+        <!-- Main Dashboard View -->
+        <div class="col-12 col-xl-10">
 
-            <!-- Stat cards -->
-            <div class="row g-3 mb-4">
-                <div class="col-6 col-lg-3">
-                    <div class="pt-stat">
-                        <span class="pt-stat-icon"><i class="bi bi-calendar2-week"></i></span>
-                        <span>
-                            <span class="pt-stat-label d-block">Lịch hôm nay</span>
-                            <span class="pt-stat-number" th:text="${todayCount}">0</span>
-                            <span class="small text-muted"> lịch hẹn</span>
-                        </span>
+            <!-- Header Banner -->
+            <div class="rc-dash-header mb-4">
+                <div class="row align-items-center g-3">
+                    <div class="col-12 col-lg-7">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="rc-live-pulse">
+                                <span class="rc-live-dot"></span> VẬN HÀNH TRỰC TIẾP
+                            </span>
+                            <span class="badge bg-white text-dark bg-opacity-25 border border-white border-opacity-25"
+                                  th:text="${#temporals.format(today, 'dd/MM/yyyy')}">20/07/2026</span>
+                            <span id="liveClock" class="badge bg-white text-dark bg-opacity-25 border border-white border-opacity-25 fw-bold">--:--:--</span>
+                        </div>
+                        <h1 class="fs-2 fw-extrabold text-white mb-1">
+                            <i class="bi bi-hospital me-2"></i>Trung Tâm Điều Phối Tiếp Nhận
+                        </h1>
+                        <p class="text-white text-opacity-75 mb-0 small">
+                            Giám sát toàn diện thông tin ca đặt, tiến độ tiếp nhận bệnh nhân và tải khám của bác sĩ theo thời gian thực.
+                        </p>
                     </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="pt-stat">
-                        <span class="pt-stat-icon warn"><i class="bi bi-hourglass-split"></i></span>
-                        <span>
-                            <span class="pt-stat-label d-block">Đang chờ check-in</span>
-                            <span class="pt-stat-number" th:text="${waitingCheckinCount}">0</span>
-                            <span class="small text-muted"> bệnh nhân</span>
-                        </span>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="pt-stat">
-                        <span class="pt-stat-icon ok"><i class="bi bi-clipboard2-check"></i></span>
-                        <span>
-                            <span class="pt-stat-label d-block">Đã tiếp nhận</span>
-                            <span class="pt-stat-number" th:text="${receivedCount}">0</span>
-                            <span class="small text-muted"> bệnh nhân</span>
-                        </span>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="pt-stat">
-                        <span class="pt-stat-icon"><i class="bi bi-person-badge"></i></span>
-                        <span>
-                            <span class="pt-stat-label d-block">Bác sĩ đang trực</span>
-                            <span class="pt-stat-number" th:text="${doctorsOnDuty != null ? doctorsOnDuty.size() : 0}">0</span>
-                            <span class="small text-muted"> bác sĩ</span>
-                        </span>
+                    <div class="col-12 col-lg-5 text-lg-end">
+                        <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                            <a th:href="@{/receptionist/appointments/new}" class="btn btn-light fw-bold px-3 text-teal shadow-sm">
+                                <i class="bi bi-person-plus-fill me-1"></i>Đăng ký Walk-in
+                            </a>
+                            <a th:href="@{/receptionist/waiting}" class="btn btn-outline-light fw-semibold px-3">
+                                <i class="bi bi-card-checklist me-1"></i>Danh sách chờ (<span th:text="${waitingCount}">0</span>)
+                            </a>
+                            <a th:href="@{/receptionist/schedule}" class="btn btn-outline-light fw-semibold px-3">
+                                <i class="bi bi-calendar-week me-1"></i>Lịch bác sĩ
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Intake table -->
-            <section id="intake" class="pt-card p-4 mb-4">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                    <div class="pt-card-title fs-5"><i class="bi bi-calendar2-check"></i> Tiếp nhận lịch đặt của bệnh nhân</div>
-                    <a href="#quick-register" class="btn ms-btn ms-btn-primary text-white btn-sm px-3">
-                        <i class="bi bi-plus-lg me-1"></i> Tạo lịch mới
-                    </a>
+            <!-- KPI Metric Cards Grid -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="rc-kpi-card kpi-blue">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="rc-kpi-lbl">Tổng ca đặt</span>
+                            <div class="rc-kpi-icon blue"><i class="bi bi-calendar2-week"></i></div>
+                        </div>
+                        <div class="rc-kpi-val text-primary" th:text="${todayCount}">0</div>
+                        <div class="small text-muted mt-1">Hôm nay</div>
+                    </div>
                 </div>
-                <form th:action="@{/receptionist/dashboard}" method="get" class="row g-2 mb-3">
-                    <div class="col-12 col-md-4">
-                        <div class="ms-input-group position-relative">
-                            <input type="text" name="keyword" class="form-control ms-input" placeholder="Tìm tên/SĐT/mã lịch hẹn" th:value="${keyword}" style="padding-left:2.4rem;">
-                            <i class="bi bi-search position-absolute" style="left:0.9rem; top:50%; transform:translateY(-50%); color:var(--ms-muted);"></i>
+
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="rc-kpi-card kpi-amber">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="rc-kpi-lbl">Chờ check-in</span>
+                            <div class="rc-kpi-icon amber"><i class="bi bi-hourglass-split"></i></div>
+                        </div>
+                        <div class="rc-kpi-val text-warning" th:text="${waitingCheckinCount}">0</div>
+                        <div class="small text-muted mt-1">Chờ tiếp nhận</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="rc-kpi-card kpi-teal">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="rc-kpi-lbl">Đang chờ khám</span>
+                            <div class="rc-kpi-icon teal"><i class="bi bi-person-lines-fill"></i></div>
+                        </div>
+                        <div class="rc-kpi-val text-teal" th:text="${waitingCount}">0</div>
+                        <div class="small text-muted mt-1">Đã check-in</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="rc-kpi-card kpi-purple">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="rc-kpi-lbl">Đang khám</span>
+                            <div class="rc-kpi-icon purple"><i class="bi bi-activity"></i></div>
+                        </div>
+                        <div class="rc-kpi-val text-purple" th:text="${inProgressCount}">0</div>
+                        <div class="small text-muted mt-1">Tại phòng khám</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="rc-kpi-card kpi-emerald">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="rc-kpi-lbl">Đã hoàn thành</span>
+                            <div class="rc-kpi-icon emerald"><i class="bi bi-check2-circle"></i></div>
+                        </div>
+                        <div class="rc-kpi-val text-success" th:text="${completedCount}">0</div>
+                        <div class="small text-muted mt-1">Đã hoàn tất</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="rc-kpi-card kpi-rose">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="rc-kpi-lbl">Bác sĩ trực</span>
+                            <div class="rc-kpi-icon rose"><i class="bi bi-person-badge"></i></div>
+                        </div>
+                        <div class="rc-kpi-val text-danger" th:text="${doctorsOnDutyCount}">0</div>
+                        <div class="small text-muted mt-1">Bác sĩ sẵn sàng</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shift Information Section (Ca đặt thông tin) -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-4">
+                    <div class="rc-shift-card">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="fw-bold d-flex align-items-center gap-2">
+                                <i class="bi bi-brightness-high text-warning fs-5"></i> Ca Sáng (06:00 - 12:00)
+                            </div>
+                            <span class="rc-shift-badge rc-shift-morning">Ca 1</span>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-2 mb-2">
+                            <span class="fs-3 fw-bold text-dark" th:text="${morningShiftCount}">0</span>
+                            <span class="small text-muted">ca hẹn</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-warning" role="progressbar"
+                                 th:style="'width: ' + (${todayCount > 0} ? (${morningShiftCount} * 100 / ${todayCount}) : 0) + '%'"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2 small text-muted">
+                            <span>Tải ca sáng</span>
+                            <span th:text="${todayCount > 0 ? #numbers.formatDecimal(morningShiftCount * 100.0 / todayCount, 1, 0) : 0} + '% tổng ca'">0%</span>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <input type="date" name="date" class="form-control ms-input" th:value="${filterDate}">
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <div class="rc-shift-card">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="fw-bold d-flex align-items-center gap-2">
+                                <i class="bi bi-sun text-info fs-5"></i> Ca Chiều (12:00 - 17:00)
+                            </div>
+                            <span class="rc-shift-badge rc-shift-afternoon">Ca 2</span>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-2 mb-2">
+                            <span class="fs-3 fw-bold text-dark" th:text="${afternoonShiftCount}">0</span>
+                            <span class="small text-muted">ca hẹn</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-info" role="progressbar"
+                                 th:style="'width: ' + (${todayCount > 0} ? (${afternoonShiftCount} * 100 / ${todayCount}) : 0) + '%'"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2 small text-muted">
+                            <span>Tải ca chiều</span>
+                            <span th:text="${todayCount > 0 ? #numbers.formatDecimal(afternoonShiftCount * 100.0 / todayCount, 1, 0) : 0} + '% tổng ca'">0%</span>
+                        </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <select name="status" class="form-select ms-input">
-                            <option value="" th:selected="${selectedStatus == ''}">Tất cả trạng thái</option>
-                            <option value="PENDING" th:selected="${selectedStatus == 'PENDING'}">Chờ xác nhận</option>
-                            <option value="CONFIRMED" th:selected="${selectedStatus == 'CONFIRMED'}">Đã xác nhận</option>
-                            <option value="CHECKED_IN" th:selected="${selectedStatus == 'CHECKED_IN'}">Đã check-in</option>
-                            <option value="COMPLETED" th:selected="${selectedStatus == 'COMPLETED'}">Hoàn thành</option>
-                            <option value="CANCELLED" th:selected="${selectedStatus == 'CANCELLED'}">Đã hủy</option>
-                            <option value="MISSED" th:selected="${selectedStatus == 'MISSED'}">Vắng mặt</option>
-                        </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <div class="rc-shift-card">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="fw-bold d-flex align-items-center gap-2">
+                                <i class="bi bi-moon-stars text-primary fs-5"></i> Ca Tối (17:00 - 21:00)
+                            </div>
+                            <span class="rc-shift-badge rc-shift-evening">Ca 3</span>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-2 mb-2">
+                            <span class="fs-3 fw-bold text-dark" th:text="${eveningShiftCount}">0</span>
+                            <span class="small text-muted">ca hẹn</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-primary" role="progressbar"
+                                 th:style="'width: ' + (${todayCount > 0} ? (${eveningShiftCount} * 100 / ${todayCount}) : 0) + '%'"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2 small text-muted">
+                            <span>Khung cao điểm: <strong class="text-dark" th:text="${peakHourRange}">09:00 - 10:00</strong></span>
+                            <span th:text="${todayCount > 0 ? #numbers.formatDecimal(eveningShiftCount * 100.0 / todayCount, 1, 0) : 0} + '% tổng ca'">0%</span>
+                        </div>
                     </div>
-                    <div class="col-12 col-md-2 d-flex gap-2">
-                        <button type="submit" class="btn ms-btn ms-btn-primary text-white flex-grow-1"><i class="bi bi-funnel me-1"></i>Lọc</button>
-                        <a th:href="@{/receptionist/dashboard}" class="btn ms-btn ms-btn-ghost border text-primary" title="Đặt lại"><i class="bi bi-x-lg"></i></a>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="row g-4 mb-4">
+                <!-- Chart 1: Hourly Workload Curve -->
+                <div class="col-12 col-lg-7">
+                    <div class="rc-chart-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="rc-chart-title">
+                                <i class="bi bi-graph-up-arrow"></i> Phân Bổ Ca Đặt Theo Giờ Trong Ngày
+                            </div>
+                            <span class="badge bg-light text-secondary border">06:00 - 21:00</span>
+                        </div>
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="hourlyChart"></canvas>
+                        </div>
                     </div>
-                </form>
-                <div class="table-responsive">
-                    <table class="pt-table">
-                        <thead>
-                        <tr>
-                            <th>Mã lịch hẹn</th>
-                            <th>Bệnh nhân</th>
-                            <th>Bác sĩ</th>
-                            <th>Giờ hẹn</th>
-                            <th>Trạng thái</th>
-                            <th class="text-end">Thao tác</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="a : ${appointmentsPage.content}">
-                            <td><span class="fw-bold text-primary" th:text="${a.appointmentCode}">APT-001</span></td>
-                            <td>
-                                <div class="fw-semibold" th:text="${a.patient != null ? a.patient.fullName : 'Không rõ'}">Nguyễn Văn An</div>
-                                <div class="small text-muted" th:text="${a.patient != null and a.patient.phone != null ? a.patient.phone : ''}">0901 234 567</div>
-                            </td>
-                            <td th:text="${a.doctor != null ? 'BS. ' + a.doctor.fullName : 'Chưa gán'}">BS. Trần Minh Đức</td>
-                            <td>
-                                <div class="fw-semibold" th:text="${#temporals.format(a.scheduledTime, 'HH:mm')}">08:30</div>
-                                <div class="small text-muted" th:text="${#temporals.format(a.scheduledTime, 'dd/MM/yyyy')}">23/05</div>
-                            </td>
-                            <td>
-                                <span th:switch="${a.status}">
-                                    <span th:case="'PENDING'" class="pt-status pt-status-pending">Chờ xác nhận</span>
-                                    <span th:case="'CONFIRMED'" class="pt-status pt-status-confirmed">Đã xác nhận</span>
-                                    <span th:case="'SCHEDULED'" class="pt-status pt-status-confirmed">Đã đặt lịch</span>
-                                    <span th:case="'CHECKED_IN'" class="pt-status pt-status-checkedin">Đã check-in</span>
-                                    <span th:case="'TRIAGED'" class="pt-status pt-status-checkedin">Đã khám sơ bộ</span>
-                                    <span th:case="'IN_PROGRESS'" class="pt-status pt-status-confirmed">Đang khám</span>
-                                    <span th:case="'COMPLETED'" class="pt-status pt-status-done">Hoàn thành</span>
-                                    <span th:case="'CANCELLED'" class="pt-status pt-status-cancelled">Đã hủy</span>
-                                    <span th:case="'MISSED'" class="pt-status pt-status-cancelled">Vắng mặt</span>
-                                    <span th:case="*" class="pt-status pt-status-pending" th:text="${a.status}">-</span>
-                                </span>
-                            </td>
-                            <td class="text-end">
-                                <div class="d-inline-flex gap-1">
-                                    <form th:if="${a.status == 'PENDING' or a.status == 'SCHEDULED'}"
-                                          th:action="@{/receptionist/appointments/{id}/confirm(id=${a.appointmentId})}" method="post">
-                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                        <button type="submit" class="btn btn-sm ms-btn ms-btn-primary text-white px-2">Xác nhận</button>
-                                    </form>
-                                    <form th:if="${a.status == 'CONFIRMED'}"
-                                          th:action="@{/receptionist/appointments/{id}/checkin(id=${a.appointmentId})}" method="post">
-                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                        <button type="submit" class="btn btn-sm ms-btn ms-btn-primary text-white px-2">Check-in</button>
-                                    </form>
-                                    <a th:href="@{/receptionist/appointments/{id}(id=${a.appointmentId})}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-2">Chi tiết</a>
-                                    <div class="dropdown" th:if="${a.status != 'COMPLETED' and a.status != 'CANCELLED' and a.status != 'MISSED'}">
-                                        <button type="button" class="btn btn-sm ms-btn ms-btn-ghost border px-2" data-bs-toggle="dropdown" aria-expanded="false" title="Thêm">
-                                            <i class="bi bi-three-dots"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li th:if="${a.status == 'PENDING' or a.status == 'SCHEDULED' or a.status == 'CONFIRMED'}">
-                                                <form th:action="@{/receptionist/appointments/{id}/missed(id=${a.appointmentId})}" method="post">
-                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                                    <button type="submit" class="dropdown-item text-warning">
-                                                        <i class="bi bi-person-x me-1"></i> Đánh dấu vắng mặt
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form th:action="@{/receptionist/appointments/{id}/cancel(id=${a.appointmentId})}" method="post">
-                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="bi bi-x-circle me-1"></i> Hủy lịch hẹn
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        </ul>
+                </div>
+
+                <!-- Chart 2: Status Breakdown Doughnut -->
+                <div class="col-12 col-lg-5">
+                    <div class="rc-chart-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="rc-chart-title">
+                                <i class="bi bi-pie-chart-fill"></i> Cơ Cấu Trạng Thái Ca Đặt
+                            </div>
+                            <span class="badge bg-light text-secondary border" th:text="${todayCount} + ' Lịch'">0 Lịch</span>
+                        </div>
+                        <div style="height: 280px; position: relative;" class="d-flex align-items-center justify-content-center">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area: Appointment List with Shift Tabs & Queue Rail -->
+            <div class="row g-4">
+                <!-- Appointments Table with Shift Filter Tabs -->
+                <div class="col-12 col-xl-8">
+                    <div class="pt-card p-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                            <div>
+                                <h2 class="fs-5 fw-bold text-dark mb-1">
+                                    <i class="bi bi-list-task text-primary me-2"></i>Danh Sách Ca Đặt Lịch Trong Ngày
+                                </h2>
+                                <p class="text-secondary small mb-0">Theo dõi thông tin chi tiết từng bệnh nhân và bác sĩ đảm nhận.</p>
+                            </div>
+
+                            <!-- Shift Filter Tabs -->
+                            <div class="d-flex flex-wrap gap-1" id="shiftFilterTabs">
+                                <button class="rc-filter-tab active" onclick="filterAppointments('all', this)">
+                                    Tất cả (<span th:text="${todayCount}">0</span>)
+                                </button>
+                                <button class="rc-filter-tab" onclick="filterAppointments('morning', this)">
+                                    Ca Sáng (<span th:text="${morningShiftCount}">0</span>)
+                                </button>
+                                <button class="rc-filter-tab" onclick="filterAppointments('afternoon', this)">
+                                    Ca Chiều (<span th:text="${afternoonShiftCount}">0</span>)
+                                </button>
+                                <button class="rc-filter-tab" onclick="filterAppointments('evening', this)">
+                                    Ca Tối (<span th:text="${eveningShiftCount}">0</span>)
+                                </button>
+                                <button class="rc-filter-tab" onclick="filterAppointments('unassigned', this)" th:if="${unassignedCount > 0}">
+                                    Chưa gán BS (<span th:text="${unassignedCount}">0</span>)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div th:if="${#lists.isEmpty(todayAppointments)}" class="text-center text-muted py-5">
+                            <i class="bi bi-calendar2-x fs-1 d-block mb-2 opacity-50"></i>
+                            Hôm nay chưa có lịch hẹn nào.
+                        </div>
+
+                        <div class="table-responsive" th:if="${!#lists.isEmpty(todayAppointments)}">
+                            <table class="pt-table" id="appointmentTable">
+                                <thead>
+                                <tr>
+                                    <th>Giờ hẹn</th>
+                                    <th>Mã ca / Bệnh nhân</th>
+                                    <th>Ca</th>
+                                    <th>Bác sĩ phụ trách</th>
+                                    <th>Trạng thái</th>
+                                    <th class="text-end">Thao tác</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="a : ${todayAppointments}"
+                                    th:data-hour="${a.scheduledTime != null ? a.scheduledTime.hour : 0}"
+                                    th:data-doctor="${a.doctor != null ? 'assigned' : 'unassigned'}">
+                                    <td>
+                                        <div class="fw-bold text-dark" th:text="${#temporals.format(a.scheduledTime, 'HH:mm')}">08:00</div>
+                                        <div class="small text-muted" th:text="${#temporals.format(a.scheduledTime, 'dd/MM')}">20/07</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-primary mb-0.5" th:text="${a.patient != null ? a.patient.fullName : 'Vãng lai'}">Nguyễn Văn A</div>
+                                        <div class="small text-muted">
+                                            <span class="font-monospace text-secondary" th:text="${a.appointmentCode}">APT-1001</span>
+                                            <span th:if="${a.patient != null and a.patient.phone != null}" th:text="' • ' + ${a.patient.phone}"> • 0912345678</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span th:if="${a.scheduledTime != null and a.scheduledTime.hour < 12}" class="rc-shift-badge rc-shift-morning">Sáng</span>
+                                        <span th:if="${a.scheduledTime != null and a.scheduledTime.hour >= 12 and a.scheduledTime.hour < 17}" class="rc-shift-badge rc-shift-afternoon">Chiều</span>
+                                        <span th:if="${a.scheduledTime != null and a.scheduledTime.hour >= 17}" class="rc-shift-badge rc-shift-evening">Tối</span>
+                                    </td>
+                                    <td>
+                                        <div th:if="${a.doctor != null}" class="d-flex align-items-center gap-2">
+                                            <div class="ms-avatar ms-avatar-sm ms-avatar-primary"
+                                                 th:text="${#strings.substring(a.doctor.fullName, 0, 1).toUpperCase()}">D</div>
+                                            <div>
+                                                <div class="fw-semibold small" th:text="'BS. ' + ${a.doctor.fullName}">BS. Nam</div>
+                                                <div class="small text-muted">Chuyên khoa Xương Khớp</div>
+                                            </div>
+                                        </div>
+                                        <span th:if="${a.doctor == null}" class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>Chưa phân công
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span th:switch="${a.status}">
+                                            <span th:case="'PENDING'" class="pt-status pt-status-pending"><i class="bi bi-clock me-1"></i>Chờ xác nhận</span>
+                                            <span th:case="'CONFIRMED'" class="pt-status pt-status-confirmed"><i class="bi bi-check-circle me-1"></i>Đã xác nhận</span>
+                                            <span th:case="'SCHEDULED'" class="pt-status pt-status-confirmed"><i class="bi bi-calendar-check me-1"></i>Đã đặt</span>
+                                            <span th:case="'CHECKED_IN'" class="pt-status pt-status-checkedin"><i class="bi bi-box-arrow-in-right me-1"></i>Đã check-in</span>
+                                            <span th:case="'TRIAGED'" class="pt-status pt-status-checkedin"><i class="bi bi-stethoscope me-1"></i>Khám sơ bộ</span>
+                                            <span th:case="'IN_PROGRESS'" class="pt-status pt-status-confirmed"><i class="bi bi-arrow-repeat me-1"></i>Đang khám</span>
+                                            <span th:case="'COMPLETED'" class="pt-status pt-status-done"><i class="bi bi-check-all me-1"></i>Hoàn thành</span>
+                                            <span th:case="'CANCELLED'" class="pt-status pt-status-cancelled"><i class="bi bi-x-circle me-1"></i>Đã hủy</span>
+                                            <span th:case="'MISSED'" class="pt-status pt-status-cancelled"><i class="bi bi-person-x me-1"></i>Vắng mặt</span>
+                                            <span th:case="*" class="pt-status pt-status-pending" th:text="${a.status}">-</span>
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a th:href="@{/receptionist/appointments/{id}(id=${a.appointmentId})}" class="btn btn-sm btn-light border text-teal fw-semibold">
+                                            Chi tiết <i class="bi bi-chevron-right ms-1"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Rail: Live Queue Monitor & Doctor Workload Radar -->
+                <div class="col-12 col-xl-4">
+                    <div class="d-flex flex-column gap-4">
+
+                        <!-- Live Waiting Queue -->
+                        <div class="pt-card p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="fw-bold fs-6 text-dark d-flex align-items-center gap-2">
+                                    <i class="bi bi-people-fill text-teal"></i> Hàng Chờ Gọi Khám (Live)
+                                </div>
+                                <span class="badge bg-teal text-white rounded-pill px-2.5 py-1" th:text="${waitingCount} + ' Bệnh nhân'">0 Bệnh nhân</span>
+                            </div>
+
+                            <div th:if="${#lists.isEmpty(waitingAppointments)}" class="text-center text-muted py-4">
+                                <i class="bi bi-emoji-smile fs-2 d-block mb-1 opacity-50"></i>
+                                Không có bệnh nhân chờ check-in.
+                            </div>
+
+                            <div th:if="${!#lists.isEmpty(waitingAppointments)}">
+                                <div class="rc-queue-item" th:each="w : ${waitingAppointments}">
+                                    <div>
+                                        <div class="fw-bold text-dark" th:text="${w.patient != null ? w.patient.fullName : 'Bệnh nhân'}">Nguyễn Văn B</div>
+                                        <div class="small text-muted">
+                                            <span class="font-monospace fw-bold text-primary" th:text="${w.appointmentCode}">APT-202</span>
+                                            <span th:text="' • Giờ: ' + ${#temporals.format(w.scheduledTime, 'HH:mm')}"> • 09:30</span>
+                                        </div>
+                                    </div>
+                                    <a th:href="@{/receptionist/waiting}" class="btn btn-sm btn-teal text-white fw-bold">
+                                        <i class="bi bi-megaphone me-1"></i>Gọi
+                                    </a>
+                                </div>
+
+                                <a th:href="@{/receptionist/waiting}" class="btn ms-btn ms-btn-ghost border text-primary w-100 mt-2">
+                                    Mở bảng gọi số bệnh nhân <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Doctor Duty Radar -->
+                        <div class="pt-card p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="fw-bold fs-6 text-dark d-flex align-items-center gap-2">
+                                    <i class="bi bi-person-badge-fill text-primary"></i> Đội Nguồn Bác Sĩ Trực
+                                </div>
+                                <span class="badge bg-light text-dark border" th:text="${doctorsOnDutyCount} + ' Bác sĩ'">0 BS</span>
+                            </div>
+
+                            <div th:if="${#lists.isEmpty(doctorWorkloads)}" class="text-center text-muted py-3">
+                                Chưa có thông tin bác sĩ trực.
+                            </div>
+
+                            <div class="d-grid gap-2" th:if="${!#lists.isEmpty(doctorWorkloads)}">
+                                <div class="rc-doctor-card" th:each="dw : ${doctorWorkloads}">
+                                    <div class="ms-avatar ms-avatar-primary flex-shrink-0"
+                                         th:text="${#strings.substring(dw.doctor.fullName, 0, 1).toUpperCase()}">B</div>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="fw-bold text-dark text-truncate" th:text="'BS. ' + ${dw.doctor.fullName}">BS. Trần Văn Hùng</div>
+                                        <div class="small text-muted">Bác sĩ Chuyên khoa Xương Khớp</div>
+                                        <div class="progress mt-1.5" style="height: 4px;">
+                                            <div class="progress-bar bg-teal" role="progressbar"
+                                                 th:style="'width: ' + (${dw.totalAppointments > 0} ? (${dw.completedAppointments} * 100 / ${dw.totalAppointments}) : 0) + '%'"></div>
+                                        </div>
+                                    </div>
+                                    <div class="text-end flex-shrink-0">
+                                        <div class="fw-bold text-teal small" th:text="${dw.completedAppointments} + '/' + ${dw.totalAppointments}">0/0</div>
+                                        <div class="small text-muted" style="font-size: 0.72rem;">Đã khám</div>
                                     </div>
                                 </div>
-                            </td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(appointmentsPage.content)}">
-                            <td colspan="6" class="text-center text-muted py-4">
-                                <i class="bi bi-calendar2-x fs-3 d-block mb-2 opacity-50"></i>
-                                Không tìm thấy lịch hẹn nào phù hợp.
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <nav th:if="${appointmentsPage.totalPages > 1}" class="mt-2">
-                    <ul class="pagination justify-content-center gap-1 mb-0">
-                        <li class="page-item" th:classappend="${appointmentsPage.first} ? 'disabled'">
-                            <a class="page-link rounded-3"
-                               th:href="@{/receptionist/dashboard(keyword=${keyword}, date=${filterDate}, status=${selectedStatus}, page=${appointmentsPage.number - 1})}">
-                                <i class="bi bi-chevron-left"></i>
-                            </a>
-                        </li>
-                        <li class="page-item"
-                            th:each="pageNum : ${#numbers.sequence(0, appointmentsPage.totalPages - 1)}"
-                            th:classappend="${pageNum == appointmentsPage.number} ? 'active'">
-                            <a class="page-link rounded-3"
-                               th:href="@{/receptionist/dashboard(keyword=${keyword}, date=${filterDate}, status=${selectedStatus}, page=${pageNum})}"
-                               th:text="${pageNum + 1}">1</a>
-                        </li>
-                        <li class="page-item" th:classappend="${appointmentsPage.last} ? 'disabled'">
-                            <a class="page-link rounded-3"
-                               th:href="@{/receptionist/dashboard(keyword=${keyword}, date=${filterDate}, status=${selectedStatus}, page=${appointmentsPage.number + 1})}">
-                                <i class="bi bi-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </section>
-
-            <!-- Bottom row -->
-            <div class="row g-4">
-                <div class="col-12 col-lg-6">
-                    <section id="quick-register" class="pt-card p-4 h-100">
-                        <div class="pt-card-title mb-3"><i class="bi bi-lightning-charge"></i> Đăng ký nhanh <span class="small text-muted fw-normal">(Khách vãng lai)</span></div>
-                        <form th:action="@{/receptionist/appointments/walk-in}" method="post">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                            <div class="row g-2">
-                                <div class="col-12"><input type="text" name="fullName" class="form-control ms-input" placeholder="Họ và tên *" required></div>
-                                <div class="col-6"><input type="tel" name="phone" class="form-control ms-input" placeholder="SĐT *" required></div>
-                                <div class="col-6"><input type="text" name="symptom" class="form-control ms-input" placeholder="Triệu chứng chính"></div>
-                                <div class="col-6">
-                                    <select name="doctorId" class="form-select ms-input">
-                                        <option value="">Chọn bác sĩ</option>
-                                        <option th:each="d : ${doctorsOnDuty}" th:value="${d.userId}" th:text="${'BS. ' + d.fullName}">BS. A</option>
-                                    </select>
-                                </div>
-                                <div class="col-6"><input type="time" name="scheduledTime" class="form-control ms-input" th:value="${#temporals.format(#temporals.createNow(), 'HH:mm')}"></div>
-                                <div class="col-12 d-grid mt-2">
-                                    <button type="submit" class="btn ms-btn ms-btn-primary text-white">
-                                        <i class="bi bi-person-plus me-1"></i> Đăng ký &amp; Tạo lịch
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </section>
-                </div>
-                <div class="col-12 col-lg-6">
-                    <section id="doctors" class="pt-card p-4 h-100">
-                        <div class="pt-card-title mb-3"><i class="bi bi-person-badge"></i> Bác sĩ trực hôm nay</div>
-                        <div class="d-grid gap-2">
-                            <div th:each="d : ${doctorsOnDuty}" class="d-flex align-items-center gap-3 p-2 rounded-3" style="background:#f8fafd;">
-                                <span class="ms-avatar ms-avatar-primary" th:text="${#strings.substring(d.fullName, 0, 1).toUpperCase()}">A</span>
-                                <span class="flex-grow-1 min-w-0">
-                                    <span class="d-block fw-semibold" th:text="${'BS. ' + d.fullName}">BS. Trần Minh Đức</span>
-                                    <span class="d-block small text-muted">Chấn thương chỉnh hình</span>
-                                </span>
-                                <span class="pt-status pt-status-done">Đang trực</span>
-                            </div>
-                            <div th:if="${doctorsOnDuty == null or #lists.isEmpty(doctorsOnDuty)}" class="text-center text-muted py-3 small">
-                                Chưa có bác sĩ nào đang trực.
                             </div>
                         </div>
-                    </section>
-                </div>
-            </div>
-        </div>
 
-        <!-- ============ Right rail ============ -->
-        <div class="col-12 col-xl-3">
-            <section class="pt-card p-3 mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="pt-card-title"><i class="bi bi-calendar3"></i> Lịch trong ngày</div>
-                    <span class="small text-muted" th:text="${#temporals.format(today, 'dd/MM/yyyy')}">23/05/2026</span>
-                </div>
-                <div th:if="${#lists.isEmpty(todayAppointments)}" class="text-center text-muted py-4 small">
-                    <i class="bi bi-calendar2-x fs-3 d-block mb-2 opacity-50"></i>
-                    Hôm nay chưa có lịch hẹn.
-                </div>
-                <div th:each="a : ${todayAppointments}" class="rc-slot">
-                    <span class="rc-slot-time" th:text="${#temporals.format(a.scheduledTime, 'HH:mm')}">08:00</span>
-                    <span class="flex-grow-1 min-w-0">
-                        <span class="d-block fw-semibold small text-truncate" th:text="${a.patient != null ? a.patient.fullName : 'Không rõ'}">Nguyễn Văn An</span>
-                    </span>
-                    <span th:switch="${a.status}">
-                        <span th:case="'PENDING'" class="pt-status pt-status-pending">Chờ xác nhận</span>
-                        <span th:case="'CONFIRMED'" class="pt-status pt-status-confirmed">Đã xác nhận</span>
-                        <span th:case="'SCHEDULED'" class="pt-status pt-status-confirmed">Đã đặt</span>
-                        <span th:case="'CHECKED_IN'" class="pt-status pt-status-checkedin">Đã check-in</span>
-                        <span th:case="'COMPLETED'" class="pt-status pt-status-done">Hoàn thành</span>
-                        <span th:case="'CANCELLED'" class="pt-status pt-status-cancelled">Đã hủy</span>
-                        <span th:case="'MISSED'" class="pt-status pt-status-cancelled">Vắng mặt</span>
-                        <span th:case="*" class="pt-status pt-status-pending" th:text="${a.status}">-</span>
-                    </span>
-                </div>
-            </section>
-
-            <section id="waiting" class="pt-card p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="pt-card-title"><i class="bi bi-people"></i> Danh sách chờ</div>
-                    <span class="pt-status pt-status-checkedin" th:if="${!#lists.isEmpty(waitingList)}" th:text="${waitingList.size() + ' đang chờ'}">0 đang chờ</span>
-                </div>
-                <div th:if="${#lists.isEmpty(waitingList)}" class="text-center text-muted py-4 small">
-                    <i class="bi bi-person-video3 fs-3 d-block mb-2 opacity-50"></i>
-                    Chưa có bệnh nhân trong hàng chờ.<br>Bệnh nhân check-in sẽ hiển thị tại đây.
-                </div>
-                <div class="d-grid gap-2 mb-3">
-                    <div th:each="w, stat : ${waitingList}" th:if="${stat.index < 6}"
-                         class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:#f8fafd;">
-                        <span class="pt-status" th:classappend="${stat.index == 0} ? ' pt-status-pending' : ' pt-status-confirmed'"
-                              th:text="${'#' + (stat.index + 1)}">#1</span>
-                        <span class="flex-grow-1 min-w-0">
-                            <span class="d-block fw-semibold small text-truncate" th:text="${w.patient != null ? w.patient.fullName : 'Không rõ'}">Bệnh nhân</span>
-                            <span class="d-block small text-muted" th:text="${w.appointmentCode}">APT-001</span>
-                        </span>
                     </div>
                 </div>
-                <form th:action="@{/receptionist/appointments/call-next}" method="post">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100" th:disabled="${#lists.isEmpty(waitingList)}">
-                        <i class="bi bi-megaphone me-1"></i> Gọi số tiếp theo
-                    </button>
-                </form>
-            </section>
+            </div>
+
         </div>
     </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Inline Dashboard Chart Initialization & Filter Script -->
+<script th:inline="javascript">
+    /* Clock Script */
+    function updateClock() {
+        const now = new Date();
+        const hrs = String(now.getHours()).padStart(2, '0');
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        const secs = String(now.getSeconds()).padStart(2, '0');
+        const clockEl = document.getElementById('liveClock');
+        if (clockEl) clockEl.textContent = `${hrs}:${mins}:${secs}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* Server Data Injection for Charts */
+    const hourlyLabels = /*[[${hourlyLabels}]]*/ ["06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+    const hourlyData = /*[[${hourlyData}]]*/ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    const pendingCount = /*[[${pendingCount}]]*/ 0;
+    const confirmedCount = /*[[${confirmedCount}]]*/ 0;
+    const checkedInCount = /*[[${waitingCount}]]*/ 0;
+    const inProgressCount = /*[[${inProgressCount}]]*/ 0;
+    const completedCount = /*[[${completedCount}]]*/ 0;
+    const cancelledCount = /*[[${cancelledCount}]]*/ 0;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        /* 1. Hourly Trend Chart */
+        const ctxHourly = document.getElementById('hourlyChart');
+        if (ctxHourly) {
+            const gradient = ctxHourly.getContext('2d').createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, 'rgba(15, 118, 110, 0.35)');
+            gradient.addColorStop(1, 'rgba(15, 118, 110, 0.0)');
+
+            new Chart(ctxHourly, {
+                type: 'line',
+                data: {
+                    labels: hourlyLabels,
+                    datasets: [{
+                        label: 'Số lượng ca khám',
+                        data: hourlyData,
+                        borderColor: '#0f766e',
+                        borderWidth: 2.5,
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#0f766e',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `Ca đặt: ${context.parsed.y} bệnh nhân`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Plus Jakarta Sans', size: 11 }, color: '#64748b' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, font: { family: 'Plus Jakarta Sans', size: 11 }, color: '#64748b' },
+                            grid: { color: 'rgba(15, 23, 42, 0.05)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        /* 2. Status Doughnut Chart */
+        const ctxStatus = document.getElementById('statusChart');
+        if (ctxStatus) {
+            new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Chờ xác nhận', 'Đã xác nhận', 'Đã check-in', 'Đang khám', 'Hoàn thành', 'Hủy / Vắng'],
+                    datasets: [{
+                        data: [pendingCount, confirmedCount, checkedInCount, inProgressCount, completedCount, cancelledCount],
+                        backgroundColor: [
+                            '#f59e0b', // Amber
+                            '#2563eb', // Blue
+                            '#0f766e', // Teal
+                            '#8b5cf6', // Purple
+                            '#10b981', // Emerald
+                            '#f43f5e'  // Rose
+                        ],
+                        borderWidth: 3,
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 12,
+                                font: { family: 'Plus Jakarta Sans', size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+
+    /* Tab Filter for Table */
+    function filterAppointments(type, btn) {
+        document.querySelectorAll('.rc-filter-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+
+        const rows = document.querySelectorAll('#appointmentTable tbody tr');
+        rows.forEach(row => {
+            const hour = parseInt(row.getAttribute('data-hour') || '0', 10);
+            const docStatus = row.getAttribute('data-doctor');
+
+            if (type === 'all') {
+                row.style.display = '';
+            } else if (type === 'morning') {
+                row.style.display = (hour >= 6 && hour < 12) ? '' : 'none';
+            } else if (type === 'afternoon') {
+                row.style.display = (hour >= 12 && hour < 17) ? '' : 'none';
+            } else if (type === 'evening') {
+                row.style.display = (hour >= 17 && hour < 21) ? '' : 'none';
+            } else if (type === 'unassigned') {
+                row.style.display = (docStatus === 'unassigned') ? '' : 'none';
+            }
+        });
+    }
+</script>
+
 </body>
 </html>
