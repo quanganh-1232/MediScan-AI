@@ -62,15 +62,89 @@ public class ReceptionistDashboardController {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
 
-        model.addAttribute("todayCount", appointmentRepository.countByScheduledTimeBetween(startOfDay, endOfDay));
-        model.addAttribute("waitingCheckinCount", appointmentRepository.countByStatusIn(List.of("PENDING", "CONFIRMED", "SCHEDULED")));
-        model.addAttribute("receivedCount", appointmentRepository.countByStatusIn(List.of("CHECKED_IN", "TRIAGED", "IN_PROGRESS", "COMPLETED")));
-        model.addAttribute("waitingCount", appointmentRepository.countByStatus("CHECKED_IN"));
-        model.addAttribute("doctorsOnDutyCount", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
-                DOCTOR_ROLE_NAMES, "ACTIVE").size());
-        model.addAttribute("todayAppointments",
-                appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay));
+        List<Appointment> todayAppointments = appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay);
+        List<User> doctorsOnDuty = userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(DOCTOR_ROLE_NAMES, "ACTIVE");
+
+        // Stat counts
+        long todayCount = todayAppointments.size();
+        long pendingCount = todayAppointments.stream().filter(a -> "PENDING".equals(a.getStatus())).count();
+        long confirmedCount = todayAppointments.stream().filter(a -> "CONFIRMED".equals(a.getStatus()) || "SCHEDULED".equals(a.getStatus())).count();
+        long checkedInCount = todayAppointments.stream().filter(a -> "CHECKED_IN".equals(a.getStatus())).count();
+        long inProgressCount = todayAppointments.stream().filter(a -> "IN_PROGRESS".equals(a.getStatus()) || "TRIAGED".equals(a.getStatus())).count();
+        long completedCount = todayAppointments.stream().filter(a -> "COMPLETED".equals(a.getStatus())).count();
+        long cancelledCount = todayAppointments.stream().filter(a -> "CANCELLED".equals(a.getStatus()) || "MISSED".equals(a.getStatus())).count();
+        long unassignedCount = todayAppointments.stream().filter(a -> a.getDoctor() == null).count();
+
+        // Shift calculations (Morning 06-12, Afternoon 12-17, Evening 17-21)
+        long morningShiftCount = todayAppointments.stream()
+                .filter(a -> a.getScheduledTime().getHour() >= 6 && a.getScheduledTime().getHour() < 12)
+                .count();
+        long afternoonShiftCount = todayAppointments.stream()
+                .filter(a -> a.getScheduledTime().getHour() >= 12 && a.getScheduledTime().getHour() < 17)
+                .count();
+        long eveningShiftCount = todayAppointments.stream()
+                .filter(a -> a.getScheduledTime().getHour() >= 17 && a.getScheduledTime().getHour() < 21)
+                .count();
+
+        // Hourly breakdown (06:00 to 20:00)
+        List<String> hourlyLabels = List.of("06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00");
+        List<Integer> hourlyData = new ArrayList<>();
+        int maxHourlyCount = 0;
+        String peakHourRange = "N/A";
+        for (int h = 6; h <= 20; h++) {
+            final int hour = h;
+            int count = (int) todayAppointments.stream()
+                    .filter(a -> a.getScheduledTime().getHour() == hour)
+                    .count();
+            hourlyData.add(count);
+            if (count > maxHourlyCount) {
+                maxHourlyCount = count;
+                peakHourRange = String.format("%02d:00 - %02d:00", h, h + 1);
+            }
+        }
+
+        // Doctor Workloads
+        List<DoctorWorkloadDto> doctorWorkloads = new ArrayList<>();
+        for (User doctor : doctorsOnDuty) {
+            long docCount = todayAppointments.stream()
+                    .filter(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId()))
+                    .count();
+            long docCompleted = todayAppointments.stream()
+                    .filter(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId()) && "COMPLETED".equals(a.getStatus()))
+                    .count();
+            doctorWorkloads.add(new DoctorWorkloadDto(doctor, docCount, docCompleted));
+        }
+
+        // Waiting appointments (CHECKED_IN queue)
+        List<Appointment> waitingAppointments = todayAppointments.stream()
+                .filter(a -> "CHECKED_IN".equals(a.getStatus()))
+                .toList();
+
+        model.addAttribute("todayCount", todayCount);
+        model.addAttribute("waitingCheckinCount", pendingCount + confirmedCount);
+        model.addAttribute("receivedCount", checkedInCount + inProgressCount + completedCount);
+        model.addAttribute("waitingCount", checkedInCount);
+        model.addAttribute("pendingCount", pendingCount);
+        model.addAttribute("confirmedCount", confirmedCount);
+        model.addAttribute("inProgressCount", inProgressCount);
+        model.addAttribute("completedCount", completedCount);
+        model.addAttribute("cancelledCount", cancelledCount);
+        model.addAttribute("unassignedCount", unassignedCount);
+        model.addAttribute("doctorsOnDutyCount", doctorsOnDuty.size());
+        model.addAttribute("doctorsOnDuty", doctorsOnDuty);
+        model.addAttribute("todayAppointments", todayAppointments);
+        model.addAttribute("waitingAppointments", waitingAppointments);
         model.addAttribute("today", LocalDate.now());
+
+        model.addAttribute("morningShiftCount", morningShiftCount);
+        model.addAttribute("afternoonShiftCount", afternoonShiftCount);
+        model.addAttribute("eveningShiftCount", eveningShiftCount);
+        model.addAttribute("hourlyLabels", hourlyLabels);
+        model.addAttribute("hourlyData", hourlyData);
+        model.addAttribute("peakHourRange", peakHourRange);
+        model.addAttribute("maxHourlyCount", maxHourlyCount);
+        model.addAttribute("doctorWorkloads", doctorWorkloads);
+
         return "receptionist/dashboard";
     }
 
@@ -230,9 +304,62 @@ public class ReceptionistDashboardController {
      */
     @GetMapping("/receptionist/appointments/new")
     public String newWalkInForm(Model model) {
-        model.addAttribute("doctorsOnDuty", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
-                DOCTOR_ROLE_NAMES, "ACTIVE"));
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+        List<User> doctorsOnDuty = userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
+                DOCTOR_ROLE_NAMES, "ACTIVE");
+        List<Appointment> todayAppointments = appointmentRepository.findByScheduledTimeBetweenOrderByScheduledTimeAsc(startOfDay, endOfDay);
+
+        List<DoctorWorkloadDto> doctorWorkloads = new ArrayList<>();
+        for (User doctor : doctorsOnDuty) {
+            long docCount = todayAppointments.stream()
+                    .filter(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId()))
+                    .count();
+            long docCompleted = todayAppointments.stream()
+                    .filter(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId()) && "COMPLETED".equals(a.getStatus()))
+                    .count();
+            doctorWorkloads.add(new DoctorWorkloadDto(doctor, docCount, docCompleted));
+        }
+
+        List<Appointment> recentTodayAppointments = todayAppointments.stream()
+                .sorted((a, b) -> b.getAppointmentId().compareTo(a.getAppointmentId()))
+                .limit(5)
+                .toList();
+
+        model.addAttribute("doctorsOnDuty", doctorsOnDuty);
+        model.addAttribute("doctorWorkloads", doctorWorkloads);
+        model.addAttribute("timeSlots", buildTimeSlots());
+        model.addAttribute("defaultTimeSlot", roundUpToSlot(LocalTime.now()));
+        model.addAttribute("todayCount", todayAppointments.size());
+        model.addAttribute("recentAppointments", recentTodayAppointments);
+        model.addAttribute("today", LocalDate.now());
         return "receptionist/new-appointment";
+    }
+
+    /**
+     * Fixed 30-minute booking slots (06:00, 06:30, ... 20:30) so walk-ins
+     * always land on the same grid the doctor-conflict check uses, instead
+     * of letting the receptionist type an arbitrary time like 09:07.
+     */
+    private List<LocalTime> buildTimeSlots() {
+        List<LocalTime> slots = new ArrayList<>();
+        for (LocalTime t = SCHEDULE_OPEN; t.isBefore(SCHEDULE_CLOSE); t = t.plusMinutes(SCHEDULE_SLOT_MINUTES)) {
+            slots.add(t);
+        }
+        return slots;
+    }
+
+    private LocalTime roundUpToSlot(LocalTime time) {
+        if (time.isBefore(SCHEDULE_OPEN)) {
+            return SCHEDULE_OPEN;
+        }
+        long minutesFromOpen = Duration.between(SCHEDULE_OPEN, time).toMinutes();
+        long roundedUp = ((minutesFromOpen + SCHEDULE_SLOT_MINUTES - 1) / SCHEDULE_SLOT_MINUTES) * SCHEDULE_SLOT_MINUTES;
+        LocalTime slot = SCHEDULE_OPEN.plusMinutes(roundedUp);
+        return slot.isAfter(SCHEDULE_CLOSE.minusMinutes(SCHEDULE_SLOT_MINUTES))
+                ? SCHEDULE_CLOSE.minusMinutes(SCHEDULE_SLOT_MINUTES)
+                : slot;
     }
 
     @PostMapping("/receptionist/appointments/walk-in")
@@ -372,6 +499,30 @@ public class ReceptionistDashboardController {
 
         public List<ScheduleSlot> getSlots() {
             return slots;
+        }
+    }
+
+    public static class DoctorWorkloadDto {
+        private final User doctor;
+        private final long totalAppointments;
+        private final long completedAppointments;
+
+        public DoctorWorkloadDto(User doctor, long totalAppointments, long completedAppointments) {
+            this.doctor = doctor;
+            this.totalAppointments = totalAppointments;
+            this.completedAppointments = completedAppointments;
+        }
+
+        public User getDoctor() {
+            return doctor;
+        }
+
+        public long getTotalAppointments() {
+            return totalAppointments;
+        }
+
+        public long getCompletedAppointments() {
+            return completedAppointments;
         }
     }
 

@@ -14,29 +14,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
-import com.example.mediscanauth.repository.NotificationRepository;
-import com.example.mediscanauth.model.Notification;
-import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
-import java.util.Map;
-import com.example.mediscanauth.service.CloudinaryService;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -50,8 +44,19 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private static final List<String> ACTIVE_QUEUE_STATUSES = List.of("PENDING_AI", "AI_DONE", "AI_ANALYZED",
             "PENDING_DOCTOR");
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
-    private static final String AI_SERVICE_URL = "http://localhost:8000/predict";
     private static final int LEGACY_TEXT_COLUMN_LIMIT = 490;
+    // ai-service does real CPU work (YOLO + classical CV + ANFIS); a low read
+    // timeout would false-positive on legitimate slow analyses, but it must
+    // still be bounded so a hung ai-service can't hold this transaction's DB
+    // connection open forever.
+    private static final int AI_CONNECT_TIMEOUT_MS = 5_000;
+    private static final int AI_READ_TIMEOUT_MS = 45_000;
+
+    @Value("${ai.service.url}")
+    private String aiServiceUrl;
+
+    @Value("${ai.service.api-key}")
+    private String aiServiceApiKey;
 
     private final ImagingRecordRepository imagingRecordRepository;
     private final PatientRepository patientRepository;
@@ -59,27 +64,19 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private final UserAccountService userAccountService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    private final NotificationRepository notificationRepository;
-    private final Cloudinary cloudinary;
-    private final CloudinaryService cloudinaryService;
 
-    public ImagingRecordServiceImpl(
-            ImagingRecordRepository imagingRecordRepository,
+    public ImagingRecordServiceImpl(ImagingRecordRepository imagingRecordRepository,
             UserAccountService userAccountService,
             PatientRepository patientRepository,
-            UserRepository userRepository,
-            NotificationRepository notificationRepository,
-            Cloudinary cloudinary,
-            CloudinaryService cloudinaryService) {
-
+            UserRepository userRepository) {
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
-        this.notificationRepository = notificationRepository;
-        this.cloudinary = cloudinary;
-        this.cloudinaryService = cloudinaryService;
-        this.restTemplate = new RestTemplate();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
+        requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
+        this.restTemplate = new RestTemplate(requestFactory);
         this.objectMapper = new ObjectMapper();
     }
 
@@ -197,10 +194,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
     @Override
     @Transactional
-    public ImagingRecord captureAndAnalyzeFromTechnician(String technicianEmail,
-                                                         String patientEmail,
-                                                         String doctorEmail,
-                                                         MultipartFile image) {
+    public ImagingRecord captureAndAnalyzeFromTechnician(String technicianEmail, String patientEmail,
+            String doctorEmail) {
         User technician = userAccountService.findByEmail(technicianEmail);
         User patient = userAccountService.findByEmail(patientEmail);
         User doctor = isBlank(doctorEmail) ? null : userAccountService.findByEmail(doctorEmail);
@@ -209,15 +204,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
             Files.createDirectories(uploadPath);
 
-            String fileName = image.getOriginalFilename();
-            Path destination = uploadPath.resolve(fileName);
-
-            Files.copy(
-                    image.getInputStream(),
-                    destination,
-                    StandardCopyOption.REPLACE_EXISTING);
-
-            byte[] imageBytes = image.getBytes();
+            StoredImage storedImage = selectRandomUploadImage(uploadPath);
 
             ImagingRecord record = new ImagingRecord();
             record.setRecordCode(nextRecordCode());
@@ -225,28 +212,14 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             record.setDoctor(doctor);
             record.setTechnician(technician);
             record.setBodyPart("Ảnh X-Ray ngẫu nhiên");
-            record.setFileName(fileName);
-            record.setAiPrediction("Đang phân tích AI bằng YOLO+ANFIS");
+            record.setFileName(storedImage.fileName());
+            record.setAiPrediction("Đang phân tích AI bằng YOLO/ANFIS");
             record.setAiConfidence(0);
             record.setRecommendation("Chờ bác sĩ xác nhận kết quả AI.");
             record.setStatus("PENDING_AI");
 
             ImagingRecord savedRecord = imagingRecordRepository.save(record);
-            applyAiAnalysis(savedRecord, uploadPath, imageBytes);
-            //upload 2 anh len cloudinary
-            Map<String, String> uploadedImages =
-                    cloudinaryService.uploadTechnicianImages(
-                            uploadPath.toString(),
-                            fileName,
-                            patient.getFullName(),
-                            savedRecord.getRecordCode());
-
-            String originalFileName =
-                    uploadedImages.get("original")
-                            .substring(uploadedImages.get("original")
-                                    .lastIndexOf('/') + 1);
-
-            savedRecord.setFileName(originalFileName);
+            applyAiAnalysis(savedRecord, uploadPath, storedImage.fileBytes());
             return imagingRecordRepository.save(savedRecord);
         } catch (IOException e) {
             throw new RuntimeException("Không thể lấy ảnh ngẫu nhiên hoặc phân tích ảnh X-Ray: " + e.getMessage(), e);
@@ -295,52 +268,19 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     @Override
     @Transactional
     public ImagingRecord confirmDoctorReview(Long recordId, String doctorEmail, String conclusion,
-            String recommendation, String base64ImageData) { // <--- Nhận thêm tham số base64ImageData
-        
+            String recommendation) {
         ImagingRecord record = getRecordById(recordId);
         User doctor = userAccountService.findByEmail(doctorEmail);
         record.setDoctor(doctor);
         record.setDoctorConclusion(cleanSentence(isBlank(conclusion) ? record.getAiPrediction() : conclusion));
         record.setRecommendation(cleanSentence(
-                isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả." : recommendation));
+                isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả. Theo dõi và điều trị theo chỉ định chuyên môn."
+                        : recommendation));
         record.setStatus("COMPLETED");
         record.setConfirmedAt(LocalDateTime.now());
-
-        String dbFileName = record.getFileName();
-
-        // Kiểm tra nếu có dữ liệu ảnh chụp màn hình gửi lên từ Client
-        if (dbFileName != null && !dbFileName.isEmpty() && base64ImageData != null && !base64ImageData.isEmpty()) {
-
-            String patientName = record.getPatient() != null ? record.getPatient().getFullName() : "Unknown_Patient";
-            String recordCode = record.getRecordCode() != null ? record.getRecordCode() : "Unknown_Code";
-
-            // Gọi dịch vụ upload trực tiếp chuỗi Base64 (ảnh đã chụp màn hình hiển thị bao gồm cả khung AI)
-            String doctorImageUrl = cloudinaryService.generateAndUploadDoctorImage(
-                    base64ImageData,
-                    patientName,
-                    recordCode,
-                    dbFileName); // <-- Truyền tên file gốc từ Database
-
-            if (doctorImageUrl != null && !doctorImageUrl.isEmpty()) {
-                System.out.println("-> [INFO] Ảnh chụp màn hình hiển thị đã được đẩy lên Cloudinary: " + doctorImageUrl);
-                System.out.println("-> [DB KEEP] Giữ nguyên tên file gốc trong Database: " + dbFileName);
-            }
-        }
-
-        ImagingRecord savedRecord = imagingRecordRepository.save(record);
-
-        // Tạo thông báo...
-        Notification notification = new Notification();
-        notification.setUser(savedRecord.getPatient());
-        notification.setRecordId(savedRecord.getRecordId());
-        notification.setTitle("Kết quả X-quang đã có");
-        notification.setMessage("Kết quả chẩn đoán cho hồ sơ " + savedRecord.getRecordCode() + " đã được bác sĩ xác nhận.");
-        notification.setRead(false);
-        notificationRepository.save(notification);
-
-        return savedRecord;
+        return imagingRecordRepository.save(record);
     }
-    
+
     @Override
     @Transactional
     public ImagingRecord rejectDoctorReview(Long recordId, String doctorEmail, String conclusion,
@@ -460,6 +400,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private void applyAiAnalysis(ImagingRecord record, Path uploadPath, byte[] fileBytes) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.set("X-Internal-Api-Key", aiServiceApiKey);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new ByteArrayResource(fileBytes) {
@@ -471,7 +412,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(
-                    AI_SERVICE_URL, new HttpEntity<>(body, headers), String.class);
+                    aiServiceUrl, new HttpEntity<>(body, headers), String.class);
 
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 markAiFailed(record, "AI service không trả về kết quả hợp lệ.");
@@ -529,7 +470,6 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         }
         return sb.isEmpty() ? "Chờ bác sĩ xác nhận kết quả và đưa ra hướng điều trị phù hợp." : sb.toString();
     }
-
     private record StoredImage(String fileName, byte[] fileBytes) {
     }
 }
