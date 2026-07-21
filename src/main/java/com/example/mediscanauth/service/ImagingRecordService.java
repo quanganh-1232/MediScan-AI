@@ -57,7 +57,7 @@ public interface ImagingRecordService {
     ImagingRecord getRecordById(Long recordId);
     ImagingRecord getRecordDetail(Long recordId);
 
-    ImagingRecord getRecordDetail(Long recordId); // Nên giữ cả hai nếu cần
+    //ImagingRecord getRecordDetail(Long recordId); // Nên giữ cả hai nếu cần
 
     ImagingRecord confirmDoctorReview(Long recordId, String doctorEmail, String conclusion, String recommendation,
             String screenshotData);
