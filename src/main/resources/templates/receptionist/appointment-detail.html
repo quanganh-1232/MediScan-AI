@@ -118,13 +118,27 @@
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="ms-label">Ghi chú (không bắt buộc)</label>
-                                    <input type="text" name="note" class="form-control ms-input" placeholder="Lý do điều hướng...">
+                                    <input type="text" name="note" class="form-control ms-input" placeholder="Lý do điều hướng..." maxlength="500">
                                 </div>
                                 <div class="col-12 d-grid mt-2">
                                     <button type="submit" class="btn ms-btn ms-btn-primary text-white">
                                         <i class="bi bi-send me-1"></i> Điều hướng
                                     </button>
                                 </div>
+                            </div>
+                        </form>
+                    </section>
+
+                    <!-- Complete consultation -->
+                    <section class="pt-card p-4 mt-4" th:if="${appointment.status == 'IN_PROGRESS'}">
+                        <div class="pt-card-title mb-3"><i class="bi bi-check2-circle"></i> Hoàn tất buổi khám</div>
+                        <form th:action="@{/receptionist/appointments/{id}/complete(id=${appointment.appointmentId})}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <input type="hidden" name="redirectTo" th:value="@{/receptionist/appointments/{id}(id=${appointment.appointmentId})}"/>
+                            <div class="d-grid">
+                                <button type="submit" class="btn ms-btn ms-btn-primary text-white">
+                                    <i class="bi bi-check2-circle me-1"></i> Đánh dấu đã khám xong
+                                </button>
                             </div>
                         </form>
                     </section>
@@ -138,7 +152,7 @@
                             <input type="hidden" name="redirectTo" th:value="@{/receptionist/appointments/{id}(id=${appointment.appointmentId})}"/>
                             <div class="col-12">
                                 <label class="ms-label">Lý do hủy (không bắt buộc)</label>
-                                <input type="text" name="reason" class="form-control ms-input" placeholder="Bệnh nhân xin đổi lịch...">
+                                <input type="text" name="reason" class="form-control ms-input" placeholder="Bệnh nhân xin đổi lịch..." maxlength="500">
                             </div>
                             <div class="col-12 col-md-6 d-grid">
                                 <button type="submit" class="btn btn-outline-danger">

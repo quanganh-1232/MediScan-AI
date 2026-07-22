@@ -19,11 +19,50 @@
             </ul>
 
             <div class="d-flex align-items-center gap-2">
-                <a th:href="@{/notifications}" class="btn ms-icon-btn" title="Thông báo">
-                    <i class="bi bi-bell"></i>
-                    <span class="ms-notification-count" th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
-                          th:text="${headerUnreadCount}">0</span>
-                </a>
+                <div class="dropdown">
+                    <button class="btn ms-icon-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo">
+                        <i class="bi bi-bell"></i>
+                        <span class="ms-notification-count" th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
+                              th:text="${headerUnreadCount}">0</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0 rounded-4" style="width: 360px; max-width: calc(100vw - 2rem);">
+                        <!-- Header -->
+                        <div class="d-flex align-items-center justify-content-between p-3 border-bottom bg-light rounded-top-4">
+                            <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-bell-fill text-teal"></i> Thông báo mới
+                                <span class="badge bg-teal text-white rounded-pill px-2 py-0.5" th:if="${headerUnreadCount != null && headerUnreadCount > 0}" th:text="${headerUnreadCount}">0</span>
+                            </div>
+                            <a th:href="@{/notifications}" class="small text-decoration-none text-teal fw-semibold">Tất cả</a>
+                        </div>
+
+                        <!-- Scrollable Content -->
+                        <div style="max-height: 340px; overflow-y: auto;">
+                            <div th:if="${headerNotifications == null or #lists.isEmpty(headerNotifications)}" class="text-center text-muted p-4">
+                                <div class="small">Chưa có thông báo nào</div>
+                            </div>
+                            <div th:if="${headerNotifications != null and !#lists.isEmpty(headerNotifications)}">
+                                <a th:each="n : ${headerNotifications}"
+                                   th:href="@{/notifications/click(id=${n.notificationId})}"
+                                   class="ms-notif-item"
+                                   th:classappend="${!n.read} ? ' unread' : ''">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <div class="fw-bold text-dark small text-truncate me-2" th:text="${n.title}">Tiêu đề thông báo</div>
+                                        <span class="badge bg-teal bg-opacity-10 text-teal flex-shrink-0" style="font-size: 0.68rem;" th:if="${!n.read}">Mới</span>
+                                    </div>
+                                    <div class="text-secondary small mb-1" style="font-size: 0.82rem; line-height: 1.45;" th:text="${n.message}">Nội dung thông báo</div>
+                                    <div class="text-muted" style="font-size: 0.72rem;" th:text="${#temporals.format(n.createdAt, 'HH:mm • dd/MM/yyyy')}">10:30 • 20/07/2026</div>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="p-2.5 text-center border-top bg-light rounded-bottom-4">
+                            <a th:href="@{/notifications}" class="btn btn-sm btn-teal text-white w-100 fw-bold">
+                                Xem tất cả thông báo <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
                 <div class="dropdown">
                     <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="ms-avatar ms-avatar-primary"
