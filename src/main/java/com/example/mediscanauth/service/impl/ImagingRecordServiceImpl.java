@@ -226,7 +226,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             record.setTechnician(technician);
             record.setBodyPart("Ảnh X-Ray ngẫu nhiên");
             record.setFileName(fileName);
-            record.setAiPrediction("Đang phân tích AI bằng YOLO+ANFIS");
+            record.setAiPrediction("Đang phân tích AI");
             record.setAiConfidence(0);
             record.setRecommendation("Chờ bác sĩ xác nhận kết quả AI.");
             record.setStatus("PENDING_AI");
@@ -249,7 +249,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             savedRecord.setFileName(originalFileName);
             return imagingRecordRepository.save(savedRecord);
         } catch (IOException e) {
-            throw new RuntimeException("Không thể lấy ảnh ngẫu nhiên hoặc phân tích ảnh X-Ray: " + e.getMessage(), e);
+            throw new RuntimeException("Không thể phân tích ảnh X-Ray: " + e.getMessage(), e);
         }
     }
 
