@@ -9,11 +9,8 @@ import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
-import java.util.HashMap;
+
+import java.text.Normalizer;
 import java.util.Map;
 
 @Service
@@ -27,7 +24,7 @@ public class CloudinaryService {
     }
 
     /**
-     * Tự động xử lý chuỗi ở Backend để tìm ảnh gốc, vẽ bounding box và upload trực tiếp lên Root Cloudinary.
+     * Hàm hỗ trợ loại bỏ hoàn toàn dấu tiếng Việt để tạo tên thư mục an toàn trên Cloudinary.
      */
     public String generateAndUploadDoctorImage(String dbFileName, int x, int y, int w, int h) {
         try {
@@ -41,24 +38,41 @@ public class CloudinaryService {
                 cleanName = cleanName.substring(0, cleanName.lastIndexOf('.'));
             }
 
-            // Nếu là ảnh ankle của bạn, tự động chèn hậu tố ngẫu nhiên để khớp link thực tế trên mây
-            if (cleanName.equals("img-2026-0002-ankle")) {
-                cleanName = "img-2026-0002-ankle_zsta1p";
-            }
+    /**
+     * Nhận chuỗi ảnh Base64 chụp màn hình từ trình duyệt của bác sĩ,
+     * tự động tạo thư mục và upload trực tiếp lên Cloudinary với quy tắc đặt tên mới.
+     * Tên file đích: doctor_ + [tên file gốc] (Ví dụ: doctor_img-2026-0002-ankle.png)
+     */
+    public String generateAndUploadDoctorImage(
+            String base64ImageData,
+            String patientName,
+            String recordCode,
+            String dbFileName) {
 
-            // Thử nạp định dạng .png trước, nếu lỗi ta sẽ bắt lỗi và thử với .jpg
-            String downloadUrl = String.format("https://res.cloudinary.com/%s/image/upload/v1784184990/%s.png", cloudName, cleanName);
-            System.out.println("-> Đang thử tải ảnh gốc dạng PNG: " + downloadUrl);
+        try {
+            System.out.println("====== [UPLOAD SCREENSHOT TO DOCTOR FOLDER] ======");
+            System.out.println("Patient    : " + patientName);
+            System.out.println("Record     : " + recordCode);
+            System.out.println("Origin File: " + dbFileName);
 
-            BufferedImage image = null;
-            try {
-                URL url = URI.create(downloadUrl).toURL();
-                image = ImageIO.read(url);
-            } catch (Exception e) {
-                System.out.println("-> [INFO] Thử dạng PNG thất bại, đang chuyển hướng sang tải định dạng JPG...");
-                downloadUrl = String.format("https://res.cloudinary.com/%s/image/upload/v1784184990/%s.jpg", cloudName, cleanName);
-                URL url = URI.create(downloadUrl).toURL();
-                image = ImageIO.read(url);
+            String safePatient = removeAccent(patientName.trim());
+
+            // Thư mục đích trên Cloudinary
+            String folderPath = String.format(
+                    "MedicalAI/%s/%s/Doctor",
+                    safePatient,
+                    recordCode.trim());
+
+            // Quy tắc đặt tên file ảnh bác sĩ: doctor_[tên file gốc]
+            String doctorFileName;
+            if (dbFileName != null && !dbFileName.trim().isEmpty()) {
+                String rawName = dbFileName.trim();
+                if (rawName.contains(".")) {
+                    rawName = rawName.substring(0, rawName.lastIndexOf("."));
+                }
+                doctorFileName = "doctor_" + rawName;
+            } else {
+                doctorFileName = "doctor_img-" + System.currentTimeMillis();
             }
 
             if (image == null) {
@@ -81,16 +95,13 @@ public class CloudinaryService {
             // 4. UPLOAD TRỰC TIẾP LÊN THƯ MỤC GỐC (ROOT) CỦA CLOUDINARY
             // Loại bỏ hoàn toàn tham số "folder" để tránh xung đột thư mục chưa tạo
             Map<String, Object> params = ObjectUtils.asMap(
-                "use_filename", true,
-                "unique_filename", false 
-            );
+                    "folder", folderPath,
+                    "public_id", doctorFileName,
+                    "overwrite", true,
+                    "invalidate", true);
 
-            Map<?, ?> uploadResult = cloudinary.uploader().upload(tempFile, params);
-
-            // Xóa tệp tạm để giải phóng bộ nhớ server
-            if (tempFile.exists()) {
-                tempFile.delete();
-            }
+            Map<?, ?> result = cloudinary.uploader().upload(base64ImageData, params);
+            String secureUrl = (String) result.get("secure_url");
 
             String secureUrl = uploadResult.get("secure_url").toString();
             System.out.println("-> [THÀNH CÔNG] Ảnh của bác sĩ đã lên Cloudinary: " + secureUrl);
@@ -113,53 +124,51 @@ public class CloudinaryService {
 
         try {
 
-            File originalFile = new File(uploadDir, originalFileName);
-            File aiFile = new File(uploadDir, "annotated_" + originalFileName);
+        // Tách lấy phần tên (bỏ đuôi mở rộng nếu có)
+        String cleanName = dbFileName.contains(".")
+                ? dbFileName.substring(0, dbFileName.lastIndexOf('.'))
+                : dbFileName.trim();
 
-            if (!originalFile.exists()) {
-                throw new IOException("Original image not found.");
-            }
+        if ("COMPLETED".equalsIgnoreCase(status)) {
+            // Loại bỏ ký tự đặc biệt không hợp lệ trong filename, thay bằng '_'
+            String safeFileName = cleanName.replaceAll("[^a-zA-Z0-9_-]", "_");
+            String doctorName = "doctor_" + safeFileName;
+            String safePatient = removeAccent(patientName.trim());
+            String safeRecord = recordCode.trim();
 
-            if (!aiFile.exists()) {
-                throw new IOException("AI image not found.");
-            }
+            return String.format(
+                    "https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/MedicalAI/%s/%s/Doctor/%s",
+                    cloudName, safePatient, safeRecord, doctorName);
+        }else{
+            String safeFileName = cleanName.replaceAll("[^a-zA-Z0-9_-]", "_");
+            String aiName = "annotated_" + safeFileName;
+            String safePatient = removeAccent(patientName.trim());
+            String safeRecord = recordCode.trim();
 
-            String rootFolder =
-                    "MedicalAI/"
-                            + patientName
-                            + "/"
-                            + recordCode;
-
-            Map<?, ?> originalUpload =
-                    cloudinary.uploader().upload(
-                            originalFile,
-                            ObjectUtils.asMap(
-                                    "folder", rootFolder + "/Origin",
-                                    "use_filename", true,
-                                    "unique_filename", false));
-
-            Map<?, ?> aiUpload =
-                    cloudinary.uploader().upload(
-                            aiFile,
-                            ObjectUtils.asMap(
-                                    "folder", rootFolder + "/AI",
-                                    "use_filename", true,
-                                    "unique_filename", false));
-
-            Map<String, String> result = new HashMap<>();
-
-            result.put(
-                    "original",
-                    originalUpload.get("secure_url").toString());
-
-            result.put(
-                    "annotated",
-                    aiUpload.get("secure_url").toString());
-
-            return result;
-
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
+            return String.format(
+                    "https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/MedicalAI/%s/%s/AI/%s",
+                    cloudName, safePatient, safeRecord, aiName);
         }
+    }
+
+    /**
+     * Lấy link ảnh gốc trong thư mục Origin (Nếu cần dùng đến)
+     */
+    public String getOriginalImageUrl(String dbFileName, String patientName, String recordCode) {
+        if (dbFileName == null || dbFileName.trim().isEmpty()) {
+            return "https://via.placeholder.com/600x400?text=ORIGINAL+NOT+FOUND";
+        }
+
+        String cleanName = dbFileName.contains(".")
+                ? dbFileName.substring(0, dbFileName.lastIndexOf('.'))
+                : dbFileName.trim();
+
+        String safeFileName = cleanName.replaceAll("[^a-zA-Z0-9_-]", "_");
+        String safePatient = removeAccent(patientName.trim());
+        String safeRecord = recordCode.trim();
+
+        return String.format(
+                "https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/MedicalAI/%s/%s/Origin/%s?t=%d",
+                cloudName, safePatient, safeRecord, safeFileName, System.currentTimeMillis());
     }
 }

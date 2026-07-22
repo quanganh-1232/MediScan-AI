@@ -51,6 +51,9 @@ public class ImagingRecord {
     @Column(name = "status", nullable = false, length = 40)
     private String status = "PENDING_AI";
 
+    @Column(name = "visibility", nullable = false, length = 20)
+    private String visibility = "PRIVATE"; // PRIVATE hoặc PUBLIC
+
     @Column(name = "captured_at")
     private LocalDate capturedAt;
 
@@ -135,11 +138,11 @@ public class ImagingRecord {
     }
 
     public String getAiPrediction() {
-        return "aiPrediction";
-    }   //len err, fix to ""
+        return aiPrediction;
+    }
 
     public void setAiPrediction(String aiPrediction) {
-        this.aiPrediction = "aiPrediction";
+        this.aiPrediction = aiPrediction;
     }
 
     public Integer getAiConfidence() {
@@ -180,6 +183,14 @@ public class ImagingRecord {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(String visibility) {
+        this.visibility = visibility != null ? visibility.toUpperCase() : "PRIVATE";
     }
 
     public LocalDate getCapturedAt() {
