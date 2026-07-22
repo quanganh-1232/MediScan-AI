@@ -39,10 +39,10 @@ public class DoctorDashboardController {
     // 2. Tiêm toàn bộ qua một Constructor duy nhất (Không dùng @Autowired rời rạc
     // nữa)
     public DoctorDashboardController(CloudinaryService cloudinaryService,
-            ImagingRecordService imagingRecordService,
-            PatientRepository patientRepository,
-            UserRepository userRepository,
-            NotificationService notificationService) {
+                                     ImagingRecordService imagingRecordService,
+                                     PatientRepository patientRepository,
+                                     UserRepository userRepository,
+                                     NotificationService notificationService) {
         this.cloudinaryService = cloudinaryService;
         this.imagingRecordService = imagingRecordService;
         this.patientRepository = patientRepository;
@@ -79,19 +79,32 @@ public class DoctorDashboardController {
     @GetMapping("/doctor/records/{recordId}/review")
     public String reviewDetail(@PathVariable Long recordId, Model model) {
         ImagingRecord record = imagingRecordService.getRecordById(recordId);
+
         String patientName = record.getPatient() != null ? record.getPatient().getFullName() : "Unknown_Patient";
         String recordCode = record.getRecordCode() != null ? record.getRecordCode() : "Unknown_Record";
 
-        // 2. Truyền đầy đủ 4 tham số vào hàm getDisplayImageUrl mới
+        // URL hiển thị
         String displayUrl = cloudinaryService.getDisplayImageUrl(
-                record.getFileName(),
-                record.getStatus(),
-                patientName,
-                recordCode);
+                record.getFileName(), record.getStatus(), patientName, recordCode);
+
+        String originalUrl = cloudinaryService.getOriginalImageUrl(
+                record.getFileName(), patientName, recordCode);
 
         model.addAttribute("record", record);
         model.addAttribute("displayImageUrl", displayUrl);
+        model.addAttribute("originalImageUrl", originalUrl);
         model.addAttribute("aiRegions", imagingRecordService.getAiRegionsByRecordId(recordId));
+        model.addAttribute("visibility", record.getVisibility()); // Truyền visibility ra view
+
+        // Nếu đã COMPLETED → đảm bảo đổ đầy thông tin bác sĩ
+        if ("COMPLETED".equals(record.getStatus())) {
+            if (record.getDoctor() != null) {
+                model.addAttribute("doctorName", record.getDoctor().getFullName());
+            }
+            if (record.getDoctorConclusion() != null) {
+                model.addAttribute("doctorConclusion", record.getDoctorConclusion());
+            }
+        }
 
         patientRepository.findByUser(record.getPatient())
                 .ifPresent(p -> model.addAttribute("profile", p));
@@ -101,14 +114,15 @@ public class DoctorDashboardController {
 
     @PostMapping("/doctor/records/{recordId}/conclusion")
     public String saveConclusion(Authentication authentication,
-            @PathVariable Long recordId,
-            @RequestParam(required = false) String conclusion,
-            @RequestParam(required = false) String screenshotData, // <--- Nhận dữ liệu ảnh chụp màn hình ở đây
-            @RequestParam(required = false) Integer bboxX,
-            @RequestParam(required = false) Integer bboxY,
-            @RequestParam(required = false) Integer bboxWidth,
-            @RequestParam(required = false) Integer bboxHeight,
-            RedirectAttributes redirectAttributes) {
+                                 @PathVariable Long recordId,
+                                 @RequestParam(required = false) String conclusion,
+                                 @RequestParam(defaultValue = "PRIVATE") String visibility,
+                                 @RequestParam(required = false) String screenshotData, // <--- Nhận dữ liệu ảnh chụp màn hình ở đây
+                                 @RequestParam(required = false) Integer bboxX,
+                                 @RequestParam(required = false) Integer bboxY,
+                                 @RequestParam(required = false) Integer bboxWidth,
+                                 @RequestParam(required = false) Integer bboxHeight,
+                                 RedirectAttributes redirectAttributes) {
 
         // Nếu bác sĩ có vẽ hoặc cập nhật tọa độ box
         if (bboxX != null || bboxY != null || bboxWidth != null || bboxHeight != null) {
@@ -116,17 +130,16 @@ public class DoctorDashboardController {
         }
 
         // Truyền screenshotData vào hàm confirmDoctorReview
-        imagingRecordService.confirmDoctorReview(recordId, authentication.getName(), conclusion, null, screenshotData);
-
+        imagingRecordService.confirmDoctorReview(recordId, authentication.getName(), conclusion, null, screenshotData, visibility);
         redirectAttributes.addFlashAttribute("diagnosisSuccess", true);
         return "redirect:/doctor/records/pending";
     }
 
     @PostMapping("/doctor/records/reject")
     public String reject(Authentication authentication,
-            @RequestParam Long recordId,
-            @RequestParam(required = false) String conclusion,
-            @RequestParam(required = false) String recommendation) {
+                         @RequestParam Long recordId,
+                         @RequestParam(required = false) String conclusion,
+                         @RequestParam(required = false) String recommendation) {
         imagingRecordService.rejectDoctorReview(recordId, authentication.getName(), conclusion, recommendation);
         return "redirect:/doctor/records/pending";
     }
@@ -150,11 +163,11 @@ public class DoctorDashboardController {
     // ==================== LIBRARY ====================
     @GetMapping("/doctor/library")
     public String library(@RequestParam(required = false) String q,
-            @RequestParam(required = false) String bodyPart,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "8") int size,
-            Model model,
-            Principal principal) {
+                          @RequestParam(required = false) String bodyPart,
+                          @RequestParam(defaultValue = "0") int page,
+                          @RequestParam(defaultValue = "8") int size,
+                          Model model,
+                          Principal principal) {
 
         String email = principal.getName();
         Long doctorId = imagingRecordService.getDoctorIdByEmail(email);

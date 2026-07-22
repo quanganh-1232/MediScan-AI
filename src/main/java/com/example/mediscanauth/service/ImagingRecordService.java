@@ -3,6 +3,7 @@ package com.example.mediscanauth.service;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
+import com.example.mediscanauth.model.dto.AiRegionProjection;
 import com.example.mediscanauth.model.dto.DashboardDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -55,24 +56,23 @@ public interface ImagingRecordService {
             MultipartFile image);
 
     ImagingRecord getRecordById(Long recordId);
+
     ImagingRecord getRecordDetail(Long recordId);
 
-    //ImagingRecord getRecordDetail(Long recordId); // Nên giữ cả hai nếu cần
-
     ImagingRecord confirmDoctorReview(Long recordId, String doctorEmail, String conclusion, String recommendation,
-            String screenshotData);
+                                      String screenshotData, String visibility);
 
     ImagingRecord rejectDoctorReview(Long recordId, String doctorEmail, String conclusion, String recommendation);
 
     ImagingRecord updateRecordCoordinates(Long recordId, Integer bboxX, Integer bboxY, Integer bboxWidth,
-            Integer bboxHeight);
+                                          Integer bboxHeight);
 
     // ==================== Search & AI ====================
     Page<ImagingRecord> searchConfirmedLibrary(String keyword, String bodyPart, Pageable pageable);
 
     Page<ImagingRecord> searchForPatient(User patient, String keyword, String bodyPart, Pageable pageable);
 
-    List<com.example.mediscanauth.model.dto.AiRegionProjection> getAiRegionsByRecordId(Long recordId);
+    List<AiRegionProjection> getAiRegionsByRecordId(Long recordId);
 
     // ==================== Others ====================
     List<ImagingRecord> findRecordsUploadedByTechnician(String technicianEmail);

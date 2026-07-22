@@ -1,12 +1,16 @@
 package com.example.mediscanauth.service.impl;
 
+import com.cloudinary.Cloudinary;
 import com.example.mediscanauth.model.ImagingRecord;
+import com.example.mediscanauth.model.Notification;
 import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.model.dto.DashboardDTO;
 import com.example.mediscanauth.repository.ImagingRecordRepository;
+import com.example.mediscanauth.repository.NotificationRepository;
 import com.example.mediscanauth.repository.PatientRepository;
 import com.example.mediscanauth.repository.UserRepository;
+import com.example.mediscanauth.service.CloudinaryService;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.UserAccountService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -40,7 +44,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service
-public abstract class ImagingRecordServiceImpl implements ImagingRecordService {
+public class ImagingRecordServiceImpl implements ImagingRecordService {
 
     private static final List<String> ACTIVE_QUEUE_STATUSES = List.of("PENDING_AI", "AI_DONE", "AI_ANALYZED",
             "PENDING_DOCTOR");
@@ -65,19 +69,27 @@ public abstract class ImagingRecordServiceImpl implements ImagingRecordService {
     private final UserAccountService userAccountService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final NotificationRepository notificationRepository;
+    private final Cloudinary cloudinary;
+    private final CloudinaryService cloudinaryService;
 
-    public ImagingRecordServiceImpl(ImagingRecordRepository imagingRecordRepository,
+    public ImagingRecordServiceImpl(
+            ImagingRecordRepository imagingRecordRepository,
             UserAccountService userAccountService,
             PatientRepository patientRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            NotificationRepository notificationRepository,
+            Cloudinary cloudinary,
+            CloudinaryService cloudinaryService) {
+
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
-        requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
-        this.restTemplate = new RestTemplate(requestFactory);
+        this.notificationRepository = notificationRepository;
+        this.cloudinary = cloudinary;
+        this.cloudinaryService = cloudinaryService;
+        this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
     }
 
@@ -269,17 +281,48 @@ public abstract class ImagingRecordServiceImpl implements ImagingRecordService {
     @Override
     @Transactional
     public ImagingRecord confirmDoctorReview(Long recordId, String doctorEmail, String conclusion,
-            String recommendation, String screenshotData) {
+                                             String recommendation, String base64ImageData, String visibility) {
+
         ImagingRecord record = getRecordById(recordId);
         User doctor = userAccountService.findByEmail(doctorEmail);
+
         record.setDoctor(doctor);
         record.setDoctorConclusion(cleanSentence(isBlank(conclusion) ? record.getAiPrediction() : conclusion));
         record.setRecommendation(cleanSentence(
-                isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả. Theo dõi và điều trị theo chỉ định chuyên môn."
-                        : recommendation));
+                isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả." : recommendation));
+
         record.setStatus("COMPLETED");
         record.setConfirmedAt(LocalDateTime.now());
-        return imagingRecordRepository.save(record);
+        record.setVisibility(visibility); // <-- Lưu visibility từ bác sĩ chọn
+
+        // === XỬ LÝ UPLOAD ẢNH CHỤP MÀN HÌNH ===
+        String dbFileName = record.getFileName();
+        if (dbFileName != null && !dbFileName.isEmpty() && base64ImageData != null && !base64ImageData.isEmpty()) {
+            String patientName = record.getPatient() != null ? record.getPatient().getFullName() : "Unknown_Patient";
+            String recordCode = record.getRecordCode() != null ? record.getRecordCode() : "Unknown_Code";
+
+            cloudinaryService.generateAndUploadDoctorImage(base64ImageData, patientName, recordCode, dbFileName);
+        }
+
+        ImagingRecord savedRecord = imagingRecordRepository.save(record);
+
+        // === CHỈ TẠO THÔNG BÁO KHI LÀ PUBLIC ===
+        if ("PUBLIC".equalsIgnoreCase(savedRecord.getVisibility())) {
+            Notification notification = new Notification();
+            notification.setUser(savedRecord.getPatient());
+            notification.setRecordId(savedRecord.getRecordId());
+            notification.setTitle("Kết quả X-quang đã có");
+            notification.setMessage(
+                    "Kết quả chẩn đoán cho hồ sơ " + savedRecord.getRecordCode() + " đã được bác sĩ xác nhận.");
+            notification.setRead(false);
+            notificationRepository.save(notification);
+
+            System.out.println("→ [NOTI] Đã tạo thông báo cho bệnh nhân (PUBLIC)");
+        } else {
+            System.out.println("→ [NOTI] Giữ riêng tư (PRIVATE) - Không tạo thông báo");
+        }
+
+        return savedRecord;
     }
 
     @Override
