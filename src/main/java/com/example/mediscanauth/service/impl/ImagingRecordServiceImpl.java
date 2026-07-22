@@ -36,10 +36,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -207,8 +209,10 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
     @Override
     @Transactional
-    public ImagingRecord captureAndAnalyzeFromTechnician(String technicianEmail, String patientEmail,
-            String doctorEmail, MultipartFile image) {
+    public ImagingRecord captureAndAnalyzeFromTechnician(String technicianEmail,
+                                                         String patientEmail,
+                                                         String doctorEmail,
+                                                         MultipartFile image) {
         User technician = userAccountService.findByEmail(technicianEmail);
         User patient = userAccountService.findByEmail(patientEmail);
         User doctor = isBlank(doctorEmail) ? null : userAccountService.findByEmail(doctorEmail);
@@ -217,7 +221,15 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
             Files.createDirectories(uploadPath);
 
-            StoredImage storedImage = selectRandomUploadImage(uploadPath);
+            String fileName = image.getOriginalFilename();
+            Path destination = uploadPath.resolve(fileName);
+
+            Files.copy(
+                    image.getInputStream(),
+                    destination,
+                    StandardCopyOption.REPLACE_EXISTING);
+
+            byte[] imageBytes = image.getBytes();
 
             ImagingRecord record = new ImagingRecord();
             record.setRecordCode(nextRecordCode());
@@ -225,14 +237,28 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             record.setDoctor(doctor);
             record.setTechnician(technician);
             record.setBodyPart("Ảnh X-Ray ngẫu nhiên");
-            record.setFileName(storedImage.fileName());
-            record.setAiPrediction("Đang phân tích AI bằng YOLO/ANFIS");
+            record.setFileName(fileName);
+            record.setAiPrediction("Đang phân tích AI bằng YOLO+ANFIS");
             record.setAiConfidence(0);
             record.setRecommendation("Chờ bác sĩ xác nhận kết quả AI.");
             record.setStatus("PENDING_AI");
 
             ImagingRecord savedRecord = imagingRecordRepository.save(record);
-            applyAiAnalysis(savedRecord, uploadPath, storedImage.fileBytes());
+            applyAiAnalysis(savedRecord, uploadPath, imageBytes);
+            //upload 2 anh len cloudinary
+            Map<String, String> uploadedImages =
+                    cloudinaryService.uploadTechnicianImages(
+                            uploadPath.toString(),
+                            fileName,
+                            patient.getFullName(),
+                            savedRecord.getRecordCode());
+
+            String originalFileName =
+                    uploadedImages.get("original")
+                            .substring(uploadedImages.get("original")
+                                    .lastIndexOf('/') + 1);
+
+            savedRecord.setFileName(originalFileName);
             return imagingRecordRepository.save(savedRecord);
         } catch (IOException e) {
             throw new RuntimeException("Không thể lấy ảnh ngẫu nhiên hoặc phân tích ảnh X-Ray: " + e.getMessage(), e);
