@@ -173,7 +173,6 @@ public class DoctorDashboardController {
         Long doctorId = imagingRecordService.getDoctorIdByEmail(email);
 
         List<DashboardDTO.QueueItemDTO> completedList = imagingRecordService.getCompletedDTOsForDoctor(doctorId);
-        
 
         // Filter client-side
         if (q != null && !q.trim().isEmpty()) {

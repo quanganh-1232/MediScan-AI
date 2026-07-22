@@ -14,24 +14,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.mediscanauth.repository.NotificationRepository;
+import com.example.mediscanauth.model.Notification;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
+import java.util.Map;
+import com.example.mediscanauth.service.CloudinaryService;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -40,24 +45,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service
-public abstract class ImagingRecordServiceImpl implements ImagingRecordService {
+public class ImagingRecordServiceImpl implements ImagingRecordService {
 
     private static final List<String> ACTIVE_QUEUE_STATUSES = List.of("PENDING_AI", "AI_DONE", "AI_ANALYZED",
             "PENDING_DOCTOR");
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
+    private static final String AI_SERVICE_URL = "http://localhost:8000/predict";
     private static final int LEGACY_TEXT_COLUMN_LIMIT = 490;
-    // ai-service does real CPU work (YOLO + classical CV + ANFIS); a low read
-    // timeout would false-positive on legitimate slow analyses, but it must
-    // still be bounded so a hung ai-service can't hold this transaction's DB
-    // connection open forever.
-    private static final int AI_CONNECT_TIMEOUT_MS = 5_000;
-    private static final int AI_READ_TIMEOUT_MS = 45_000;
-
-    @Value("${ai.service.url}")
-    private String aiServiceUrl;
-
-    @Value("${ai.service.api-key}")
-    private String aiServiceApiKey;
 
     private final ImagingRecordRepository imagingRecordRepository;
     private final PatientRepository patientRepository;
@@ -65,19 +59,27 @@ public abstract class ImagingRecordServiceImpl implements ImagingRecordService {
     private final UserAccountService userAccountService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final NotificationRepository notificationRepository;
+    private final Cloudinary cloudinary;
+    private final CloudinaryService cloudinaryService;
 
-    public ImagingRecordServiceImpl(ImagingRecordRepository imagingRecordRepository,
+    public ImagingRecordServiceImpl(
+            ImagingRecordRepository imagingRecordRepository,
             UserAccountService userAccountService,
             PatientRepository patientRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            NotificationRepository notificationRepository,
+            Cloudinary cloudinary,
+            CloudinaryService cloudinaryService) {
+
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
-        requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
-        this.restTemplate = new RestTemplate(requestFactory);
+        this.notificationRepository = notificationRepository;
+        this.cloudinary = cloudinary;
+        this.cloudinaryService = cloudinaryService;
+        this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
     }
 
@@ -207,7 +209,15 @@ public abstract class ImagingRecordServiceImpl implements ImagingRecordService {
             Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
             Files.createDirectories(uploadPath);
 
-            StoredImage storedImage = selectRandomUploadImage(uploadPath);
+            String fileName = image.getOriginalFilename();
+            Path destination = uploadPath.resolve(fileName);
+
+            Files.copy(
+                    image.getInputStream(),
+                    destination,
+                    StandardCopyOption.REPLACE_EXISTING);
+
+            byte[] imageBytes = image.getBytes();
 
             ImagingRecord record = new ImagingRecord();
             record.setRecordCode(nextRecordCode());
@@ -215,14 +225,14 @@ public abstract class ImagingRecordServiceImpl implements ImagingRecordService {
             record.setDoctor(doctor);
             record.setTechnician(technician);
             record.setBodyPart("Ảnh X-Ray ngẫu nhiên");
-            record.setFileName(storedImage.fileName());
-            record.setAiPrediction("Đang phân tích AI bằng YOLO/ANFIS");
+            record.setFileName(fileName);
+            record.setAiPrediction("Đang phân tích AI bằng YOLO+ANFIS");
             record.setAiConfidence(0);
             record.setRecommendation("Chờ bác sĩ xác nhận kết quả AI.");
             record.setStatus("PENDING_AI");
 
             ImagingRecord savedRecord = imagingRecordRepository.save(record);
-            applyAiAnalysis(savedRecord, uploadPath, storedImage.fileBytes());
+            applyAiAnalysis(savedRecord, uploadPath, imageBytes);
             return imagingRecordRepository.save(savedRecord);
         } catch (IOException e) {
             throw new RuntimeException("Không thể lấy ảnh ngẫu nhiên hoặc phân tích ảnh X-Ray: " + e.getMessage(), e);
@@ -435,7 +445,6 @@ public abstract class ImagingRecordServiceImpl implements ImagingRecordService {
     private void applyAiAnalysis(ImagingRecord record, Path uploadPath, byte[] fileBytes) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        headers.set("X-Internal-Api-Key", aiServiceApiKey);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new ByteArrayResource(fileBytes) {
@@ -447,7 +456,7 @@ public abstract class ImagingRecordServiceImpl implements ImagingRecordService {
 
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(
-                    aiServiceUrl, new HttpEntity<>(body, headers), String.class);
+                    AI_SERVICE_URL, new HttpEntity<>(body, headers), String.class);
 
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 markAiFailed(record, "AI service không trả về kết quả hợp lệ.");
@@ -505,6 +514,7 @@ public abstract class ImagingRecordServiceImpl implements ImagingRecordService {
         }
         return sb.isEmpty() ? "Chờ bác sĩ xác nhận kết quả và đưa ra hướng điều trị phù hợp." : sb.toString();
     }
+
     private record StoredImage(String fileName, byte[] fileBytes) {
     }
 }
