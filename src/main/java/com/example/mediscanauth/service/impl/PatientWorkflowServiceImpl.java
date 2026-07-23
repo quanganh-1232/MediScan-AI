@@ -44,10 +44,10 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     private static final int AI_CONNECT_TIMEOUT_MS = 5_000;
     private static final int AI_READ_TIMEOUT_MS = 45_000;
 
-    @Value("${ai.service.url}")
+    @Value("${ai.service.url:http://localhost:8000/predict}")
     private String aiServiceUrl;
 
-    @Value("${ai.service.api-key}")
+    @Value("${ai.service.api-key:dev-ai-key-change-me}")
     private String aiServiceApiKey;
 
     public PatientWorkflowServiceImpl(ImagingRecordRepository imagingRecordRepository,
