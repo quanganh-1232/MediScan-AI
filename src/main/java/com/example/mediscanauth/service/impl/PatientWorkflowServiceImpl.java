@@ -3,6 +3,11 @@ package com.example.mediscanauth.service.impl;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.repository.ImagingRecordRepository;
+import com.example.mediscanauth.model.Appointment;
+import com.example.mediscanauth.model.Patient;
+import com.example.mediscanauth.repository.AppointmentRepository;
+import com.example.mediscanauth.repository.PatientRepository;
+import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.PatientWorkflowService;
 import com.example.mediscanauth.service.UserAccountService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -36,6 +41,9 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
 
     private final ImagingRecordRepository imagingRecordRepository;
     private final UserAccountService userAccountService;
+    private final AppointmentRepository appointmentRepository;
+    private final PatientRepository patientRepository;
+    private final UserRepository userRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
@@ -51,9 +59,15 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     private String aiServiceApiKey;
 
     public PatientWorkflowServiceImpl(ImagingRecordRepository imagingRecordRepository,
-                                      UserAccountService userAccountService) {
+                                      UserAccountService userAccountService,
+                                      AppointmentRepository appointmentRepository,
+                                      PatientRepository patientRepository,
+                                      UserRepository userRepository) {
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
+        this.appointmentRepository = appointmentRepository;
+        this.patientRepository = patientRepository;
+        this.userRepository = userRepository;
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
         requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
@@ -225,5 +239,105 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     private String nextCode(String prefix) {
         String shortId = java.util.UUID.randomUUID().toString().substring(0, 5).toUpperCase();
         return prefix + "-" + LocalDate.now().getYear() + "-" + shortId;
+    }
+
+    @Override
+    @Transactional
+    public Appointment bookAppointment(String patientEmail, Long doctorId, String date, String time) {
+        User user = userAccountService.findByEmail(patientEmail);
+        Patient patient = patientRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ bệnh nhân"));
+
+        User doctor = null;
+        if (doctorId != null) {
+            doctor = userRepository.findById(doctorId).orElse(null);
+        }
+
+        java.time.LocalDateTime scheduledTime = java.time.LocalDateTime.parse(date + "T" + time);
+
+        // Backend: không cho đặt lịch trong quá khứ
+        if (scheduledTime.isBefore(java.time.LocalDateTime.now())) {
+            throw new RuntimeException("Không thể đặt lịch vào thời điểm trong quá khứ. Vui lòng chọn từ hôm nay trở đi.");
+        }
+
+        // Backend: chỉ cho đặt trong giờ hành chính (07:00 - 17:00)
+        int hour = scheduledTime.getHour();
+        if (hour < 7 || hour >= 17) {
+            throw new RuntimeException("Chỉ có thể đặt lịch trong giờ hành chính (07:00 - 17:00).");
+        }
+
+        // Kiểm tra trùng lịch bác sĩ (±30 phút)
+        if (doctor != null) {
+            java.time.LocalDateTime from = scheduledTime.minusMinutes(29);
+            java.time.LocalDateTime to   = scheduledTime.plusMinutes(30);
+            long conflicts = appointmentRepository.countDoctorConflicts(doctor, from, to);
+            if (conflicts > 0) {
+                throw new RuntimeException(
+                    "Bác sĩ " + doctor.getFullName() + " đã có lịch hẹn vào khung giờ này. " +
+                    "Vui lòng chọn giờ khác (cách ít nhất 30 phút)."
+                );
+            }
+        }
+
+        Appointment appointment = new Appointment();
+        appointment.setAppointmentCode(nextCode("APT"));
+        appointment.setPatient(patient);
+        appointment.setDoctor(doctor);
+        appointment.setScheduledTime(scheduledTime);
+        appointment.setStatus("SCHEDULED");
+        appointment.setAppointmentType("DOCTOR_CONSULTATION");
+
+        return appointmentRepository.save(appointment);
+    }
+
+    @Override
+    @Transactional
+    public void cancelAppointment(String patientEmail, Long appointmentId) {
+        User user = userAccountService.findByEmail(patientEmail);
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn."));
+
+        // Security: only the patient who owns this appointment can cancel
+        if (appointment.getPatient() == null
+                || !appointment.getPatient().getUser().getUserId().equals(user.getUserId())) {
+            throw new RuntimeException("Bạn không có quyền hủy lịch hẹn này.");
+        }
+
+        // Only PENDING or SCHEDULED appointments can be cancelled by patient
+        if (!"PENDING".equals(appointment.getStatus()) && !"SCHEDULED".equals(appointment.getStatus())) {
+            throw new RuntimeException("Không thể hủy lịch hẹn đã được xác nhận hoặc hoàn tất.");
+        }
+
+        appointment.setStatus("CANCELLED");
+        appointmentRepository.save(appointment);
+    }
+
+    @Override
+    @Transactional
+    public Patient updatePatientProfile(String patientEmail, String fullName, String phone,
+                                        String gender, java.time.LocalDate dateOfBirth,
+                                        String address, String medicalHistory) {
+        User user = userAccountService.findByEmail(patientEmail);
+        Patient patient = patientRepository.findByUser(user)
+                .orElseGet(() -> {
+                    Patient p = new Patient();
+                    p.setUser(user);
+                    return p;
+                });
+
+        if (fullName != null && !fullName.isBlank()) patient.setFullName(fullName);
+        if (phone != null) patient.setPhone(phone);
+        if (gender != null) patient.setGender(gender);
+        if (dateOfBirth != null) patient.setDateOfBirth(dateOfBirth);
+        if (address != null) patient.setAddress(address);
+        if (medicalHistory != null) patient.setMedicalHistory(medicalHistory);
+
+        // Also update the User fullName to stay in sync
+        if (fullName != null && !fullName.isBlank()) {
+            user.setFullName(fullName);
+            userRepository.save(user);
+        }
+
+        return patientRepository.save(patient);
     }
 }

@@ -24,10 +24,51 @@
                     <div class="ms-readonly-note"><div class="fw-bold" th:text="${scheduledCount}">0</div><div class="small text-muted">Lịch chờ xử lý</div></div>
                 </section>
                 <div class="row g-3 g-lg-4">
-                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Appointments</div><div class="ms-metric-number" th:text="${scheduledCount}">0</div></div></div>
-                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Medical Records</div><div class="ms-metric-number" th:text="${uploadedRecordCount}">0</div></div></div>
-                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">X-Ray Images</div><div class="ms-metric-number" th:text="${uploadedImageCount}">0</div></div></div>
-                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">AI / Doctor</div><div class="ms-metric-number" th:text="${aiSuccessCount + '/' + approvedReviewCount}">0/0</div></div></div>
+                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Cuộc hẹn</div><div class="ms-metric-number" th:text="${scheduledCount}">0</div></div></div>
+                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Hồ sơ bệnh án</div><div class="ms-metric-number" th:text="${uploadedRecordCount}">0</div></div></div>
+                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">Ảnh X-Quang</div><div class="ms-metric-number" th:text="${uploadedImageCount}">0</div></div></div>
+                    <div class="col-6 col-xl-3"><div class="ms-metric h-100"><div class="ms-metric-label">AI / Bác sĩ</div><div class="ms-metric-number" th:text="${aiSuccessCount + '/' + approvedReviewCount}">0/0</div></div></div>
+                </div>
+
+                <div class="card-body p-0">
+                <table class="table ms-table ms-table-striped ms-table-hover">
+                <thead>
+                    <tr>
+                        <th>Bệnh nhân</th>
+                        <th>Thời gian</th>
+                        <th>Bác sĩ</th>
+                        <th>Trạng thái</th>
+                        <th class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(scheduledAppointments)}">
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="bi bi-calendar-x fs-2 d-block mb-2"></i>
+                        Không có bệnh nhân nào đang chờ.
+                    </td>
+                </tr>
+
+                <tr th:each="appointment : ${scheduledAppointments}">
+                    <td th:text="${appointment.patient.fullName}"></td>
+                    <td th:text="${appointment.appointmentTime}"></td>
+                    <td th:text="${appointment.doctor.fullName}"></td>
+
+                    <td>
+                        <span class="badge bg-warning"
+                        th:text="${appointment.status}">
+                        </span>
+                    </td>
+
+                    <td>
+                        <a class="btn btn-primary btn-sm"
+                           th:href="@{/technician/xray-upload(appointmentId=${appointment.id})}">
+                            Scan
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+                </table>
                 </div>
             </div>
         </div>

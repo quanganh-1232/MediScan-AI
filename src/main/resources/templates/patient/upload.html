@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Tải ảnh X-quang - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+    <!-- CSRF for XHR -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <style>
+        .drop-zone {
+            border: 2.5px dashed var(--ms-primary);
+            border-radius: 20px;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background .2s, border-color .2s;
+            background: #f8faff;
+        }
+        .drop-zone.drag-over { background: #dbeafe; border-color: #2563eb; }
+        .drop-zone.has-file  { background: #f0fdf4; border-color: #16a34a; border-style: solid; }
+        .drop-zone-icon { font-size: 3rem; color: var(--ms-primary); margin-bottom: .75rem; }
+        .preview-img { max-height: 220px; max-width: 100%; border-radius: 12px; object-fit: contain; }
+
+        .progress-wrap { height: 10px; border-radius: 999px; overflow: hidden; background: #e2e8f0; }
+        .progress-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #2563eb, #7c3aed);
+            width: 0%; transition: width .3s ease; }
+
+        .result-card { border-radius: 16px; padding: 1.5rem; display: none; }
+        .result-card.show { display: block; animation: fadeUp .4s ease; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+        .result-card.HIGH   { background: linear-gradient(135deg,#fee2e2,#fecaca); border-left: 4px solid #dc2626; }
+        .result-card.MEDIUM { background: linear-gradient(135deg,#fef9c3,#fde68a); border-left: 4px solid #ca8a04; }
+        .result-card.LOW    { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-left: 4px solid #16a34a; }
+        .result-card.NONE   { background: linear-gradient(135deg,#f1f5f9,#e2e8f0); border-left: 4px solid #94a3b8; }
+
+        .body-part-select { display: flex; flex-wrap: wrap; gap: .5rem; }
+        .body-part-btn { border: 1.5px solid var(--ms-border); border-radius: 10px; padding: .4rem .9rem;
+            font-size: .85rem; cursor: pointer; background: #fff; transition: all .15s; }
+        .body-part-btn:hover, .body-part-btn.selected { border-color: var(--ms-primary); background: #eff6ff; color: var(--ms-primary); font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{patient/fragments/patient-shell :: nav('upload')}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-cloud-upload text-primary me-2"></i>Tải ảnh X-quang</h1>
+            <p class="text-secondary mb-0">Tải ảnh X-quang lên để AI phân tích sơ bộ. Kết quả mang tính tham khảo.</p>
+        </div>
+        <a th:href="@{/patient/records}" class="btn ms-btn ms-btn-ghost border text-primary">
+            <i class="bi bi-folder2-open me-1"></i> Xem hồ sơ
+        </a>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <div class="col-12 col-lg-7">
+            <section class="pt-card p-4 mb-4">
+                <div class="pt-card-title mb-4"><i class="bi bi-body-text"></i> Vùng chụp X-quang</div>
+                <div class="body-part-select" id="bodyPartButtons">
+                    <button type="button" class="body-part-btn" data-value="Cẳng tay">Cẳng tay</button>
+                    <button type="button" class="body-part-btn" data-value="Bàn tay">Bàn tay</button>
+                    <button type="button" class="body-part-btn" data-value="Cẳng chân">Cẳng chân</button>
+                    <button type="button" class="body-part-btn" data-value="Bàn chân">Bàn chân</button>
+                    <button type="button" class="body-part-btn" data-value="Cột sống">Cột sống</button>
+                    <button type="button" class="body-part-btn" data-value="Xương đùi">Xương đùi</button>
+                    <button type="button" class="body-part-btn" data-value="Vai">Vai</button>
+                    <button type="button" class="body-part-btn" data-value="Ngực">Ngực</button>
+                    <button type="button" class="body-part-btn" data-value="Khớp gối">Khớp gối</button>
+                    <button type="button" class="body-part-btn" data-value="Xương chậu">Xương chậu</button>
+                </div>
+                <input type="hidden" id="selectedBodyPart" value="">
+                <div id="bodyPartError" class="text-danger small mt-2 d-none">Vui lòng chọn vùng chụp.</div>
+            </section>
+
+            <section class="pt-card p-4">
+                <div class="pt-card-title mb-4"><i class="bi bi-image"></i> Ảnh X-quang</div>
+
+                <!-- Drop zone -->
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <div id="dropPlaceholder">
+                        <div class="drop-zone-icon"><i class="bi bi-cloud-upload"></i></div>
+                        <div class="fw-semibold fs-5 mb-1">Kéo thả ảnh vào đây</div>
+                        <div class="text-muted small mb-3">hoặc bấm để chọn file</div>
+                        <div class="small text-muted">Hỗ trợ: JPG, PNG, DICOM — Tối đa 20MB</div>
+                    </div>
+                    <img id="preview" class="preview-img d-none" alt="Preview">
+                </div>
+                <input type="file" id="fileInput" accept="image/*,.dcm" class="d-none">
+                <div id="fileError" class="text-danger small mt-2 d-none">Vui lòng chọn file ảnh.</div>
+
+                <!-- Progress bar -->
+                <div id="progressWrap" class="mt-4 d-none">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span id="progressLabel" class="text-muted">Đang tải lên...</span>
+                        <span id="progressPct" class="fw-semibold">0%</span>
+                    </div>
+                    <div class="progress-wrap">
+                        <div class="progress-bar-fill" id="progressBar"></div>
+                    </div>
+                </div>
+
+                <!-- Submit button -->
+                <div class="mt-4 d-flex gap-2">
+                    <button id="uploadBtn" class="btn ms-btn ms-btn-primary text-white flex-grow-1" onclick="doUpload()" disabled>
+                        <i class="bi bi-cpu me-1"></i> Phân tích với AI
+                    </button>
+                    <button class="btn ms-btn ms-btn-ghost border" onclick="resetForm()">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                </div>
+
+                <!-- Disclaimer -->
+                <div class="alert alert-warning border-0 mt-3 mb-0 small py-2">
+                    <i class="bi bi-shield-exclamation me-1"></i>
+                    Kết quả AI chỉ mang tính tham khảo ban đầu. Kết luận chính thức do bác sĩ chuyên khoa xác nhận.
+                </div>
+            </section>
+        </div>
+
+        <!-- Result panel -->
+        <div class="col-12 col-lg-5">
+            <div id="resultPanel" class="result-card" style="border:1px solid var(--ms-border);">
+                <div class="fw-bold fs-5 mb-3"><i class="bi bi-clipboard2-pulse me-2"></i>Kết quả AI</div>
+                <div id="resultBody"></div>
+                <div class="mt-3 d-flex gap-2">
+                    <a id="resultDetailLink" href="#" class="btn ms-btn ms-btn-primary text-white flex-grow-1 d-none">
+                        <i class="bi bi-eye me-1"></i> Xem chi tiết hồ sơ
+                    </a>
+                    <a th:href="@{/patient/records}" class="btn ms-btn ms-btn-ghost border text-primary flex-grow-1">
+                        <i class="bi bi-folder2-open me-1"></i> Tất cả hồ sơ
+                    </a>
+                </div>
+            </div>
+
+            <section class="pt-card p-4 mt-4">
+                <div class="pt-card-title mb-3"><i class="bi bi-question-circle"></i> Hướng dẫn</div>
+                <ul class="list-unstyled small text-muted mb-0" style="line-height:2;">
+                    <li><i class="bi bi-1-circle-fill text-primary me-2"></i>Chọn vùng chụp X-quang</li>
+                    <li><i class="bi bi-2-circle-fill text-primary me-2"></i>Tải ảnh X-quang lên (JPG hoặc PNG)</li>
+                    <li><i class="bi bi-3-circle-fill text-primary me-2"></i>Bấm "Phân tích với AI"</li>
+                    <li><i class="bi bi-4-circle-fill text-primary me-2"></i>Xem kết quả sơ bộ từ AI</li>
+                    <li><i class="bi bi-5-circle-fill text-primary me-2"></i>Kết quả sẽ được bác sĩ xác nhận sau</li>
+                </ul>
+            </section>
+        </div>
+    </div>
+</main>
+
+<div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Body part selection
+    document.querySelectorAll('.body-part-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.body-part-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.getElementById('selectedBodyPart').value = btn.dataset.value;
+            document.getElementById('bodyPartError').classList.add('d-none');
+            checkReady();
+        });
+    });
+
+    // File input
+    const fileInput = document.getElementById('fileInput');
+    const dropZone  = document.getElementById('dropZone');
+
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) showPreview(fileInput.files[0]); });
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const f = e.dataTransfer.files[0];
+        if (f) { fileInput.files = e.dataTransfer.files; showPreview(f); }
+    });
+
+    function showPreview(file) {
+        const preview = document.getElementById('preview');
+        const ph      = document.getElementById('dropPlaceholder');
+        const reader  = new FileReader();
+        reader.onload = ev => {
+            preview.src = ev.target.result;
+            preview.classList.remove('d-none');
+            ph.classList.add('d-none');
+            dropZone.classList.add('has-file');
+        };
+        reader.readAsDataURL(file);
+        document.getElementById('fileError').classList.add('d-none');
+        checkReady();
+    }
+
+    function checkReady() {
+        const hasFile = fileInput.files && fileInput.files.length > 0;
+        const hasPart = document.getElementById('selectedBodyPart').value !== '';
+        document.getElementById('uploadBtn').disabled = !(hasFile && hasPart);
+    }
+
+    function resetForm() {
+        fileInput.value = '';
+        document.getElementById('preview').classList.add('d-none');
+        document.getElementById('dropPlaceholder').classList.remove('d-none');
+        dropZone.classList.remove('has-file', 'drag-over');
+        document.querySelectorAll('.body-part-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('selectedBodyPart').value = '';
+        document.getElementById('uploadBtn').disabled = true;
+        document.getElementById('progressWrap').classList.add('d-none');
+        document.getElementById('resultPanel').classList.remove('show', 'HIGH', 'MEDIUM', 'LOW', 'NONE');
+    }
+
+    function doUpload() {
+        const bodyPart = document.getElementById('selectedBodyPart').value;
+        const file     = fileInput.files[0];
+
+        let valid = true;
+        if (!bodyPart) { document.getElementById('bodyPartError').classList.remove('d-none'); valid = false; }
+        if (!file)     { document.getElementById('fileError').classList.remove('d-none'); valid = false; }
+        if (!valid) return;
+
+        const formData = new FormData();
+        formData.append('bodyPart', bodyPart);
+        formData.append('xrayImage', file);
+
+        const btn = document.getElementById('uploadBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý AI...';
+
+        const progressWrap = document.getElementById('progressWrap');
+        const progressBar  = document.getElementById('progressBar');
+        const progressPct  = document.getElementById('progressPct');
+        const progressLbl  = document.getElementById('progressLabel');
+        progressWrap.classList.remove('d-none');
+
+        // Simulate progress during upload + AI processing
+        let pct = 0;
+        const simulateProgress = setInterval(() => {
+            if (pct < 85) {
+                pct += Math.random() * 8;
+                pct = Math.min(pct, 85);
+                progressBar.style.width = pct + '%';
+                progressPct.textContent = Math.round(pct) + '%';
+                progressLbl.textContent = pct < 40 ? 'Đang tải ảnh lên...' :
+                                          pct < 70 ? 'AI đang phân tích...' : 'Đang xử lý kết quả...';
+            }
+        }, 300);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/patient/upload');
+
+        // CSRF token from meta
+        const csrfToken = document.querySelector('meta[name="_csrf"]');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
+        if (csrfToken && csrfHeader) {
+            xhr.setRequestHeader(csrfHeader.content, csrfToken.content);
+        }
+
+        xhr.upload.onprogress = e => {
+            if (e.lengthComputable) {
+                const uploadPct = (e.loaded / e.total) * 40; // 0-40%
+                if (uploadPct > pct) { pct = uploadPct; }
+            }
+        };
+
+        xhr.onload = () => {
+            clearInterval(simulateProgress);
+            progressBar.style.width = '100%';
+            progressPct.textContent = '100%';
+            progressLbl.textContent = 'Hoàn tất!';
+
+            const res = JSON.parse(xhr.responseText);
+            showResult(res);
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-cpu me-1"></i> Phân tích với AI';
+        };
+
+        xhr.onerror = () => {
+            clearInterval(simulateProgress);
+            showResult({ success: false, message: 'Lỗi kết nối. Vui lòng thử lại.' });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-cpu me-1"></i> Phân tích với AI';
+        };
+
+        xhr.send(formData);
+    }
+
+    function showResult(res) {
+        const panel = document.getElementById('resultPanel');
+        const body  = document.getElementById('resultBody');
+        panel.className = 'result-card show';
+
+        if (res.success) {
+            const risk = res.riskLevel || 'NONE';
+            panel.classList.add(risk);
+            const riskText = risk === 'HIGH'   ? '🔴 Nguy cơ cao — Cần khám ngay' :
+                             risk === 'MEDIUM' ? '🟡 Nguy cơ trung bình' :
+                             risk === 'LOW'    ? '🟢 Nguy cơ thấp' : '⚪ Chưa xác định';
+
+            body.innerHTML = `
+                <div class="fw-bold mb-2">${riskText}</div>
+                <div class="small mb-3"><strong>Độ tin cậy AI:</strong> ${res.aiConfidence ?? '-'}%</div>
+                <div class="small mb-3"><strong>Mã hồ sơ:</strong> ${res.recordCode ?? '-'}</div>
+                <div class="small" style="white-space:pre-line;">${res.aiPrediction ?? ''}</div>
+            `;
+            const link = document.getElementById('resultDetailLink');
+            link.href = '/patient/records/' + res.recordId;
+            link.classList.remove('d-none');
+        } else {
+            body.innerHTML = `<div class="text-danger"><i class="bi bi-x-circle me-1"></i>${res.message}</div>`;
+            document.getElementById('resultDetailLink').classList.add('d-none');
+        }
+    }
+</script>
+</body>
+</html>

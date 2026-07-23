@@ -79,16 +79,16 @@
                         </thead>
                         <tbody>
                             <tr th:each="appt : ${appointments}">
-                                <td class="ps-4 fw-bold text-white" th:text="${appt.appointmentCode}">APT-000</td>
+                                <td class="ps-4 fw-bold text-black" th:text="${appt.appointmentCode}">APT-000</td>
                                 <td>
-                                    <span class="fw-semibold text-white d-block" th:text="${appt.patient != null ? appt.patient.fullName : 'Ẩn danh'}">Nguyễn Văn A</span>
+                                    <span class="fw-semibold text-black d-block" th:text="${appt.patient != null ? appt.patient.fullName : 'Ẩn danh'}">Nguyễn Văn A</span>
                                     <small class="text-muted" th:text="${appt.location != null ? 'Vị trí: ' + appt.location : ''}"></small>
                                 </td>
                                 <td>
                                     <span class="badge bg-secondary px-2 py-1" th:text="${appt.appointmentType}">XRAY_SCAN</span>
                                 </td>
                                 <td class="text-info" th:text="${appt.bodyPart != null ? appt.bodyPart : 'Chưa nhập'}">Chest</td>
-                                <td class="text-white-50" th:text="${#temporals.format(appt.scheduledTime, 'dd/MM/yyyy HH:mm')}">14/07/2026 15:30</td>
+                                <td class="text-black-50" th:text="${#temporals.format(appt.scheduledTime, 'dd/MM/yyyy HH:mm')}">14/07/2026 15:30</td>
                                 <td>
                                     <span th:class="'appt-badge status-' + ${appt.status}" th:text="${appt.status}">SCHEDULED</span>
                                 </td>

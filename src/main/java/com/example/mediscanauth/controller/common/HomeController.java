@@ -37,12 +37,14 @@ public class HomeController {
     }
 
     @GetMapping("/home")
-    public String home(Authentication authentication, Model model) {
+    public String home(Authentication authentication, 
+                       @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+                       Model model) {
         User user = userAccountService.findByEmail(authentication.getName());
         model.addAttribute("currentUser", user);
 
         if (isPatient(user)) {
-            return patientHome(user, model);
+            return patientHome(user, page, model);
         }
 
         if (hasRole(user, "RECEPTIONIST")) {
@@ -54,7 +56,7 @@ public class HomeController {
         }
 
         if (hasRole(user, "TECHNICIAN")) {
-            return "redirect:/technician/xray-upload";
+            return "redirect:/technician/dashboard";
         }
 
         if (isAdmin(user)) {
@@ -76,21 +78,34 @@ public class HomeController {
         return "common/home";
     }
 
-    private String patientHome(User user, Model model) {
-        List<Appointment> myAppointments = appointmentRepository.findByPatientUserOrderByScheduledTimeDesc(user);
-        Appointment upcoming = myAppointments.stream()
+    private String patientHome(User user, int page, Model model) {
+        List<Appointment> allAppointments = appointmentRepository.findByPatientUserOrderByScheduledTimeDesc(user);
+        
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(Math.max(page, 0), 5);
+        org.springframework.data.domain.Page<Appointment> appointmentPage = appointmentRepository.findByPatientUserOrderByScheduledTimeDesc(user, pageable);
+        
+        Appointment upcoming = allAppointments.stream()
                 .filter(a -> a.getScheduledTime() != null && a.getScheduledTime().isAfter(LocalDateTime.now()))
                 .filter(a -> !"CANCELLED".equals(a.getStatus()) && !"MISSED".equals(a.getStatus()))
                 .reduce((first, second) -> second)
                 .orElse(null);
 
-        model.addAttribute("myAppointments", myAppointments);
+        model.addAttribute("myAppointments", appointmentPage.getContent());
+        model.addAttribute("appointmentPage", appointmentPage);
+        model.addAttribute("currentPage", page);
+        
         model.addAttribute("upcomingAppointment", upcoming);
         model.addAttribute("doctors", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
                 List.of("DOCTOR", "ROLE_DOCTOR"), "ACTIVE"));
         model.addAttribute("patientRecordCount", imagingRecordService.countForPatient(user));
         model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(user));
         model.addAttribute("unreadCount", notificationService.countUnread(user));
+        // KAN-39: Health summary stats
+        model.addAttribute("totalAppointments", allAppointments.size());
+        model.addAttribute("completedAppointments",
+                allAppointments.stream().filter(a -> "COMPLETED".equals(a.getStatus())).count());
+        model.addAttribute("pendingAppointments",
+                allAppointments.stream().filter(a -> "PENDING".equals(a.getStatus()) || "SCHEDULED".equals(a.getStatus())).count());
         return "patient/home";
     }
 
