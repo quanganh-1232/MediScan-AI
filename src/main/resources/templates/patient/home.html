@@ -50,7 +50,7 @@
                         </div>
                     </div>
                     <div class="d-flex gap-2 mt-3">
-                        <a href="#history" class="btn ms-btn ms-btn-ghost flex-grow-1 border text-primary d-flex justify-content-between align-items-center">
+                        <a th:href="@{/patient/appointments/{id}(id=${upcomingAppointment.appointmentId})}" class="btn ms-btn ms-btn-ghost flex-grow-1 border text-primary d-flex justify-content-between align-items-center">
                             Xem chi tiết <i class="bi bi-chevron-right"></i>
                         </a>
                         <button type="button" class="btn btn-outline-danger btn-sm"
