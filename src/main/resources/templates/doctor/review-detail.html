@@ -698,9 +698,9 @@
             function refreshAllImages() {
                 const timestamp = Date.now();
 
-                document.querySelectorAll('#xrayImage, #popupImgLeft, #popupImgRight').forEach(img => {
-                    if (img.src) {
-                        let newSrc = img.src.split('?')[0]; // bỏ param cũ
+                document.querySelectorAll('#xrayImage, #xrayImagePopup, #popupImgRight').forEach(img => {
+                    if (img && img.src) {
+                        let newSrc = img.src.split('?')[0];
                         newSrc += (newSrc.includes('?') ? '&' : '?') + 'v=' + timestamp;
                         img.src = newSrc;
                     }

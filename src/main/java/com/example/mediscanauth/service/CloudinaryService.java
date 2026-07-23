@@ -31,6 +31,24 @@ public class CloudinaryService {
         return pattern.matcher(temp).replaceAll("").replace('đ', 'd').replace('Đ', 'D');
     }
 
+    private String buildSafeCloudinaryPublicId(String dbFileName, String prefix) {
+        if (dbFileName == null || dbFileName.trim().isEmpty()) {
+            return prefix + System.currentTimeMillis();
+        }
+
+        String cleanName = dbFileName.contains(".")
+                ? dbFileName.substring(0, dbFileName.lastIndexOf('.'))
+                : dbFileName.trim();
+
+        String safeFileName = cleanName.replaceAll("[^a-zA-Z0-9_-]", "_");
+        safeFileName = safeFileName.replaceAll("_+", "_").replaceAll("^_+|_+$", "");
+        if (safeFileName.isBlank()) {
+            safeFileName = "image";
+        }
+
+        return prefix + safeFileName;
+    }
+
     /**
      * Nhận chuỗi ảnh Base64 chụp màn hình từ trình duyệt của bác sĩ,
      * tự động tạo thư mục và upload trực tiếp lên Cloudinary với quy tắc đặt tên mới.
@@ -57,16 +75,7 @@ public class CloudinaryService {
                     recordCode.trim());
 
             // Quy tắc đặt tên file ảnh bác sĩ: doctor_[tên file gốc]
-            String doctorFileName;
-            if (dbFileName != null && !dbFileName.trim().isEmpty()) {
-                String rawName = dbFileName.trim();
-                if (rawName.contains(".")) {
-                    rawName = rawName.substring(0, rawName.lastIndexOf("."));
-                }
-                doctorFileName = "doctor_" + rawName;
-            } else {
-                doctorFileName = "doctor_img-" + System.currentTimeMillis();
-            }
+            String doctorFileName = buildSafeCloudinaryPublicId(dbFileName, "doctor_");
 
             Map<String, Object> params = ObjectUtils.asMap(
                     "folder", folderPath,
@@ -100,30 +109,22 @@ public class CloudinaryService {
             return "";
         }
 
-        // Tách lấy phần tên (bỏ đuôi mở rộng nếu có)
-        String cleanName = dbFileName.contains(".")
-                ? dbFileName.substring(0, dbFileName.lastIndexOf('.'))
-                : dbFileName.trim();
-
         if ("COMPLETED".equalsIgnoreCase(status)) {
-            // Loại bỏ ký tự đặc biệt không hợp lệ trong filename, thay bằng '_'
-            String safeFileName = cleanName.replaceAll("[^a-zA-Z0-9_-]", "_");
-            String doctorName = "doctor_" + safeFileName;
+            String doctorName = buildSafeCloudinaryPublicId(dbFileName, "doctor_");
             String safePatient = removeAccent(patientName.trim());
             String safeRecord = recordCode.trim();
 
             return String.format(
-                    "https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/MedicalAI/%s/%s/Doctor/%s",
-                    cloudName, safePatient, safeRecord, doctorName);
-        }else{
-            String safeFileName = cleanName.replaceAll("[^a-zA-Z0-9_-]", "_");
-            String aiName = "annotated_" + safeFileName;
+                    "https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/MedicalAI/%s/%s/Doctor/%s?t=%d",
+                    cloudName, safePatient, safeRecord, doctorName, System.currentTimeMillis());
+        } else {
+            String aiName = buildSafeCloudinaryPublicId(dbFileName, "annotated_");
             String safePatient = removeAccent(patientName.trim());
             String safeRecord = recordCode.trim();
 
             return String.format(
-                    "https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/MedicalAI/%s/%s/AI/%s",
-                    cloudName, safePatient, safeRecord, aiName);
+                    "https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/MedicalAI/%s/%s/AI/%s?t=%d",
+                    cloudName, safePatient, safeRecord, aiName, System.currentTimeMillis());
         }
     }
 
