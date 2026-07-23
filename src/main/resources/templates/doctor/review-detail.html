@@ -16,6 +16,45 @@
             background-color: #f8fafc;
         }
 
+        /* ================== FIX HEADER TOÀN CỤC ================== */
+        .ms-topbar,
+        .ms-app-header .container-fluid,
+        .pt-navbar-inner {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            min-height: 64px !important;
+        }
+
+        .ms-brand {
+            flex-shrink: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+        }
+
+        .ms-header-actions {
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* Tránh panel tối làm ảnh hưởng header */
+        .ms-xray-dark-panel {
+            position: relative !important;
+            z-index: 1;
+        }
+
+        /* Fix khoảng cách header trên mobile */
+        @media (max-width: 992px) {
+            .ms-topbar {
+                padding: 8px 12px !important;
+            }
+        }
+
         .ms-xray-dark-panel {
             background: #0b0f19;
             border: 1px solid #1e293b;
@@ -23,10 +62,9 @@
             top: 24px;
         }
 
-        /* Đầu Header của Panel Ảnh */
         .panel-header {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 12px;
@@ -34,80 +72,6 @@
             min-height: 45px;
         }
 
-        /* Container kiểm soát vị trí tuyệt đối cho menu ngang */
-        .toolkit-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        /* Nút mở menu công cụ */
-        .toolkit-dropdown-btn {
-            background: #1e293b;
-            color: #cbd5e1;
-            border: 1px solid #334155;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            z-index: 102;
-        }
-
-        .toolkit-dropdown-btn:hover,
-        .toolkit-dropdown-btn.active {
-            background: #334155;
-            color: #fff;
-            border-color: #475569;
-        }
-
-        /* MENU CHIỀU NGANG */
-        .toolkit-menu-horizontal {
-            position: absolute;
-            right: 46px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 6px 14px;
-            display: none;
-            align-items: center;
-            gap: 14px;
-            box-shadow: -5px 5px 15px rgba(0, 0, 0, 0.4);
-            z-index: 101;
-            animation: slideInLeft 0.2s ease;
-        }
-
-        .toolkit-menu-horizontal.show {
-            display: flex;
-        }
-
-        .tool-item-horizontal {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: #cbd5e1;
-            font-size: 12px;
-            white-space: nowrap;
-        }
-
-        .tool-item-horizontal input[type="range"] {
-            width: 75px;
-            accent-color: #3b82f6;
-            height: 4px;
-        }
-
-        .tool-divider {
-            width: 1px;
-            height: 18px;
-            background: #334155;
-        }
-
-        /* Vùng chứa ảnh */
         .xray-viewport-box {
             background: #000;
             border-radius: 16px;
@@ -117,6 +81,7 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            position: relative;
         }
 
         .ms-xray-viewport {
@@ -126,7 +91,7 @@
             display: block;
             margin: 0 auto;
             user-select: none;
-            -webkit-user-drag: none;
+            transition: filter 0.1s ease, transform 0.1s ease;
         }
 
         .ms-xray-wrapper {
@@ -134,18 +99,8 @@
             display: inline-block;
             overflow: hidden;
             border-radius: 8px;
-            cursor: grab;
-        }
-
-        .ms-xray-wrapper:active {
-            cursor: grabbing;
-        }
-
-        .pan-zoom-container {
+            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
             transform-origin: center center;
-            transition: transform 0.1s ease-out;
-            display: inline-block;
-            position: relative;
         }
 
         .ms-xray-overlay {
@@ -166,37 +121,265 @@
             border-radius: 4px;
         }
 
-        /* Sửa lỗi vỡ tràn/rớt dòng của Thanh Header */
-        .pt-navbar-inner {
+        .doctor-box-main {
+            position: absolute;
+            border: 2px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.15) !important;
+            border-radius: 4px;
+        }
+
+        /* POPUP CHIA ĐÔI TOÀN MÀN HÌNH */
+        .modal-fullscreen-custom {
+            padding: 0 !important;
+        }
+
+        .modal-fullscreen-custom .modal-dialog {
+            max-width: 100%;
+            width: 100%;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .modal-fullscreen-custom .modal-content {
+            height: 100vh;
+            border-radius: 0;
+            background: #05070f;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-fullscreen-custom .modal-header {
+            flex-shrink: 0;
+        }
+
+        .modal-fullscreen-custom .modal-body {
+            flex: 1;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .split-editor-body {
+            display: flex;
+            gap: 20px;
+            height: 100%;
+            /* ← thay vì calc(100vh - 120px) */
+            padding: 15px;
+            overflow: hidden;
+        }
+
+        /* Footer fix */
+        .modal-fullscreen-custom .modal-footer {
+            flex-shrink: 0;
+            border-top: 1px solid #334155;
+            padding: 12px 20px;
+        }
+
+
+        .editor-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0b0f19;
+            border: 1px solid #1e293b;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .editor-column-header {
+            background: #1e293b;
+            padding: 0 16px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            height: 56px;
+            min-height: 56px;
+            flex-shrink: 0;
+        }
+
+        /* THANH CÔNG CỤ EDIT */
+        .draw-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #0f172a;
+            padding: 2px 8px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            flex-wrap: nowrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            flex-wrap: nowrap;
+        }
+
+        .btn-tool {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            padding: 4px 6px;
+            font-size: 11px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            white-space: nowrap;
+        }
+
+        .btn-tool:hover {
+            color: #fff;
+            background: #1e293b;
+        }
+
+        .btn-tool.active {
+            color: #fff;
+            background: #3b82f6;
+        }
+
+        .tool-slider-label {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-right: 2px;
+            white-space: nowrap;
+        }
+
+        .tool-slider {
+            width: 50px;
+            height: 4px;
+            cursor: pointer;
+            margin: 0 2px;
+        }
+
+        /* TỐI ƯU KHÔNG GIAN BÀN VẼ - CÓ THANH CUỘN KHI ZOOM TO */
+        .editor-stage-canvas {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            position: relative;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .popup-draw-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: default;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .popup-draw-overlay.drawing-enabled {
+            cursor: crosshair;
+            pointer-events: auto;
+        }
+
+        .popup-draw-overlay.measure-enabled {
+            cursor: precision;
+            pointer-events: auto;
+        }
+
+        /* CON TRỎ CHUỘT KHI KÉO DI CHUYỂN */
+        .popup-draw-overlay.pan-enabled {
+            cursor: grab;
+            pointer-events: auto;
+        }
+
+        .popup-draw-overlay.pan-enabled:active {
+            cursor: grabbing;
+        }
+
+        /* ĐỒNG BỘ TỌA ĐỘ VÙNG CHỌN DOCTOR BOX */
+        .popup-doctor-box {
+            position: absolute;
+            border: 2px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.15) !important;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+            pointer-events: auto;
+        }
+
+        .popup-active-drawing {
+            position: absolute;
+            border: 2px solid #eab308;
+            background: rgba(234, 179, 8, 0.1);
+            pointer-events: none;
+        }
+
+        .popup-box-delete {
+            position: absolute;
+            top: -22px;
+            right: -2px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            font-size: 10px;
+            padding: 0 6px;
+            cursor: pointer;
+            z-index: 30;
+            line-height: 16px;
+        }
+
+        /* Thước đo y khoa */
+        .measure-line {
+            position: absolute;
+            height: 2px;
+            background-color: #10b981;
+            transform-origin: 0 0;
+            z-index: 25;
+            pointer-events: none;
+        }
+
+        .measure-label {
+            position: absolute;
+            background: rgba(16, 185, 129, 0.9);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 3px;
+            transform: translate(-50%, -100%);
+            white-space: nowrap;
+            z-index: 26;
+        }
+
+        .ms-topbar,
+        .pt-navbar-inner,
+        .ms-header-actions {
             display: flex !important;
-            justify-content: space-between !important;
             align-items: center !important;
-            width: 100% !important;
             flex-wrap: nowrap !important;
         }
 
-        /* Đảm bảo Logo và text đi liền một hàng */
         .ms-brand {
+            flex-shrink: 0 !important;
             display: flex !important;
             align-items: center !important;
             gap: 12px !important;
+        }
+
+        .ms-header-actions .dropdown,
+        .ms-account-dropdown {
             flex-shrink: 0 !important;
         }
 
-        /* Giữ cụm thông báo và avatar bác sĩ không bị bóp méo */
-        .pt-navbar-inner .d-flex.align-items-center.gap-2 {
-            flex-shrink: 0 !important;
-        }
-
-        @keyframes slideInLeft {
-            from {
-                opacity: 0;
-                transform: translate(10px, -50%);
-            }
-
-            to {
-                opacity: 1;
-                transform: translate(0, -50%);
+        @media (max-width: 992px) {
+            .ms-topbar {
+                flex-wrap: wrap !important;
+                gap: 8px;
             }
         }
     </style>
@@ -207,361 +390,796 @@
         <div th:replace="~{doctor/fragments/doctor-shell :: nav}"></div>
 
         <main class="container-fluid px-3 px-lg-4 py-4 py-lg-5">
-            <div class="row g-4 justify-content-center">
+            <form th:action="@{'/doctor/records/' + ${record.recordId} + '/conclusion'}" method="POST" id="reviewForm">
+                <input type="hidden" name="screenshotData" id="screenshotData">
+                <input type="hidden" name="doctorBoxesJson" id="doctorBoxesJson">
 
-                <div class="col-12 col-xl-6">
-                    <div class="ms-card-solid ms-xray-dark-panel rounded-5 p-3 p-lg-4 text-center">
+                <!-- HÀNG 1: PANEL TRUY CẬP ẢNH (TRÁI) & THÔNG TIN/AI PREDICTION (PHẢI) -->
+                <div class="row g-4 justify-content-center">
 
-                        <div class="panel-header">
-                            <div class="toolkit-wrapper">
+                    <!-- PANEL ẢNH -->
+                    <div class="col-12 col-xl-6">
+                        <div
+                            class="ms-card-solid ms-xray-dark-panel rounded-5 p-3 p-lg-4 text-center h-100 d-flex flex-column">
+                            <div class="panel-header mb-3 d-flex justify-content-between align-items-center">
+                                <span class="text-white-50 small"><i class="bi bi-image me-1"></i> Khung xem kết
+                                    quả</span>
+                                <button type="button" class="btn btn-sm btn-primary fw-semibold px-3"
+                                    data-bs-toggle="modal" data-bs-target="#splitEditorModal">
+                                    <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa trực quan
+                                </button>
+                            </div>
 
-                                <div class="toolkit-menu-horizontal" id="toolkitMenu">
-                                    <div class="tool-item-horizontal">
-                                        <span><i class="bi bi-brightness-high-fill text-warning"></i></span>
-                                        <input type="range" id="brightSlider" min="50" max="200" value="100"
-                                            oninput="applyImageFilters()">
+                            <!-- Giữ kích thước khung ổn định khi ảnh lỗi -->
+                            <div class="xray-viewport-box flex-grow-1 d-flex align-items-center justify-content-center position-relative rounded-3 bg-dark overflow-hidden"
+                                id="mainCaptureArea" style="min-height: 450px; width: 100%;">
+
+                                <div class="ms-xray-wrapper w-100 h-100 d-flex align-items-center justify-content-center"
+                                    id="xrayWrapper">
+                                    <img th:src="${displayImageUrl}" id="xrayImage" class="ms-xray-viewport rounded-3"
+                                        alt="X-ray Image"
+                                        style="max-width: 100%; max-height: 100%; object-fit: contain;"
+                                        onerror="this.style.display='none'; document.getElementById('xrayErrorBox').classList.remove('d-none');">
+                                    <div class="ms-xray-overlay" id="doctorMainOverlay"></div>
+
+                                    <!-- Box thông báo lỗi hiển thị khi ảnh không tải được -->
+                                    <div id="xrayErrorBox" class="d-none text-center p-4">
+                                        <i
+                                            class="bi bi-exclamation-triangle-fill text-warning display-4 d-block mb-3"></i>
+                                        <h6 class="text-white fw-bold mb-1">Không thể tải hình ảnh X-Quang</h6>
+                                        <span class="text-white-50 small">Vui lòng kiểm tra lại đường dẫn tệp hoặc liên
+                                            hệ quản trị viên.</span>
                                     </div>
-                                    <div class="tool-item-horizontal">
-                                        <span><i class="bi bi-circle-half text-info"></i></span>
-                                        <input type="range" id="contrastSlider" min="50" max="200" value="110"
-                                            oninput="applyImageFilters()">
-                                    </div>
-                                    <div class="tool-item-horizontal">
-                                        <div class="form-check form-switch m-0 d-flex align-items-center gap-1">
-                                            <input class="form-check-input style-sm" type="checkbox" id="invertSwitch"
-                                                onchange="toggleInvert()" style="cursor: pointer;">
-                                            <label class="form-check-label" for="invertSwitch"
-                                                style="font-size: 11px; color:#cbd5e1;">Âm bản</label>
-                                        </div>
-                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                                    <div class="tool-divider"></div>
+                    <!-- THÔNG TIN BỆNH NHÂN & AI PREDICTION -->
+                    <div class="col-12 col-xl-6 d-flex flex-column justify-content-between">
 
-                                    <div class="tool-item-horizontal">
-                                        <select id="colorPicker"
-                                            class="form-select form-select-sm bg-dark text-white border-secondary py-0"
-                                            style="width: 85px; font-size: 11px; height: 22px;"
-                                            onchange="changeBoxColor(this.value)">
-                                            <option value="#ef4444" selected>Viền Đỏ</option>
-                                            <option value="#3b82f6">Xanh</option>
-                                            <option value="#eab308">Vàng</option>
-                                        </select>
-                                    </div>
+                        <!-- Thông tin bệnh nhân -->
+                        <div class="ms-card-solid rounded-5 p-4 mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h2 class="ms-section-title h5 mb-0">Thông tin bệnh nhân</h2>
+                                <span class="ms-badge ms-badge-soft" th:text="'Mã ca: ' + ${record.recordCode}"></span>
+                            </div>
+                            <h4 class="fw-bold" th:text="${record.patient != null ? record.patient.fullName : 'N/A'}">
+                            </h4>
+                        </div>
 
-                                    <div class="tool-item-horizontal">
-                                        <div class="btn-group btn-group-sm" style="height: 22px;">
-                                            <button class="btn btn-secondary py-0 px-2 text-white"
-                                                onclick="zoomImage(0.2)" style="font-size:10px;">+</button>
-                                            <button class="btn btn-secondary py-0 px-2 text-white"
-                                                onclick="zoomImage(-0.2)" style="font-size:10px;">-</button>
-                                        </div>
-                                        <span id="zoomLabel"
-                                            style="font-size: 11px; min-width: 30px; color:#cbd5e1;">100%</span>
-                                    </div>
+                        <!-- AI Prediction -->
+                        <div class="ms-card-solid rounded-5 p-4 mb-4 border-start border-4 border-warning flex-grow-1">
+                            <h2 class="h5 mb-0 text-warning">MediScan AI Prediction</h2>
+                            <span class="ms-pill ms-pill-warning mt-2 d-inline-block"
+                                th:text="${record.bodyPart}"></span>
+                            <div class="p-3 bg-light rounded-4 mt-3">
+                                <h4 class="text-danger fw-bold mb-1" th:text="${record.aiPrediction}"></h4>
+                                <span class="small text-muted"
+                                    th:text="'Độ tin cậy: ' + ${record.aiConfidence} + '%'"></span>
+                            </div>
+                        </div>
 
-                                    <div class="tool-divider"></div>
+                        <!-- Quyền xem kết quả (Visibility) -->
+                        <div class="ms-card-solid rounded-5 p-4">
+                            <h2 class="h5 mb-3">Quyền xem kết quả</h2>
+                            <div class="d-flex gap-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="visibility" id="visPrivate"
+                                        value="PRIVATE"
+                                        th:checked="${record.visibility == null or record.visibility == 'PRIVATE'}">
+                                    <label class="form-check-label fw-medium" for="visPrivate">
+                                        <i class="bi bi-lock-fill text-secondary"></i> Riêng tư (Private)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="visibility" id="visPublic"
+                                        value="PUBLIC" th:checked="${record.visibility == 'PUBLIC'}">
+                                    <label class="form-check-label fw-medium" for="visPublic">
+                                        <i class="bi bi-globe text-primary"></i> Công khai (Public)
+                                    </label>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                Private: Chỉ bệnh nhân & bác sĩ xem | Public: Bệnh nhân nhận thông báo
+                            </small>
+                        </div>
+                    </div>
+                </div>
 
-                                    <button id="toggleAiBtn" class="btn btn-sm btn-info text-dark fw-semibold py-0 px-2"
-                                        style="font-size: 11px; height: 22px;" onclick="toggleAiOverlay()">
-                                        Ẩn AI
+                <!-- HÀNG 2: KẾT LUẬN & CHẨN ĐOÁN LÂM SÀNG (ĐÃ CHUYỂN XUỐNG DƯỚI BÊN DƯỚI TOÀN BỘ) -->
+                <div class="row g-4 mt-1">
+                    <div class="col-12">
+                        <div class="ms-card-solid rounded-5 p-4 p-lg-5">
+                            <h2 class="h5 mb-4">Kết luận & Chẩn đoán lâm sàng</h2>
+
+                            <div th:if="${record.status == 'COMPLETED'}" class="alert alert-info mb-4">
+                                <strong>Đã hoàn thành bởi:</strong>
+                                <span th:text="${record.doctor != null ? record.doctor.fullName : 'Bác sĩ'}"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold text-secondary">Chẩn đoán của bác sĩ <span
+                                        class="text-danger">*</span></label>
+                                <textarea name="conclusion" class="form-control border-0 bg-light rounded-4 p-3"
+                                    rows="4" placeholder="Nhập kết luận chẩn đoán chi tiết..." required
+                                    th:text="${record.doctorConclusion}"></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold text-secondary">Khuyến nghị & Hướng điều
+                                    trị</label>
+                                <textarea name="recommendation" class="form-control border-0 bg-light rounded-4 p-3"
+                                    rows="3" placeholder="Nhập khuyến nghị điều trị / hướng theo dõi thêm..."
+                                    th:text="${record.recommendation}"></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-3 pt-2">
+                                <a th:href="@{/doctor/records/pending}"
+                                    class="btn ms-btn ms-btn-ghost border-secondary bg-white px-4 py-3 fw-semibold">
+                                    Hủy bỏ
+                                </a>
+                                <button type="submit" class="btn ms-btn ms-btn-primary text-white px-5 py-3 fw-bold"
+                                    id="btnSubmitReview">
+                                    <i class="bi bi-file-earmark-check-fill me-2"></i>Hoàn tất & Ký số kết quả
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <!-- --- POPUP CHỈNH SỬA TOÀN MÀN HÌNH (SPLIT-SCREEN MODAL) --- -->
+    <div class="modal fade modal-fullscreen-custom" id="splitEditorModal" tabindex="-1" aria-hidden="true"
+        data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary bg-dark py-2">
+                    <h5 class="modal-title text-white font-semibold">
+                        <i class="bi bi-columns-gap text-primary me-2"></i>Không gian Chỉnh sửa & Xử lý Ảnh X-Quang
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body split-editor-body">
+                    <!-- BÊN TRÁI: BÀN EDIT + CÔNG CỤ BÁC SĨ -->
+                    <div class="editor-column">
+                        <div class="editor-column-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="radio" class="form-check-input" name="imageChoice" id="choiceRight"
+                                    value="right" checked>
+                                <label class="form-check-label text-warning small fw-bold" for="choiceRight">Dùng vùng
+                                    khoanh</label>
+                            </div>
+
+                            <!-- BỘ CÔNG CỤ Y KHOA -->
+                            <div class="draw-toolbar">
+                                <div class="toolbar-group">
+                                    <button type="button" class="btn-tool active" id="btnToggleDraw"
+                                        onclick="setToolMode('draw')" title="Vẽ khoanh vùng">
+                                        <i class="bi bi-bounding-box"></i> Vẽ
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger py-0 px-1"
-                                        style="font-size: 11px; height: 22px;" onclick="resetAllControls()"
-                                        title="Khôi phục mặc định">
+                                    <button type="button" class="btn-tool" id="btnToggleMeasure"
+                                        onclick="setToolMode('measure')" title="Thước đo">
+                                        <i class="bi bi-ruler"></i> Đo
+                                    </button>
+                                    <button type="button" class="btn-tool" id="btnTogglePan"
+                                        onclick="setToolMode('pan')" title="Kéo di chuyển hình ảnh (Bàn tay)">
+                                        <i class="bi bi-hand-index-thumb"></i> Di chuyển
+                                    </button>
+                                    <button type="button" class="btn-tool" onclick="undoLastBox()" title="Hoàn tác">
+                                        <i class="bi bi-arrow-90deg-left"></i>
+                                    </button>
+                                    <button type="button" class="btn-tool text-danger" onclick="clearPopupBoxes()"
+                                        title="Xóa hết">
+                                        <i class="bi bi-trash3-fill"></i>
+                                    </button>
+                                </div>
+
+                                <div style="width: 1px; height: 16px; background: #334155;"></div>
+
+                                <div class="toolbar-group">
+                                    <button type="button" class="btn-tool" onclick="adjustZoom(0.1)" title="Phóng to"><i
+                                            class="bi bi-zoom-in"></i></button>
+                                    <button type="button" class="btn-tool" onclick="adjustZoom(-0.1)" title="Thu nhỏ"><i
+                                            class="bi bi-zoom-out"></i></button>
+                                </div>
+
+                                <div style="width: 1px; height: 16px; background: #334155;"></div>
+
+                                <div class="toolbar-group">
+                                    <span class="tool-slider-label">Sáng</span>
+                                    <input type="range" class="form-range tool-slider" id="sliderBrightness" min="50"
+                                        max="200" value="100" oninput="applyImgFilters()">
+
+                                    <span class="tool-slider-label">Cản</span>
+                                    <input type="range" class="form-range tool-slider" id="sliderContrast" min="50"
+                                        max="200" value="100" oninput="applyImgFilters()">
+
+                                    <button type="button" class="btn-tool" id="btnInvert" onclick="toggleInvertFilter()"
+                                        title="Âm bản">
+                                        <i class="bi bi-circle-half"></i> Âm
+                                    </button>
+                                    <button type="button" class="btn-tool" id="btnSharpen"
+                                        onclick="toggleSharpenFilter()" title="Làm nét">
+                                        <i class="bi bi-magic"></i> Nét
+                                    </button>
+                                    <button type="button" class="btn-tool text-warning" onclick="resetImgFilters()"
+                                        title="Đặt lại bộ lọc">
                                         <i class="bi bi-arrow-counterclockwise"></i>
                                     </button>
                                 </div>
-
-                                <button class="toolkit-dropdown-btn" id="toolkitBtn" onclick="toggleToolkitMenu()">
-                                    <i class="bi bi-tools"></i>
-                                </button>
                             </div>
                         </div>
 
-                        <div class="xray-viewport-box">
-                            <div class="ms-xray-wrapper" id="xrayWrapper">
-                                <div class="pan-zoom-container" id="panZoomContainer">
+                        <div class="editor-stage-canvas">
+                            <div class="ms-xray-wrapper" id="popupRightWrapper"
+                                style="transform-origin: center center;">
+                                <img th:src="${originalImageUrl}" id="popupImgRight" class="ms-xray-viewport"
+                                    alt="Original">
+                                <div class="popup-draw-overlay drawing-enabled" id="popupDrawOverlay"
+                                    onmousedown="handleOverlayMouseDown(event)"></div>
+                            </div>
+                        </div>
+                    </div>
 
-                                    <img th:src="${displayImageUrl}" id="xrayImage" class="ms-xray-viewport rounded-3"
-                                        alt="X-ray Image"
-                                        onerror="this.onerror=null; this.src='https://via.placeholder.com/600x400?text=IMAGE+NOT+FOUND'; console.error('Image load failed! URL was: ' + this.src);"
-                                        style="max-height: 520px; width: auto;">
+                    <!-- BÊN PHẢI: ẢNH AI ĐỐI CHIẾU -->
+                    <div class="editor-column">
+                        <div class="editor-column-header">
+                            <span><i class="bi bi-cpu-fill text-danger me-1"></i> AI PHÂN TÍCH</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="radio" class="form-check-input" name="imageChoice" id="choiceLeft"
+                                    value="left">
+                                <label class="form-check-label text-danger small fw-bold" for="choiceLeft">Dùng ảnh
+                                    AI</label>
+                            </div>
+                        </div>
+                        <div class="editor-stage-canvas">
+                            <div class="ms-xray-wrapper" id="popupLeftWrapper"
+                                style="min-height: 400px; width: 100%; display: flex; align-items: center; justify-content: center;">
+                                <img th:src="${displayImageUrl}" id="xrayImagePopup" class="ms-xray-viewport rounded-3"
+                                    alt="X-ray Image" style="max-height: 520px; width: auto;"
+                                    onerror="this.style.display='none'; document.getElementById('popupAiErrorBox').classList.remove('d-none');">
+                                <div class="ms-xray-overlay" id="popupAiContainer"></div>
 
-                                    <div class="ms-xray-overlay" id="overlayContainer">
-                                        <div th:each="region : ${aiRegions}" class="ai-box"
-                                            th:data-x="${region.xCoordinate}" th:data-y="${region.yCoordinate}"
-                                            th:data-w="${region.width}" th:data-h="${region.height}">
-                                        </div>
-                                        <div th:if="${#lists.isEmpty(aiRegions)}" class="ai-box" data-x="100"
-                                            data-y="120" data-w="80" data-h="70"></div>
-                                    </div>
+                                <!-- Thẻ báo lỗi ảnh trong Modal -->
+                                <div id="popupAiErrorBox" class="d-none text-center p-4">
+                                    <i class="bi bi-exclamation-circle text-danger display-5 d-block mb-2"></i>
+                                    <span class="text-white-50 small">Không tìm thấy ảnh phân tích AI</span>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
-                <div class="col-12 col-xl-6">
-                    <div class="ms-card-solid rounded-5 p-4 mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h2 class="ms-section-title h5 mb-0">Thông tin bệnh nhân</h2>
-                            <span class="ms-badge ms-badge-soft"
-                                th:text="'Mã ca: ' + ${record.recordCode}">XR-123</span>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <span class="small text-muted text-uppercase fw-semibold d-block">Họ và tên bệnh
-                                    nhân</span>
-                                <h4 class="fw-bold text-dark mb-0 mt-1"
-                                    th:text="${record.patient != null ? record.patient.fullName : 'N/A'}">Nguyễn Văn A
-                                </h4>
-                            </div>
-                            <div class="col-6">
-                                <span class="small text-muted text-uppercase fw-semibold d-block">Giới tính</span>
-                                <span class="fw-semibold text-dark"
-                                    th:text="${profile != null ? profile.gender : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="col-6">
-                                <span class="small text-muted text-uppercase fw-semibold d-block">Ngày sinh</span>
-                                <span class="fw-semibold text-dark"
-                                    th:text="${profile != null && profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="col-12">
-                                <span class="small text-muted text-uppercase fw-semibold d-block">Địa chỉ</span>
-                                <p class="mb-0 small ms-subtle"
-                                    th:text="${profile != null ? profile.address : 'Chưa có thông tin'}"></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="ms-card-solid rounded-5 p-4 mb-4 border-start border-4 border-warning">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h2 class="ms-section-title h5 mb-0 text-warning">MediScan AI Prediction</h2>
-                            <span class="ms-pill ms-pill-warning" th:text="${record.bodyPart}">Chest</span>
-                        </div>
-                        <div class="p-3 bg-light rounded-4 mt-2">
-                            <h4 class="text-danger fw-bold mb-2" th:text="${record.aiPrediction}">Phát hiện bất thường
-                            </h4>
-                            <div class="ms-progress-bar mb-2">
-                                <div class="ms-progress-fill bg-danger"
-                                    th:style="'width: ' + ${record.aiConfidence} + '%'"></div>
-                            </div>
-                            <span class="small text-muted"
-                                th:text="'Hệ số tin cậy thuật toán: ' + ${record.aiConfidence} + '%'">0%</span>
-                        </div>
-                    </div>
-
-                    <form th:action="@{'/doctor/records/' + ${record.recordId} + '/conclusion'}" method="POST"
-                        id="reviewForm">
-                        <!-- Thêm input ẩn này để lưu ảnh Base64 -->
-                        <input type="hidden" name="screenshotData" id="screenshotData">
-
-                        <div class="ms-card-solid rounded-5 p-4">
-                            <h2 class="ms-section-title h5 mb-3">Kết luận & Chẩn đoán lâm sàng</h2>
-                            <textarea name="conclusion"
-                                class="form-control border-0 bg-light rounded-4 p-3 mb-4 ms-subtle" rows="5"
-                                placeholder="Nhập nhận định chuyên môn tại đây..."></textarea>
-
-                            <div class="d-grid gap-2">
-                                <!-- Đổi type="submit" thành type="button" hoặc xử lý trực tiếp qua sự kiện submit của form -->
-                                <button type="submit" class="btn ms-btn ms-btn-primary text-white py-2 fw-bold"
-                                    id="btnSubmitReview">
-                                    <i class="bi bi-file-earmark-check-fill me-1"></i> Hoàn tất & Ký số kết quả
-                                </button>
-                                <a th:href="@{/doctor/records/pending}"
-                                    class="btn ms-btn ms-btn-ghost border-secondary bg-white py-2">Hủy bỏ và Quay
-                                    lại</a>
-                            </div>
-                        </div>
-                    </form>
+                <div class="modal-footer border-secondary bg-dark py-2">
+                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="button" class="btn btn-success px-4 fw-bold" onclick="applyChangesFromPopup()">
+                        <i class="bi bi-check-circle me-1"></i>Xác nhận áp dụng
+                    </button>
                 </div>
-
             </div>
-        </main>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        let scale = 1.0;
+        // QUẢN LÝ DUAL-STATE MACHINE TRÁNH ĐÈ LÊN NHAU
+        let savedDrawnBoxes = []; // Trạng thái thực tế chính thức đã lưu
+        let popupDrawnBoxes = []; // Trạng thái nháp tạm thời trong Modal chỉnh sửa
+
+        let activeTool = 'draw'; // 'draw' | 'measure' | 'pan'
         let isInverted = false;
-        let isAiVisible = true;
+        let isSharpened = false;
+        let zoomLevel = 1.0;
 
-        let isDragging = false;
-        let startX, startY, translateX = 0, translateY = 0;
+        // Tọa độ dịch chuyển ảnh (Pan)
+        let translateX = 0;
+        let translateY = 0;
 
-        function toggleToolkitMenu() {
-            const menu = document.getElementById('toolkitMenu');
-            const btn = document.getElementById('toolkitBtn');
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainImg = document.getElementById('xrayImage');
+            if (mainImg) {
+                mainImg.onload = () => {
+                    initAiBoxes();
+                    initSavedDoctorBoxes();
+                };
+                if (mainImg.complete) {
+                    initAiBoxes();
+                    initSavedDoctorBoxes();
+                }
+            }
 
-            menu.classList.toggle('show');
-            btn.classList.toggle('active');
+            function refreshAllImages() {
+                const timestamp = Date.now();
+
+                document.querySelectorAll('#xrayImage, #popupImgLeft, #popupImgRight').forEach(img => {
+                    if (img.src) {
+                        let newSrc = img.src.split('?')[0]; // bỏ param cũ
+                        newSrc += (newSrc.includes('?') ? '&' : '?') + 'v=' + timestamp;
+                        img.src = newSrc;
+                    }
+                });
+            }
+
+            // Gọi sau khi load trang
+            window.addEventListener('load', refreshAllImages);
+
+            // KỸ THUẬT QUAN TRỌNG: Lắng nghe sự kiện Modal đóng / mở để đồng bộ hóa sạch dữ liệu
+            const modalEl = document.getElementById('splitEditorModal');
+            if (modalEl) {
+                // Khi mở Modal: Copy trạng thái đã lưu sang làm việc Nháp, làm sạch giao diện và vẽ lại
+                modalEl.addEventListener('show.bs.modal', () => {
+                    popupDrawnBoxes = JSON.parse(JSON.stringify(savedDrawnBoxes)); // Deep clone
+                    resetImgFilters(); // Reset filter về chuẩn ban đầu
+                    renderPopupBoxesFromState(); // Vẽ lại các ô nháp sạch sẽ
+                });
+
+                // Khi đóng Modal: Xóa sạch toàn bộ rác DOM trong modal
+                modalEl.addEventListener('hidden.bs.modal', () => {
+                    popupDrawnBoxes = [];
+                    const overlay = document.getElementById('popupDrawOverlay');
+                    if (overlay) {
+                        overlay.querySelectorAll('.popup-doctor-box, .measure-line, .measure-label').forEach(el => el.remove());
+                    }
+                });
+            }
+        });
+
+        // Đọc dữ liệu đã có sẵn từ Server qua input ẩn (nếu có)
+        function initSavedDoctorBoxes() {
+            const jsonInput = document.getElementById('doctorBoxesJson');
+            const mainAiOverlay = document.getElementById('overlayContainer');
+            const mainOverlay = document.getElementById('doctorMainOverlay');
+
+            if (jsonInput && jsonInput.value) {
+                try {
+                    savedDrawnBoxes = JSON.parse(jsonInput.value);
+                    if (savedDrawnBoxes.length > 0) {
+                        renderMainOverlayBoxes();
+                        // Nếu có vùng khoanh của bác sĩ, ẩn triệt để vùng AI màu đỏ
+                        if (mainAiOverlay) mainAiOverlay.style.display = 'none';
+                        if (mainOverlay) mainOverlay.style.display = 'block';
+                        const choiceRight = document.getElementById('choiceRight');
+                        if (choiceRight) choiceRight.checked = true;
+                    } else {
+                        // Nếu chưa có vùng tự vẽ, hiển thị AI màu đỏ mặc định
+                        if (mainAiOverlay) mainAiOverlay.style.display = 'block';
+                        if (mainOverlay) mainOverlay.style.display = 'none';
+                        const choiceLeft = document.getElementById('choiceLeft');
+                        if (choiceLeft) choiceLeft.checked = true;
+                    }
+                } catch (e) {
+                    console.error("Lỗi parse dữ liệu doctor boxes cũ:", e);
+                    savedDrawnBoxes = [];
+                }
+            }
         }
 
-        function renderAIBoundingBoxes() {
-            const img = document.getElementById('xrayImage');
-            const boxes = document.querySelectorAll('.ai-box');
-            if (!img || boxes.length === 0) return false;
+        function initAiBoxes() {
+            const mainImg = document.getElementById('xrayImage');
+            const mainBoxes = document.querySelectorAll('#overlayContainer .ai-box');
+            const popupAiContainer = document.getElementById('popupAiContainer');
 
-            const naturalW = img.naturalWidth || 1000;
-            const naturalH = img.naturalHeight || 1000;
+            if (!mainImg || mainImg.naturalWidth === 0) return;
+            const nw = mainImg.naturalWidth;
+            const nh = mainImg.naturalHeight;
 
-            boxes.forEach(box => {
-                box.style.left = (parseInt(box.getAttribute('data-x')) / naturalW) * 100 + '%';
-                box.style.top = (parseInt(box.getAttribute('data-y')) / naturalH) * 100 + '%';
-                box.style.width = (parseInt(box.getAttribute('data-w')) / naturalW) * 100 + '%';
-                box.style.height = (parseInt(box.getAttribute('data-h')) / naturalH) * 100 + '%';
+            popupAiContainer.innerHTML = '';
+
+            mainBoxes.forEach(box => {
+                const x = box.getAttribute('data-x');
+                const y = box.getAttribute('data-y');
+                const w = box.getAttribute('data-w');
+                const h = box.getAttribute('data-h');
+
+                box.style.left = (x / nw) * 100 + '%';
+                box.style.top = (y / nh) * 100 + '%';
+                box.style.width = (w / nw) * 100 + '%';
+                box.style.height = (h / nh) * 100 + '%';
+
+                const cloneBox = document.createElement('div');
+                cloneBox.className = 'ai-box';
+                cloneBox.style.left = (x / nw) * 100 + '%';
+                cloneBox.style.top = (y / nh) * 100 + '%';
+                cloneBox.style.width = (w / nw) * 100 + '%';
+                cloneBox.style.height = (h / nh) * 100 + '%';
+                popupAiContainer.appendChild(cloneBox);
             });
-            return true;
         }
 
-        function applyImageFilters() {
-            const img = document.getElementById('xrayImage');
-            const bValue = document.getElementById('brightSlider').value;
-            const cValue = document.getElementById('contrastSlider').value;
-            const invertValue = isInverted ? 1 : 0;
+        // TỐI ƯU HÓA HỆ THỐNG PHÓNG TO THU NHỎ ĐỒNG BỘ LAYOUT VÀ NÉT VẼ
+        function applyImgFilters() {
+            const brightness = document.getElementById('sliderBrightness').value;
+            const contrast = document.getElementById('sliderContrast').value;
+            const imgRight = document.getElementById('popupImgRight');
+            const wrapperRight = document.getElementById('popupRightWrapper');
 
-            img.style.filter = `brightness(${bValue}%) contrast(${cValue}%) invert(${invertValue})`;
+            let filterString = `brightness(${brightness}%) contrast(${contrast}%)`;
+            if (isInverted) filterString += ` invert(100%)`;
+            if (isSharpened) filterString += ` contrast(160%) drop-shadow(0 0 1px #fff)`;
+
+            imgRight.style.filter = filterString;
+
+            // Ép toàn bộ khung chứa dịch chuyển và phóng to, các ô vẽ bằng % sẽ chuyển động theo tỷ lệ chính xác
+            wrapperRight.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
         }
 
-        function toggleInvert() {
-            isInverted = document.getElementById('invertSwitch').checked;
-            applyImageFilters();
+        function adjustZoom(delta) {
+            zoomLevel = Math.max(0.6, Math.min(4.0, zoomLevel + delta));
+            applyImgFilters();
         }
 
-        function zoomImage(amount) {
-            scale += amount;
-            if (scale < 0.5) scale = 0.5;
-            if (scale > 4.0) scale = 4.0;
-            document.getElementById('zoomLabel').innerText = Math.round(scale * 100) + "%";
-            updateTransform();
+        function resetImgFilters() {
+            isInverted = false;
+            isSharpened = false;
+            zoomLevel = 1.0;
+            translateX = 0;
+            translateY = 0;
+            document.getElementById('sliderBrightness').value = 100;
+            document.getElementById('sliderContrast').value = 100;
+            document.getElementById('btnInvert').classList.remove('active');
+            document.getElementById('btnSharpen').classList.remove('active');
+            applyImgFilters();
         }
 
-        function toggleAiOverlay() {
-            const overlay = document.getElementById('overlayContainer');
-            const btn = document.getElementById('toggleAiBtn');
-            isAiVisible = !isAiVisible;
+        function setToolMode(mode) {
+            activeTool = mode;
+            const overlay = document.getElementById('popupDrawOverlay');
+            document.getElementById('btnToggleDraw').classList.toggle('active', mode === 'draw');
+            document.getElementById('btnToggleMeasure').classList.toggle('active', mode === 'measure');
+            document.getElementById('btnTogglePan').classList.toggle('active', mode === 'pan');
 
-            if (isAiVisible) {
-                overlay.style.display = 'block';
-                btn.innerText = 'Ẩn AI';
-                btn.className = 'btn btn-sm btn-info text-dark fw-semibold py-0 px-2';
+            overlay.className = 'popup-draw-overlay';
+            if (mode === 'draw') overlay.classList.add('drawing-enabled');
+            if (mode === 'measure') overlay.classList.add('measure-enabled');
+            if (mode === 'pan') overlay.classList.add('pan-enabled');
+        }
+
+        function handleOverlayMouseDown(e) {
+            if (activeTool === 'draw') {
+                startDrawingInPopup(e);
+            } else if (activeTool === 'measure') {
+                startMeasuringInPopup(e);
+            } else if (activeTool === 'pan') {
+                startPanning(e);
+            }
+        }
+
+        // CHẾ ĐỘ DI CHUYỂN HÌNH (PAN TOOL CHUYÊN NGHIỆP DÙNG CHO PHÂN TÍCH Y KHOA)
+        function startPanning(e) {
+            let isPanning = true;
+            let startMouseX = e.clientX - translateX;
+            let startMouseY = e.clientY - translateY;
+            document.body.style.cursor = 'grabbing';
+
+            function moveHandler(event) {
+                if (!isPanning) return;
+                translateX = event.clientX - startMouseX;
+                translateY = event.clientY - startMouseY;
+                applyImgFilters();
+            }
+
+            function upHandler() {
+                isPanning = false;
+                document.body.style.cursor = '';
+                window.removeEventListener('mousemove', moveHandler);
+                window.removeEventListener('mouseup', upHandler);
+            }
+
+            window.addEventListener('mousemove', moveHandler);
+            window.addEventListener('mouseup', upHandler);
+        }
+
+        // XỬ LÝ VẼ ĐỘC LẬP TỶ LỆ ZOOM (CHUYỂN ĐỔI PIXEL CHUỘT THÀNH TỌA ĐỘ PHẦN TRĂM %)
+        function startDrawingInPopup(e) {
+            const overlay = document.getElementById('popupDrawOverlay');
+            const rect = overlay.getBoundingClientRect();
+
+            // Khử độ lệch dịch chuyển (translateX, translateY) và zoomLevel khi lấy vị trí chuột vẽ
+            const startX = (e.clientX - rect.left - translateX) / zoomLevel;
+            const startY = (e.clientY - rect.top - translateY) / zoomLevel;
+
+            let drawingBox = document.createElement('div');
+            drawingBox.className = 'popup-active-drawing';
+            drawingBox.style.left = startX + 'px';
+            drawingBox.style.top = startY + 'px';
+            overlay.appendChild(drawingBox);
+
+            const overlayWidth = overlay.clientWidth;
+            const overlayHeight = overlay.clientHeight;
+
+            function moveHandler(event) {
+                const curX = (event.clientX - rect.left - translateX) / zoomLevel;
+                const curY = (event.clientY - rect.top - translateY) / zoomLevel;
+                const w = curX - startX;
+                const h = curY - startY;
+
+                drawingBox.style.width = Math.abs(w) + 'px';
+                drawingBox.style.height = Math.abs(h) + 'px';
+                drawingBox.style.left = (w > 0 ? startX : curX) + 'px';
+                drawingBox.style.top = (h > 0 ? startY : curY) + 'px';
+            }
+
+            function upHandler() {
+                window.removeEventListener('mousemove', moveHandler);
+                window.removeEventListener('mouseup', upHandler);
+
+                const finalW = parseFloat(drawingBox.style.width) || 0;
+                const finalH = parseFloat(drawingBox.style.height) || 0;
+
+                if (finalW < 8 || finalH < 8) {
+                    drawingBox.remove();
+                    return;
+                }
+
+                const finalLeft = parseFloat(drawingBox.style.left);
+                const finalTop = parseFloat(drawingBox.style.top);
+                const imgRight = document.getElementById('popupImgRight');
+
+                // Chuyển đổi sang % để giữ nguyên tỷ lệ trên ảnh khi phóng to, thu nhỏ
+                const pctLeft = (finalLeft / overlayWidth) * 100;
+                const pctTop = (finalTop / overlayHeight) * 100;
+                const pctWidth = (finalW / overlayWidth) * 100;
+                const pctHeight = (finalH / overlayHeight) * 100;
+
+                const boxId = 'box_' + Date.now();
+                const scaleW = imgRight.naturalWidth / overlayWidth;
+                const scaleH = imgRight.naturalHeight / overlayHeight;
+
+                const boxData = {
+                    id: boxId,
+                    x: Math.round(finalLeft * scaleW),
+                    y: Math.round(finalTop * scaleH),
+                    w: Math.round(finalW * scaleW),
+                    h: Math.round(finalH * scaleH)
+                };
+                popupDrawnBoxes.push(boxData);
+
+                drawingBox.className = 'popup-doctor-box';
+                drawingBox.setAttribute('id', boxId);
+                drawingBox.style.left = pctLeft + '%';
+                drawingBox.style.top = pctTop + '%';
+                drawingBox.style.width = pctWidth + '%';
+                drawingBox.style.height = pctHeight + '%';
+
+                const delBtn = document.createElement('button');
+                delBtn.innerHTML = '×';
+                delBtn.className = 'popup-box-delete';
+                delBtn.onclick = function (event) {
+                    event.stopPropagation();
+                    removeSingleBox(boxId);
+                };
+                drawingBox.appendChild(delBtn);
+            }
+
+            window.addEventListener('mousemove', moveHandler);
+            window.addEventListener('mouseup', upHandler);
+        }
+
+        function startMeasuringInPopup(e) {
+            const overlay = document.getElementById('popupDrawOverlay');
+            const rect = overlay.getBoundingClientRect();
+
+            const startX = (e.clientX - rect.left - translateX) / zoomLevel;
+            const startY = (e.clientY - rect.top - translateY) / zoomLevel;
+
+            const line = document.createElement('div');
+            line.className = 'measure-line';
+            const label = document.createElement('div');
+            label.className = 'measure-label';
+
+            overlay.appendChild(line);
+            overlay.appendChild(label);
+
+            function moveHandler(event) {
+                const curX = (event.clientX - rect.left - translateX) / zoomLevel;
+                const curY = (event.clientY - rect.top - translateY) / zoomLevel;
+
+                const length = Math.sqrt((curX - startX) ** 2 + (curY - startY) ** 2);
+                const angle = Math.atan2(curY - startY, curX - startX) * (180 / Math.PI);
+
+                line.style.width = length + 'px';
+                line.style.left = startX + 'px';
+                line.style.top = startY + 'px';
+                line.style.transform = `rotate(${angle}deg)`;
+
+                label.style.left = (startX + curX) / 2 + 'px';
+                label.style.top = (startY + curY) / 2 + 'px';
+                label.innerText = Math.round(length) + ' px';
+            }
+
+            function upHandler() {
+                window.removeEventListener('mousemove', moveHandler);
+                window.removeEventListener('mouseup', upHandler);
+            }
+
+            window.addEventListener('mousemove', moveHandler);
+            window.addEventListener('mouseup', upHandler);
+        }
+
+        function removeSingleBox(boxId) {
+            const el = document.getElementById(boxId);
+            if (el) el.remove();
+            popupDrawnBoxes = popupDrawnBoxes.filter(b => b.id !== boxId);
+        }
+
+        function clearPopupBoxes() {
+            const overlay = document.getElementById('popupDrawOverlay');
+            overlay.querySelectorAll('.popup-doctor-box, .measure-line, .measure-label').forEach(el => el.remove());
+            popupDrawnBoxes = [];
+        }
+
+        function undoLastBox() {
+            if (popupDrawnBoxes.length === 0) return;
+            const lastBox = popupDrawnBoxes.pop();
+            const el = document.getElementById(lastBox.id);
+            if (el) el.remove();
+        }
+
+        function toggleInvertFilter() {
+            isInverted = !isInverted;
+            document.getElementById('btnInvert').classList.toggle('active', isInverted);
+            applyImgFilters();
+        }
+
+        function toggleSharpenFilter() {
+            isSharpened = !isSharpened;
+            document.getElementById('btnSharpen').classList.toggle('active', isSharpened);
+            applyImgFilters();
+        }
+
+        // TÁI DỰNG CÁC BOX TỪ DỮ LIỆU ĐANG CÓ (TRÁNH LỆCH ĐÈ TRÊN POPUP)
+        function renderPopupBoxesFromState() {
+            const overlay = document.getElementById('popupDrawOverlay');
+            overlay.querySelectorAll('.popup-doctor-box, .measure-line, .measure-label').forEach(el => el.remove());
+
+            const imgRight = document.getElementById('popupImgRight');
+            const nw = imgRight.naturalWidth || imgRight.clientWidth || 1;
+            const nh = imgRight.naturalHeight || imgRight.clientHeight || 1;
+
+            popupDrawnBoxes.forEach(box => {
+                const pctLeft = (box.x / nw) * 100;
+                const pctTop = (box.y / nh) * 100;
+                const pctWidth = (box.w / nw) * 100;
+                const pctHeight = (box.h / nh) * 100;
+
+                const drawingBox = document.createElement('div');
+                drawingBox.className = 'popup-doctor-box';
+                drawingBox.setAttribute('id', box.id);
+                drawingBox.style.left = pctLeft + '%';
+                drawingBox.style.top = pctTop + '%';
+                drawingBox.style.width = pctWidth + '%';
+                drawingBox.style.height = pctHeight + '%';
+
+                const delBtn = document.createElement('button');
+                delBtn.innerHTML = '×';
+                delBtn.className = 'popup-box-delete';
+                delBtn.onclick = function (event) {
+                    event.stopPropagation();
+                    removeSingleBox(box.id);
+                };
+                drawingBox.appendChild(delBtn);
+                overlay.appendChild(drawingBox);
+            });
+        }
+
+        // VẼ CÁC BOX CHÍNH THỨC LÊN MÀN HÌNH CHÍNH
+        function renderMainOverlayBoxes() {
+            const mainOverlay = document.getElementById('doctorMainOverlay');
+            const mainImg = document.getElementById('xrayImage');
+            if (!mainOverlay || !mainImg) return;
+
+            mainOverlay.innerHTML = '';
+
+            // Lấy kích thước thực của ảnh trên Panel chính
+            const nw = mainImg.naturalWidth || 1;
+            const nh = mainImg.naturalHeight || 1;
+
+            // Lấy kích thước ảnh bên phải trong Modal lúc bác sĩ vẽ
+            const popupImg = document.getElementById('popupImgRight');
+            const refW = popupImg.naturalWidth || nw;
+            const refH = popupImg.naturalHeight || nh;
+
+            savedDrawnBoxes.forEach(box => {
+                // Tỷ lệ phần trăm chuẩn theo kích thước gốc lúc vẽ
+                const pctLeft = (box.x / refW) * 100;
+                const pctTop = (box.y / refH) * 100;
+                const pctW = (box.w / refW) * 100;
+                const pctH = (box.h / refH) * 100;
+
+                const mainBox = document.createElement('div');
+                mainBox.className = 'doctor-box-main';
+                mainBox.style.left = pctLeft + '%';
+                mainBox.style.top = pctTop + '%';
+                mainBox.style.width = pctW + '%';
+                mainBox.style.height = pctH + '%';
+
+                mainOverlay.appendChild(mainBox);
+            });
+        }
+
+        // Khai báo sẵn 2 URL từ backend (Thymeleaf)
+        const DISPLAY_IMAGE_URL = /*[[${displayImageUrl}]]*/ '[[${displayImageUrl}]]';
+        const ORIGINAL_IMAGE_URL = /*[[${originalImageUrl}]]*/ '[[${originalImageUrl}]]';
+
+        function applyChangesFromPopup() {
+            console.log("=== APPLY BUTTON CLICKED ===");
+
+            const selectedImage = document.querySelector('input[name="imageChoice"]:checked')?.value || 'right';
+            const mainImg = document.getElementById('xrayImage');
+            const mainOverlay = document.getElementById('doctorMainOverlay');
+            const mainAiOverlay = document.getElementById('overlayContainer') || document.querySelector('#xrayWrapper .ms-xray-overlay');
+
+            savedDrawnBoxes = JSON.parse(JSON.stringify(popupDrawnBoxes));
+
+            if (selectedImage === 'right') {
+                // 1. Chuyển ảnh chính sang Ảnh Gốc (Original)
+                if (mainImg) {
+                    mainImg.src = ORIGINAL_IMAGE_URL + '?v=' + Date.now();
+                }
+
+                // 2. Ẩn overlay AI, Hiện overlay do Bác sĩ vẽ
+                if (mainAiOverlay) mainAiOverlay.style.display = 'none';
+                if (mainOverlay) {
+                    mainOverlay.style.display = 'block';
+                    // Đợi ảnh chính load xong kích thước thực mới vẽ box để tránh lệch scale
+                    mainImg.onload = function () {
+                        renderMainOverlayBoxes();
+                    };
+                    renderMainOverlayBoxes(); // Gọi trước 1 lần cho ảnh đã cached
+                }
+
+                document.getElementById('doctorBoxesJson').value = JSON.stringify(savedDrawnBoxes);
             } else {
-                overlay.style.display = 'none';
-                btn.innerText = 'Hiện AI';
-                btn.className = 'btn btn-sm btn-outline-secondary text-white py-0 px-2';
+                // 1. Chuyển ảnh chính về Ảnh AI (Display)
+                if (mainImg) {
+                    mainImg.src = DISPLAY_IMAGE_URL + '?v=' + Date.now();
+                }
+
+                // 2. Hiện overlay AI, Ẩn overlay Bác sĩ
+                if (mainAiOverlay) mainAiOverlay.style.display = 'block';
+                if (mainOverlay) mainOverlay.style.display = 'none';
+
+                document.getElementById('doctorBoxesJson').value = '';
             }
+
+            console.log("✅ Applied option:", selectedImage, "| Saved boxes:", savedDrawnBoxes.length);
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('splitEditorModal'));
+            if (modal) modal.hide();
         }
 
-        function changeBoxColor(hexColor) {
-            document.querySelectorAll('.ai-box').forEach(box => {
-                box.style.borderColor = hexColor;
-                box.style.boxShadow = `0 0 8px ${hexColor}66`;
-            });
-        }
-
-        const wrapper = document.getElementById('xrayWrapper');
-        const container = document.getElementById('panZoomContainer');
-
-        wrapper.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX - translateX;
-            startY = e.clientY - translateY;
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            e.preventDefault();
-            translateX = e.clientX - startX;
-            translateY = e.clientY - startY;
-            updateTransform();
-        });
-
-        window.addEventListener('mouseup', () => isDragging = false);
-
-        function updateTransform() {
-            container.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-        }
-
-        function resetAllControls() {
-            scale = 1.0; translateX = 0; translateY = 0; isInverted = false;
-            document.getElementById('brightSlider').value = 100;
-            document.getElementById('contrastSlider').value = 110;
-            document.getElementById('zoomLabel').innerText = "100%";
-            document.getElementById('colorPicker').value = "#ef4444";
-            document.getElementById('invertSwitch').checked = false;
-
-            isAiVisible = false; toggleAiOverlay();
-            changeBoxColor("#ef4444");
-            applyImageFilters();
-            updateTransform();
-        }
-
-        const boxScheduler = setInterval(() => {
-            const img = document.getElementById('xrayImage');
-            if (img && img.clientWidth > 0) {
-                renderAIBoundingBoxes();
-                clearInterval(boxScheduler);
-            }
-        }, 100);
-
-        window.addEventListener('load', renderAIBoundingBoxes);
-        window.addEventListener('resize', renderAIBoundingBoxes);
-
+        // Tự động chụp báo cáo kết quả trước khi submit form
         document.getElementById('reviewForm').addEventListener('submit', function (e) {
-            e.preventDefault(); // Chặn submit mặc định để chụp ảnh trước
-
+            e.preventDefault();
             const form = this;
             const submitBtn = document.getElementById('btnSubmitReview');
 
-            // Vô hiệu hóa nút để tránh bác sĩ bấm liên tục
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang xử lý ảnh...';
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang lưu hồ sơ...';
 
-            // 1. Lưu lại các thông số biến đổi hiện tại của bác sĩ
-            const originalScale = scale;
-            const originalTx = translateX;
-            const originalTy = translateY;
+            const targetElement = document.getElementById('mainCaptureArea');
 
-            // 2. Tạm thời đưa khung ảnh về trạng thái chuẩn (tỉ lệ 1:1, không lệch tọa độ) để chụp không bị lệch/mất góc
-            scale = 1.0;
-            translateX = 0;
-            translateY = 0;
-            updateTransform();
-
-            // Đối tượng cần chụp (Wrapper bao gồm cả ảnh X-quang và các overlay viền đỏ của AI)
-            const targetElement = document.getElementById('xrayWrapper');
-
-            // Chờ một chút để trình duyệt cập nhật lại render DOM trước khi chụp
             setTimeout(() => {
                 html2canvas(targetElement, {
-                    useCORS: true, // Cho phép chụp ảnh lấy từ nguồn ngoài (Cloudinary)
-                    backgroundColor: null, // Giữ nền trong suốt hoặc khớp khung
+                    useCORS: true,
+                    backgroundColor: '#000000',
                     logging: false,
-                    scale: 2 // Tăng chất lượng ảnh chụp (retina/HD)
+                    scale: 2
                 }).then(canvas => {
-                    // Khôi phục lại trạng thái Zoom & Pan ban đầu cho bác sĩ đỡ bị giật màn hình
-                    scale = originalScale;
-                    translateX = originalTx;
-                    translateY = originalTy;
-                    updateTransform();
-
-                    // Chuyển canvas thành chuỗi Base64 dạng hình ảnh png/jpeg
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-
-                    // Gán dữ liệu vào input ẩn
                     document.getElementById('screenshotData').value = dataUrl;
-
-                    // Submit form thực tế lên Server
                     form.submit();
                 }).catch(err => {
-                    console.error("Lỗi khi chụp ảnh màn hình: ", err);
-                    // Khôi phục nút bấm nếu lỗi
+                    console.error("Lỗi trích xuất ảnh:", err);
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="bi bi-file-earmark-check-fill me-1"></i> Hoàn tất & Ký số kết quả';
-                    alert("Có lỗi xảy ra trong quá trình chụp xử lý ảnh trực quan. Vui lòng thử lại!");
                 });
             }, 200);
         });

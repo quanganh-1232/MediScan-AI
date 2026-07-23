@@ -167,11 +167,7 @@
                                 </div>
                                 <span class="badge bg-success align-self-start">Đã xác nhận</span>
                             </div>
-
-                            <img th:if="${record.fileName}" th:src="@{'/uploads/' + ${record.fileName}}" 
-                                 class="xray-thumb mb-3" alt="X-ray"
-                                 onerror="this.style.display='none'">
-
+                            
                             <div class="mb-2">
                                 <small class="text-muted fw-bold">AI dự đoán:</small>
                                 <p class="small mb-1 ai-text-truncate text-secondary" th:text="${record.aiPrediction}">Bình thường</p>
