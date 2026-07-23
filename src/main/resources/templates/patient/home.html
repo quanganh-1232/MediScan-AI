@@ -207,16 +207,16 @@
                 </div>
                 <!-- Status filter tabs -->
                 <div class="d-flex gap-2 flex-wrap mb-3" style="font-size:.8rem;">
-                    <button class="appt-filter-btn btn btn-sm active" onclick="filterAppt('')"
-                            style="border-radius:999px;padding:.25rem .8rem;background:#2563eb;color:#fff;border:none;">Tat ca</button>
-                    <button class="appt-filter-btn btn btn-sm" onclick="filterAppt('PENDING')"
-                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Cho xac nhan</button>
-                    <button class="appt-filter-btn btn btn-sm" onclick="filterAppt('CONFIRMED')"
-                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Da xac nhan</button>
-                    <button class="appt-filter-btn btn btn-sm" onclick="filterAppt('COMPLETED')"
-                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Hoan thanh</button>
-                    <button class="appt-filter-btn btn btn-sm" onclick="filterAppt('CANCELLED')"
-                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Da huy</button>
+                    <button type="button" class="appt-filter-btn btn btn-sm active" onclick="filterAppt(this, '')"
+                            style="border-radius:999px;padding:.25rem .8rem;background:#2563eb;color:#fff;border:none;">Tất cả</button>
+                    <button type="button" class="appt-filter-btn btn btn-sm" onclick="filterAppt(this, 'PENDING')"
+                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Chờ xác nhận</button>
+                    <button type="button" class="appt-filter-btn btn btn-sm" onclick="filterAppt(this, 'CONFIRMED,SCHEDULED,CHECKED_IN,IN_PROGRESS')"
+                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Đã xác nhận</button>
+                    <button type="button" class="appt-filter-btn btn btn-sm" onclick="filterAppt(this, 'COMPLETED')"
+                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Hoàn thành</button>
+                    <button type="button" class="appt-filter-btn btn btn-sm" onclick="filterAppt(this, 'CANCELLED,MISSED')"
+                            style="border-radius:999px;padding:.25rem .8rem;border:1px solid #e2e8f0;">Đã hủy</button>
                 </div>
                 <div class="table-responsive">
                     <table class="pt-table">
@@ -415,12 +415,27 @@
     }
 
     /* ── Filter appointments by status ── */
-    function filterAppt(status) {
+    function filterAppt(btn, statuses) {
+        const statusArray = statuses ? statuses.split(',') : [];
         document.querySelectorAll('[data-appt-status]').forEach(row => {
-            row.style.display = (!status || row.dataset.apptStatus === status) ? '' : 'none';
+            if (statusArray.length === 0) {
+                row.style.display = '';
+            } else {
+                row.style.display = statusArray.includes(row.dataset.apptStatus) ? '' : 'none';
+            }
         });
-        document.querySelectorAll('.appt-filter-btn').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
+        document.querySelectorAll('.appt-filter-btn').forEach(b => {
+            b.classList.remove('active');
+            b.style.background = '';
+            b.style.color = '';
+            b.style.border = '1px solid #e2e8f0';
+        });
+        if (btn) {
+            btn.classList.add('active');
+            btn.style.background = '#2563eb';
+            btn.style.color = '#fff';
+            btn.style.border = 'none';
+        }
     }
 </script>
 </body>

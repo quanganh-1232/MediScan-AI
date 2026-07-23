@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title th:text="${appointment != null ? 'Lich hen ' + appointment.appointmentCode + ' - MediScan AI' : 'Chi tiet Lich hen - MediScan AI'}">Chi tiet Lich hen - MediScan AI</title>
+    <title th:text="${appointment != null ? 'Lịch hẹn ' + appointment.appointmentCode + ' - MediScan AI' : 'Chi tiết Lịch hẹn - MediScan AI'}">Chi tiết Lịch hẹn - MediScan AI</title>
     <meta name="description" th:content="${'Xem chi tiet lich hen kham benh ' + (appointment != null ? appointment.appointmentCode : '') + ' tai MediScan AI - Theo doi trang thai va ket qua kham.'}"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,27 +47,27 @@
 
     <!-- Breadcrumb -->
     <nav class="ms-breadcrumb" aria-label="breadcrumb">
-        <a href="/home"><i class="bi bi-house me-1"></i>Trang chu</a>
+        <a href="/home"><i class="bi bi-house me-1"></i>Trang chủ</a>
         <i class="bi bi-chevron-right" style="font-size:.7rem;"></i>
-        <span>Chi tiet Lich hen</span>
+        <span>Chi tiết Lịch hẹn</span>
         <i class="bi bi-chevron-right" style="font-size:.7rem;"></i>
         <span th:text="${appointment != null ? appointment.appointmentCode : ''}"></span>
     </nav>
 
     <div class="d-flex align-items-center justify-content-between gap-2 mb-4 flex-wrap">
         <div class="d-flex align-items-center gap-2">
-            <a href="/home" class="btn btn-sm btn-outline-secondary no-print"><i class="bi bi-arrow-left me-1"></i>Quay lai</a>
-            <h1 class="fw-bold mb-0" style="font-size:1.25rem;">Chi tiet Lich hen</h1>
+            <a href="/home" class="btn btn-sm btn-outline-secondary no-print"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+            <h1 class="fw-bold mb-0" style="font-size:1.25rem;">Chi tiết Lịch hẹn</h1>
         </div>
         <button class="btn btn-sm btn-outline-secondary no-print" onclick="printAppointment()">
-            <i class="bi bi-printer me-1"></i>In / Xuat PDF
+            <i class="bi bi-printer me-1"></i>In / Xuất PDF
         </button>
     </div>
 
     <!-- Header card -->
     <div class="appt-header">
         <div style="position:relative;z-index:1;">
-            <div class="small opacity-75 mb-1"><i class="bi bi-calendar2-check me-1"></i>Lich hen kham benh</div>
+            <div class="small opacity-75 mb-1"><i class="bi bi-calendar2-check me-1"></i>Lịch hẹn khám bệnh</div>
             <div class="appt-code" th:text="${appointment.appointmentCode}">APT-000000</div>
             <div class="mt-2 d-flex gap-2 flex-wrap">
                 <span class="badge"
@@ -81,48 +81,48 @@
 
     <!-- Info -->
     <div class="appt-card">
-        <div class="fw-bold mb-3" style="color:#2563eb;"><i class="bi bi-info-circle me-2"></i>Thong tin lich hen</div>
+        <div class="fw-bold mb-3" style="color:#2563eb;"><i class="bi bi-info-circle me-2"></i>Thông tin lịch hẹn</div>
         <div class="info-row">
-            <span class="info-label">Ngay & Gio kham</span>
+            <span class="info-label">Ngày & Giờ khám</span>
             <span class="info-value" th:text="${#temporals.format(appointment.scheduledTime, 'dd/MM/yyyy HH:mm')}">—</span>
         </div>
         <div class="info-row">
-            <span class="info-label">Loai kham</span>
+            <span class="info-label">Loại khám</span>
             <span class="info-value" th:text="${appointment.appointmentType != null ? appointment.appointmentType : 'Khám chấn thương'}">—</span>
         </div>
         <div class="info-row">
-            <span class="info-label">Bac si phu trach</span>
+            <span class="info-label">Bác sĩ phụ trách</span>
             <span class="info-value" th:text="${appointment.doctor != null ? 'BS. ' + appointment.doctor.fullName : 'Chưa phân công'}">—</span>
         </div>
         <div class="info-row">
-            <span class="info-label">Bo phan kham</span>
+            <span class="info-label">Bộ phận khám</span>
             <span class="info-value" th:text="${appointment.bodyPart != null ? appointment.bodyPart : 'Chưa xác định'}">—</span>
         </div>
         <div class="info-row">
-            <span class="info-label">Dia diem</span>
+            <span class="info-label">Địa điểm</span>
             <span class="info-value" th:text="${appointment.location != null ? appointment.location : 'Chưa xác định'}">—</span>
         </div>
         <div class="info-row">
-            <span class="info-label">Le tan xu ly</span>
+            <span class="info-label">Lễ tân xử lý</span>
             <span class="info-value" th:text="${appointment.receptionist != null ? appointment.receptionist.fullName : '—'}">—</span>
         </div>
         <div class="info-row">
-            <span class="info-label">Ngay tao</span>
+            <span class="info-label">Ngày tạo</span>
             <span class="info-value" th:text="${#temporals.format(appointment.createdAt, 'dd/MM/yyyy HH:mm')}">—</span>
         </div>
         <div th:if="${appointment.note != null and !appointment.note.isEmpty()}" class="mt-3 p-3 rounded-3 bg-light">
-            <div class="small fw-bold text-muted mb-1"><i class="bi bi-chat-left-text me-1"></i>Ghi chu</div>
+            <div class="small fw-bold text-muted mb-1"><i class="bi bi-chat-left-text me-1"></i>Ghi chú</div>
             <div class="small" th:text="${appointment.note}"></div>
         </div>
     </div>
 
     <!-- Timeline -->
     <div class="appt-card">
-        <div class="fw-bold mb-3" style="color:#2563eb;"><i class="bi bi-diagram-3 me-2"></i>Quy trinh xu ly</div>
+        <div class="fw-bold mb-3" style="color:#2563eb;"><i class="bi bi-diagram-3 me-2"></i>Quy trình xử lý</div>
 
         <div class="timeline-step">
             <div class="timeline-dot dot-done"><i class="bi bi-check"></i></div>
-            <div><div class="fw-semibold small">Benh nhan dat lich</div><div class="text-muted" style="font-size:.8rem;" th:text="${#temporals.format(appointment.createdAt, 'dd/MM/yyyy HH:mm')}"></div></div>
+            <div><div class="fw-semibold small">Bệnh nhân đặt lịch</div><div class="text-muted" style="font-size:.8rem;" th:text="${#temporals.format(appointment.createdAt, 'dd/MM/yyyy HH:mm')}"></div></div>
         </div>
         <div class="timeline-line"></div>
 
@@ -131,7 +131,7 @@
                 <i th:class="${appointment.status != 'PENDING' and appointment.status != 'CANCELLED'} ? 'bi bi-check' : 'bi bi-hourglass-split'"></i>
             </div>
             <div>
-                <div class="fw-semibold small">Le tan xac nhan</div>
+                <div class="fw-semibold small">Lễ tân xác nhận</div>
                 <div class="text-muted" style="font-size:.8rem;" th:text="${appointment.status != 'PENDING' and appointment.status != 'CANCELLED' ? 'Hoàn tất' : 'Đang chờ'}"></div>
             </div>
         </div>
@@ -141,7 +141,7 @@
             <div th:class="${appointment.status == 'CHECKED_IN' or appointment.status == 'IN_PROGRESS' or appointment.status == 'COMPLETED'} ? 'timeline-dot dot-done' : 'timeline-dot dot-pending'">
                 <i th:class="${appointment.status == 'CHECKED_IN' or appointment.status == 'IN_PROGRESS' or appointment.status == 'COMPLETED'} ? 'bi bi-check' : 'bi bi-circle'"></i>
             </div>
-            <div><div class="fw-semibold small" th:style="${appointment.status == 'CHECKED_IN' or appointment.status == 'IN_PROGRESS' or appointment.status == 'COMPLETED'} ? '' : 'color:#94a3b8'">Kham va chup X-quang</div></div>
+            <div><div class="fw-semibold small" th:style="${appointment.status == 'CHECKED_IN' or appointment.status == 'IN_PROGRESS' or appointment.status == 'COMPLETED'} ? '' : 'color:#94a3b8'">Khám và chụp X-quang</div></div>
         </div>
         <div class="timeline-line"></div>
 
@@ -149,24 +149,24 @@
             <div th:class="${appointment.status == 'COMPLETED'} ? 'timeline-dot dot-done' : 'timeline-dot dot-pending'">
                 <i th:class="${appointment.status == 'COMPLETED'} ? 'bi bi-check' : 'bi bi-circle'"></i>
             </div>
-            <div><div class="fw-semibold small" th:style="${appointment.status == 'COMPLETED'} ? '' : 'color:#94a3b8'">Bac si phan tich ket qua</div></div>
+            <div><div class="fw-semibold small" th:style="${appointment.status == 'COMPLETED'} ? '' : 'color:#94a3b8'">Bác sĩ phân tích kết quả</div></div>
         </div>
     </div>
 
     <!-- Actions -->
     <div class="d-flex gap-2 flex-wrap mb-4">
         <a href="/patient/records" class="btn ms-btn ms-btn-ghost border">
-            <i class="bi bi-folder2-open me-1"></i>Xem ho so y te
+            <i class="bi bi-folder2-open me-1"></i>Xem hồ sơ y tế
         </a>
         <a href="/patient/notifications" class="btn ms-btn ms-btn-ghost border">
-            <i class="bi bi-bell me-1"></i>Thong bao cua toi
+            <i class="bi bi-bell me-1"></i>Thông báo của tôi
         </a>
         <form th:if="${appointment.status == 'PENDING' or appointment.status == 'SCHEDULED'}"
               th:action="@{/patient/appointments/{id}/cancel(id=${appointment.appointmentId})}"
-              method="post" onsubmit="return confirm('Ban co chac muon huy lich hen nay?')">
+              method="post" onsubmit="return confirm('Bạn có chắc muốn hủy lịch hẹn này?')">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <button type="submit" class="btn btn-outline-danger">
-                <i class="bi bi-x-circle me-1"></i>Huy lich hen
+                <i class="bi bi-x-circle me-1"></i>Hủy lịch hẹn
             </button>
         </form>
     </div>
