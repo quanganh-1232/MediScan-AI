@@ -1,5 +1,6 @@
 package com.example.mediscanauth.controller.admin;
 
+import com.example.mediscanauth.constant.OperationalConfig;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.impl.UserAdminService;
@@ -20,7 +21,7 @@ import java.io.ByteArrayOutputStream;
 @Controller
 public class AdminDashboardController {
 
-    private static final int USER_PAGE_SIZE = 20;
+    private static final int USER_PAGE_SIZE = OperationalConfig.ADMIN_USER_PAGE_SIZE;
 
     private final UserAdminService userAdminService;
     private final ImagingRecordService imagingRecordService;
@@ -127,9 +128,10 @@ public class AdminDashboardController {
 
     @PostMapping("/admin/users/{userId}/unlock")
     public String unlockUser(@PathVariable Long userId,
+                             Authentication authentication,
                              RedirectAttributes redirectAttributes) {
         try {
-            userAdminService.unlockAccount(userId);
+            userAdminService.unlockAccount(userId, authentication.getName());
             redirectAttributes.addFlashAttribute("success", "Account unlocked successfully.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());

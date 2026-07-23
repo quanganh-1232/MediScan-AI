@@ -13,6 +13,7 @@ import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.NotificationService;
 import com.example.mediscanauth.service.PatientWorkflowService;
 import com.example.mediscanauth.service.UserAccountService;
+import com.example.mediscanauth.service.impl.SupportRequestService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -40,6 +41,7 @@ public class PatientDashboardController {
     private final AppointmentRepository appointmentRepository;
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final SupportRequestService supportRequestService;
 
     public PatientDashboardController(UserAccountService userAccountService,
                                       ImagingRecordService imagingRecordService,
@@ -48,7 +50,8 @@ public class PatientDashboardController {
                                       PatientRepository patientRepository,
                                       AppointmentRepository appointmentRepository,
                                       NotificationRepository notificationRepository,
-                                      UserRepository userRepository) {
+                                      UserRepository userRepository,
+                                      SupportRequestService supportRequestService) {
         this.userAccountService = userAccountService;
         this.imagingRecordService = imagingRecordService;
         this.notificationService = notificationService;
@@ -57,6 +60,7 @@ public class PatientDashboardController {
         this.appointmentRepository = appointmentRepository;
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
+        this.supportRequestService = supportRequestService;
     }
 
     /** Tự động đưa danh sách bác sĩ vào tất cả các trang patient (dùng cho chatbot đặt lịch) */
@@ -312,7 +316,23 @@ public class PatientDashboardController {
         User user = getUser(authentication);
         model.addAttribute("currentUser", user);
         model.addAttribute("unreadCount", notificationService.countUnread(user));
+        model.addAttribute("supportRequests", supportRequestService.findForPatient(user));
         return "patient/support";
+    }
+
+    @PostMapping("/patient/support")
+    public String submitSupportRequest(Authentication authentication,
+                                       @RequestParam String subject,
+                                       @RequestParam String message,
+                                       RedirectAttributes redirectAttributes) {
+        try {
+            User patient = getUser(authentication);
+            supportRequestService.createRequest(patient, subject, message);
+            redirectAttributes.addFlashAttribute("success", "Đã gửi yêu cầu hỗ trợ. Chúng tôi sẽ phản hồi sớm nhất.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/patient/support";
     }
 
     // ── Appointment Detail ─────────────────────────────────────────────────

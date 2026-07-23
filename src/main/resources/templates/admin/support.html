@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý hỗ trợ - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/admin-shell :: nav}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+    <div class="row g-4">
+
+        <div class="col-12 col-xl-2">
+            <div th:replace="~{admin/fragments/admin-shell :: sidebar('support')}"></div>
+        </div>
+
+        <div class="col-12 col-xl-10">
+            <div class="mb-4">
+                <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-life-preserver text-primary me-2"></i>Quản lý hỗ trợ</h1>
+                <p class="text-secondary mb-0">Xem và phản hồi yêu cầu hỗ trợ từ bệnh nhân.</p>
+            </div>
+
+            <div th:if="${success}" class="alert alert-success ms-auth-alert"><i class="bi bi-check-circle-fill"></i><span th:text="${success}"></span></div>
+            <div th:if="${error}" class="alert alert-danger ms-auth-alert"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
+
+            <!-- Stat cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-lg-3">
+                    <div class="pt-stat">
+                        <span class="pt-stat-icon danger"><i class="bi bi-hourglass-split"></i></span>
+                        <span>
+                            <span class="pt-stat-label d-block">Chờ xử lý</span>
+                            <span class="pt-stat-number" th:text="${openCount}">0</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="pt-stat">
+                        <span class="pt-stat-icon"><i class="bi bi-arrow-repeat"></i></span>
+                        <span>
+                            <span class="pt-stat-label d-block">Đang xử lý</span>
+                            <span class="pt-stat-number" th:text="${inProgressCount}">0</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="pt-stat">
+                        <span class="pt-stat-icon ok"><i class="bi bi-check2-circle"></i></span>
+                        <span>
+                            <span class="pt-stat-label d-block">Đã giải quyết</span>
+                            <span class="pt-stat-number" th:text="${resolvedCount}">0</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="pt-stat">
+                        <span class="pt-stat-icon"><i class="bi bi-funnel"></i></span>
+                        <span>
+                            <span class="pt-stat-label d-block">Kết quả lọc</span>
+                            <span class="pt-stat-number" th:text="${requestPage.totalElements}">0</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <section class="pt-card p-4 mb-4">
+                <div class="pt-card-title fs-5 mb-3"><i class="bi bi-list-ul"></i> Danh sách yêu cầu</div>
+
+                <form th:action="@{/admin/support}" method="get" class="row g-2 align-items-end mb-3">
+                    <div class="col-12 col-lg-6">
+                        <label for="keyword" class="ms-label">Tìm kiếm</label>
+                        <input id="keyword" name="keyword" class="form-control ms-input"
+                               placeholder="Tiêu đề, nội dung, tên/email bệnh nhân" th:value="${keyword}">
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <label for="status" class="ms-label">Trạng thái</label>
+                        <select id="status" name="status" class="form-select ms-input">
+                            <option value="">Tất cả</option>
+                            <option th:each="s : ${statuses}" th:value="${s}"
+                                    th:text="${s == 'OPEN' ? 'Chờ xử lý' : (s == 'IN_PROGRESS' ? 'Đang xử lý' : 'Đã giải quyết')}"
+                                    th:selected="${s == selectedStatus}">Trạng thái</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-3 d-flex gap-2">
+                        <button type="submit" class="btn ms-btn ms-btn-primary text-white flex-grow-1"><i class="bi bi-search me-1"></i>Lọc</button>
+                        <a th:href="@{/admin/support}" class="btn ms-btn ms-btn-ghost border text-primary">Đặt lại</a>
+                    </div>
+                </form>
+
+                <div class="d-grid gap-3">
+                    <div class="p-3 rounded-3 border" th:each="req : ${requests}">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                            <div>
+                                <div class="fw-semibold" th:text="${req.subject}">Tiêu đề</div>
+                                <div class="small text-muted">
+                                    <span th:text="${req.patient != null ? req.patient.fullName : 'Không xác định'}">Bệnh nhân</span>
+                                    ·
+                                    <span th:text="${req.patient != null ? req.patient.email : ''}">email</span>
+                                    ·
+                                    <span th:text="${#temporals.format(req.createdAt, 'dd/MM/yyyy HH:mm')}">Ngày gửi</span>
+                                </div>
+                            </div>
+                            <span class="pt-status"
+                                  th:classappend="${req.status == 'RESOLVED'} ? ' pt-status-done' : (${req.status == 'IN_PROGRESS'} ? ' pt-status-confirmed' : ' pt-status-cancelled')"
+                                  th:text="${req.status == 'OPEN' ? 'Chờ xử lý' : (req.status == 'IN_PROGRESS' ? 'Đang xử lý' : 'Đã giải quyết')}">Trạng thái</span>
+                        </div>
+                        <div class="small mb-3" th:text="${req.message}">Nội dung</div>
+
+                        <div class="p-2 rounded-3 small mb-3" style="background:#f8fafd;" th:if="${req.adminResponse != null}">
+                            <div class="fw-semibold text-primary mb-1">
+                                <i class="bi bi-reply-fill me-1"></i>Đã phản hồi
+                                <span th:if="${req.respondedBy != null}" th:text="'bởi ' + ${req.respondedBy.fullName}"></span>
+                                <span th:if="${req.respondedAt != null}" th:text="' · ' + ${#temporals.format(req.respondedAt, 'dd/MM/yyyy HH:mm')}"></span>
+                            </div>
+                            <div th:text="${req.adminResponse}">Phản hồi</div>
+                        </div>
+
+                        <form th:action="@{/admin/support/{id}/respond(id=${req.requestId})}" method="post" class="row g-2 align-items-end">
+                            <div class="col-12 col-lg-7">
+                                <textarea name="adminResponse" class="form-control ms-input" rows="2"
+                                          placeholder="Nhập phản hồi cho bệnh nhân..." th:text="${req.adminResponse}"></textarea>
+                            </div>
+                            <div class="col-6 col-lg-3">
+                                <select name="status" class="form-select ms-input">
+                                    <option value="OPEN" th:selected="${req.status == 'OPEN'}">Chờ xử lý</option>
+                                    <option value="IN_PROGRESS" th:selected="${req.status == 'IN_PROGRESS'}">Đang xử lý</option>
+                                    <option value="RESOLVED" th:selected="${req.status == 'RESOLVED'}">Đã giải quyết</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-lg-2">
+                                <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100"><i class="bi bi-send me-1"></i>Gửi</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="text-center text-muted py-4" th:if="${#lists.isEmpty(requests)}">
+                        Không có yêu cầu hỗ trợ nào.
+                    </div>
+                </div>
+
+                <nav th:if="${requestPage.totalPages > 1}" class="mt-3" aria-label="Support pages">
+                    <ul class="pagination justify-content-end mb-0 gap-1">
+                        <li class="page-item" th:classappend="${requestPage.first} ? ' disabled' : ''">
+                            <a class="page-link rounded-3"
+                               th:href="@{/admin/support(keyword=${keyword}, status=${selectedStatus}, page=${requestPage.number - 1})}"><i class="bi bi-chevron-left"></i></a>
+                        </li>
+                        <li class="page-item"
+                            th:each="p : ${#numbers.sequence(0, requestPage.totalPages - 1)}"
+                            th:classappend="${p == requestPage.number} ? ' active' : ''">
+                            <a class="page-link rounded-3"
+                               th:href="@{/admin/support(keyword=${keyword}, status=${selectedStatus}, page=${p})}"
+                               th:text="${p + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${requestPage.last} ? ' disabled' : ''">
+                            <a class="page-link rounded-3"
+                               th:href="@{/admin/support(keyword=${keyword}, status=${selectedStatus}, page=${requestPage.number + 1})}"><i class="bi bi-chevron-right"></i></a>
+                        </li>
+                    </ul>
+                </nav>
+            </section>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

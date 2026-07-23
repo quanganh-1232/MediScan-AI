@@ -39,12 +39,10 @@ public class AiModel {
     @Column(name = "accuracy", precision = 5, scale = 2)
     private BigDecimal accuracy;
 
-    @Lob
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "text")
     private String description;
 
     @ColumnDefault("'ACTIVE'")
-    @Lob
     @Column(name = "status")
     private String status;
 

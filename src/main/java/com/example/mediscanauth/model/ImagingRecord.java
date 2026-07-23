@@ -75,6 +75,14 @@ public class ImagingRecord {
     @Column(name = "bbox_height")
     private Integer bboxHeight;
 
+    /**
+     * Null = legacy record predating this tracking, or not yet reviewed.
+     * True = doctor typed a different conclusion than the AI's prediction.
+     * False = doctor accepted the AI's conclusion as-is.
+     */
+    @Column(name = "doctor_overrode_ai")
+    private Boolean doctorOverrodeAi;
+
     @PrePersist
     void prePersist() {
         if (createdAt == null) {
@@ -243,5 +251,13 @@ public class ImagingRecord {
 
     public void setBboxHeight(Integer bboxHeight) {
         this.bboxHeight = bboxHeight;
+    }
+
+    public Boolean getDoctorOverrodeAi() {
+        return doctorOverrodeAi;
+    }
+
+    public void setDoctorOverrodeAi(Boolean doctorOverrodeAi) {
+        this.doctorOverrodeAi = doctorOverrodeAi;
     }
 }
