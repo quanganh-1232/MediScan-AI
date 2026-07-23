@@ -2,101 +2,189 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Hỗ trợ - MediScan AI</title>
+    <title>Hỗ trợ &amp; FAQ - MediScan AI</title>
+    <meta name="description" content="Trung tâm hỗ trợ bệnh nhân MediScan AI - câu hỏi thường gặp về đặt lịch, hồ sơ y tế và chăm sóc xương khớp.">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
     <link th:href="@{/css/portal.css}" rel="stylesheet">
+    <style>
+        .support-hero{background:linear-gradient(135deg,#2563eb 0%,#7c3aed 100%);border-radius:20px;padding:2.5rem 2rem;color:#fff;margin-bottom:2rem;}
+        .support-search{display:flex;gap:.5rem;background:rgba(255,255,255,.15);border-radius:12px;padding:.4rem .4rem .4rem 1rem;margin-top:1.2rem;}
+        .support-search input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:.95rem;}
+        .support-search input::placeholder{color:rgba(255,255,255,.7);}
+        .support-search button{background:#fff;color:#2563eb;border:none;border-radius:8px;padding:.4rem 1rem;font-weight:600;font-size:.85rem;cursor:pointer;}
+        .faq-category{margin-bottom:1.75rem;}
+        .faq-category-title{font-weight:700;font-size:1rem;color:#1e293b;display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid #e2e8f0;}
+        .faq-item{background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:.5rem;overflow:hidden;transition:box-shadow .2s;}
+        .faq-item:hover{box-shadow:0 2px 12px rgba(37,99,235,.08);}
+        .faq-question{width:100%;background:transparent;border:none;padding:1rem 1.25rem;text-align:left;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:.9rem;color:#1e293b;cursor:pointer;gap:1rem;}
+        .faq-question .icon{color:#2563eb;transition:transform .25s;flex-shrink:0;}
+        .faq-question.open .icon{transform:rotate(180deg);}
+        .faq-answer{display:none;padding:0 1.25rem 1rem;font-size:.88rem;color:#475569;line-height:1.75;}
+        .faq-answer.show{display:block;}
+        .contact-card{background:#f8faff;border:1px solid #c7d7ff;border-radius:16px;padding:1.5rem;display:flex;align-items:flex-start;gap:1rem;}
+        .contact-icon{width:48px;height:48px;border-radius:12px;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+        .highlight-box{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:1rem 1.25rem;font-size:.88rem;color:#9a3412;margin-top:.75rem;}
+    </style>
 </head>
 <body>
-
 <div th:replace="~{patient/fragments/patient-shell :: nav('support')}"></div>
+<main class="container py-4" style="max-width:860px;">
 
-<main class="container-fluid px-3 px-lg-4 py-4">
-
-    <div class="mb-4">
-        <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-life-preserver text-primary me-2"></i>Hỗ trợ</h1>
-        <p class="text-secondary mb-0">Quản lý tài khoản và nhận trợ giúp khi cần thiết.</p>
-    </div>
-
-    <div class="row g-4">
-        <div class="col-12 col-lg-4">
-            <section class="pt-card p-4 h-100">
-                <div class="pt-card-title mb-3"><i class="bi bi-person-gear"></i> Tài khoản của bạn</div>
-                <div class="d-grid gap-2">
-                    <a th:href="@{/profile/edit}" class="pt-quick-item">
-                        <span class="pt-quick-icon"><i class="bi bi-pencil-square"></i></span>
-                        <span>
-                            <span class="d-block fw-semibold">Cập nhật thông tin</span>
-                            <span class="d-block small text-muted">Họ tên, số điện thoại, địa chỉ</span>
-                        </span>
-                    </a>
-                    <a th:href="@{/notifications}" class="pt-quick-item">
-                        <span class="pt-quick-icon"><i class="bi bi-bell"></i></span>
-                        <span>
-                            <span class="d-block fw-semibold">Xem thông báo</span>
-                            <span class="d-block small text-muted">Cập nhật từ phòng khám</span>
-                        </span>
-                    </a>
-                    <a th:href="@{/change-password}" class="pt-quick-item">
-                        <span class="pt-quick-icon"><i class="bi bi-key"></i></span>
-                        <span>
-                            <span class="d-block fw-semibold">Đổi mật khẩu</span>
-                            <span class="d-block small text-muted">Bảo mật tài khoản</span>
-                        </span>
-                    </a>
-                </div>
-            </section>
-        </div>
-
-        <div class="col-12 col-lg-4">
-            <section class="pt-card p-4 h-100">
-                <div class="pt-card-title mb-3"><i class="bi bi-chat-dots"></i> Chatbot hỗ trợ</div>
-                <p class="small text-muted">Trợ lý ảo sẵn sàng giải đáp thắc mắc về triệu chứng, quy trình khám và hướng dẫn sử dụng hệ thống.</p>
-                <button class="btn ms-btn ms-btn-primary text-white w-100" onclick="chatFocus()">
-                    <i class="bi bi-robot me-1"></i> Mở chatbot ngay
-                </button>
-                <div class="small text-muted mt-3"><i class="bi bi-info-circle me-1"></i>Chatbot chỉ mang tính chất tham khảo, không thay thế chẩn đoán của bác sĩ.</div>
-            </section>
-        </div>
-
-        <div class="col-12 col-lg-4">
-            <section class="pt-card p-4 h-100">
-                <div class="pt-card-title mb-3"><i class="bi bi-telephone"></i> Liên hệ phòng khám</div>
-                <div class="d-grid gap-3 small">
-                    <div class="d-flex gap-3 align-items-center">
-                        <span class="pt-quick-icon"><i class="bi bi-headset"></i></span>
-                        <span>
-                            <span class="d-block text-muted">Hỗ trợ kỹ thuật</span>
-                            <span class="d-block fw-bold fs-6">1900 1234</span>
-                        </span>
-                    </div>
-                    <div class="d-flex gap-3 align-items-center">
-                        <span class="pt-quick-icon"><i class="bi bi-envelope"></i></span>
-                        <span>
-                            <span class="d-block text-muted">Email</span>
-                            <span class="d-block fw-bold">support@mediscan.ai</span>
-                        </span>
-                    </div>
-                    <div class="d-flex gap-3 align-items-center">
-                        <span class="pt-quick-icon"><i class="bi bi-clock"></i></span>
-                        <span>
-                            <span class="d-block text-muted">Giờ làm việc</span>
-                            <span class="d-block fw-bold">07:30 - 17:00 (T2 - T7)</span>
-                        </span>
-                    </div>
-                </div>
-            </section>
+    <!-- Hero -->
+    <div class="support-hero">
+        <h1 class="fw-bold mb-1" style="font-size:1.6rem;"><i class="bi bi-life-preserver me-2"></i>Trung tâm Hỗ trợ</h1>
+        <div class="opacity-75 small">Tìm câu trả lời nhanh cho mọi thắc mắc của bạn</div>
+        <div class="support-search">
+            <input type="text" id="faqSearch" placeholder="Tìm kiếm câu hỏi..." oninput="filterFaq(this.value)">
+            <button onclick="filterFaq(document.getElementById('faqSearch').value)"><i class="bi bi-search"></i> Tìm</button>
         </div>
     </div>
+
+    <div id="faqContainer">
+
+        <!-- Đặt lịch -->
+        <div class="faq-category">
+            <div class="faq-category-title"><i class="bi bi-calendar2-check text-primary"></i> Đặt lịch &amp; Lịch hẹn</div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Làm thế nào để đặt lịch khám? <i class="bi bi-chevron-down icon"></i></button>
+                <div class="faq-answer">
+                    Bạn có thể đặt lịch theo <strong>2 cách</strong>:<br><br>
+                    <strong>Cách 1 — Trang chủ:</strong> Vào <em>Trang chủ → Đặt lịch khám</em>, chọn bác sĩ, ngày và giờ mong muốn.<br><br>
+                    <strong>Cách 2 — Chatbot AI:</strong> Bấm vào biểu tượng chat (góc dưới phải), nhắn "<em>đặt lịch</em>" và làm theo hướng dẫn từng bước.<br><br>
+                    ⚠️ Sau khi đặt, lịch hẹn cần được <strong>lễ tân xác nhận</strong> trước khi có hiệu lực.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Tôi có thể hủy lịch hẹn không? <i class="bi bi-chevron-down icon"></i></button>
+                <div class="faq-answer">
+                    Có. Bạn có thể hủy lịch hẹn có trạng thái <strong>Đã đặt lịch</strong> hoặc <strong>Chờ xác nhận</strong>.<br>
+                    Không thể hủy lịch đã được xác nhận chính thức hoặc đã hoàn thành.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Tôi có thể đặt lịch vào ngày nào? <i class="bi bi-chevron-down icon"></i></button>
+                <div class="faq-answer">
+                    Lịch khám được đặt từ <strong>hôm nay trở đi</strong> (không đặt ngày quá khứ), trong <strong>giờ hành chính 07:00 – 17:00</strong>.<br>
+                    Mỗi bác sĩ nhận tối đa <strong>1 lịch mỗi 30 phút</strong>.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Sau khi đặt lịch bao lâu thì được xác nhận? <i class="bi bi-chevron-down icon"></i></button>
+                <div class="faq-answer">
+                    Thông thường lễ tân sẽ xác nhận trong vòng <strong>1–2 giờ làm việc</strong>. Bạn sẽ nhận <strong>thông báo</strong> ngay khi lịch được xác nhận.
+                </div>
+            </div>
+        </div>
+
+        <!-- Hồ sơ & Kết quả -->
+        <div class="faq-category">
+            <div class="faq-category-title"><i class="bi bi-folder2-open text-primary"></i> Hồ sơ y tế &amp; Kết quả</div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Kết quả chẩn đoán của tôi ở đâu? <i class="bi bi-chevron-down icon"></i></button>
+                <div class="faq-answer">
+                    Vào <strong>Hồ sơ y tế</strong> hoặc <strong>Kết quả chẩn đoán</strong> trên thanh menu.<br>
+                    Kết quả chỉ hiển thị sau khi <strong>bác sĩ đã xem xét và xác nhận</strong>.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Kết quả AI và kết luận bác sĩ khác nhau như thế nào? <i class="bi bi-chevron-down icon"></i></button>
+                <div class="faq-answer">
+                    <strong>AI</strong> phân tích ảnh X-quang sơ bộ để <em>hỗ trợ bác sĩ</em> — không phải kết quả chính thức.<br><br>
+                    <strong>Kết luận bác sĩ</strong> là kết quả <em>chính thức</em> do bác sĩ chuyên khoa xem xét toàn diện — đây là thông tin bạn nhận được.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Tôi có thể xóa hồ sơ X-quang không? <i class="bi bi-chevron-down icon"></i></button>
+                <div class="faq-answer">
+                    Có thể xóa một số hồ sơ chưa được bác sĩ xác nhận trong mục <strong>Hồ sơ y tế</strong>.<br>
+                    Hồ sơ đã có kết luận bác sĩ được lưu trữ lâu dài theo quy định y tế và không thể xóa tùy tiện.
+                </div>
+            </div>
+        </div>
+
+        <!-- Tài khoản -->
+        <div class="faq-category">
+            <div class="faq-category-title"><i class="bi bi-person-circle text-primary"></i> Tài khoản &amp; Bảo mật</div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Làm sao để cập nhật thông tin cá nhân? <i class="bi bi-chevron-down icon"></i></button>
+                <div class="faq-answer">
+                    Vào <strong>Hồ sơ cá nhân</strong> → bấm <em>Chỉnh sửa</em> → cập nhật thông tin → bấm <em>Lưu thay đổi</em>.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Làm thế nào để đổi mật khẩu? <i class="bi bi-chevron-down icon"></i></button>
+                <div class="faq-answer">
+                    Nhấn vào <strong>tên tài khoản</strong> (góc trên phải) → chọn <em>Đổi mật khẩu</em>.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Thông tin y tế của tôi có được bảo mật không? <i class="bi bi-chevron-down icon"></i></button>
+                <div class="faq-answer">
+                    <strong>Có.</strong> MediScan AI áp dụng bảo mật nghiêm ngặt:<br><br>
+                    🔒 Dữ liệu mã hóa trong cơ sở dữ liệu<br>
+                    🔒 Phân quyền truy cập — chỉ bạn và bác sĩ phụ trách mới thấy hồ sơ<br>
+                    🔒 Không chia sẻ thông tin với bên thứ ba<br>
+                    🔒 Phiên đăng nhập bảo vệ bằng token bảo mật
+                </div>
+            </div>
+        </div>
+
+        <!-- Khẩn cấp -->
+        <div class="faq-category">
+            <div class="faq-category-title"><i class="bi bi-exclamation-octagon text-danger"></i> Tình huống khẩn cấp</div>
+            <div class="highlight-box">
+                <i class="bi bi-telephone-fill me-2"></i>
+                <strong>Trong trường hợp cấp cứu, gọi ngay 115</strong> — Đừng chờ đặt lịch qua hệ thống.
+                Các dấu hiệu cần cấp cứu: gãy xương hở, mất cảm giác tứ chi, mất ý thức sau chấn thương.
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Liên hệ -->
+    <div class="row g-3 mt-1 mb-4">
+        <div class="col-md-6">
+            <div class="contact-card">
+                <div class="contact-icon"><i class="bi bi-telephone"></i></div>
+                <div>
+                    <div class="fw-bold mb-1">Hotline hỗ trợ</div>
+                    <div class="small text-muted">Thứ 2 – Thứ 7 | 07:00 – 17:00</div>
+                    <div class="fw-bold text-primary mt-1">1900 xxxx</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="contact-card">
+                <div class="contact-icon" style="background:#7c3aed;"><i class="bi bi-envelope"></i></div>
+                <div>
+                    <div class="fw-bold mb-1">Email hỗ trợ</div>
+                    <div class="small text-muted">Phản hồi trong vòng 24 giờ</div>
+                    <div class="fw-bold text-primary mt-1">support@mediscan.ai</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </main>
-
 <div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function toggleFaq(btn){const a=btn.nextElementSibling;const o=a.classList.contains('show');document.querySelectorAll('.faq-answer').forEach(x=>x.classList.remove('show'));document.querySelectorAll('.faq-question').forEach(x=>x.classList.remove('open'));if(!o){a.classList.add('show');btn.classList.add('open');}}
+    function filterFaq(q){const s=q.toLowerCase();document.querySelectorAll('.faq-item').forEach(i=>{i.style.display=(!s||i.textContent.toLowerCase().includes(s))?'':'none';});}
+</script>
 </body>
 </html>

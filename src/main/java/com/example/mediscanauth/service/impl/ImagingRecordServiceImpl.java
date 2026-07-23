@@ -18,6 +18,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -52,6 +53,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
     private static final String AI_SERVICE_URL = "http://localhost:8000/predict";
     private static final int LEGACY_TEXT_COLUMN_LIMIT = 490;
+    private static final int AI_CONNECT_TIMEOUT_MS = 5_000;
+    private static final int AI_READ_TIMEOUT_MS = 45_000;
 
     private final ImagingRecordRepository imagingRecordRepository;
     private final PatientRepository patientRepository;
@@ -79,7 +82,10 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         this.notificationRepository = notificationRepository;
         this.cloudinary = cloudinary;
         this.cloudinaryService = cloudinaryService;
-        this.restTemplate = new RestTemplate();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
+        requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
+        this.restTemplate = new RestTemplate(requestFactory);
         this.objectMapper = new ObjectMapper();
     }
 

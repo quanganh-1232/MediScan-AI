@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Hồ sơ cá nhân - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+    <style>
+        .profile-avatar {
+            width: 90px; height: 90px; border-radius: 50%;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.2rem; font-weight: 700; color: #fff;
+            flex-shrink: 0;
+        }
+        .profile-section { background: var(--ms-surface, #fff); border: 1px solid var(--ms-border, #e5e7eb); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.25rem; }
+        .profile-section-title { font-weight: 700; font-size: 1rem; color: var(--ms-primary, #2563eb); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+        .info-row { display: flex; justify-content: space-between; align-items: center; padding: .55rem 0; border-bottom: 1px solid var(--ms-border, #f1f5f9); font-size: .9rem; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #64748b; font-weight: 500; min-width: 140px; }
+        .info-value { font-weight: 600; color: #1e293b; text-align: right; }
+        .badge-gender { padding: .3rem .75rem; border-radius: 999px; font-size: .78rem; font-weight: 600; }
+        .badge-MALE { background: #dbeafe; color: #1d4ed8; }
+        .badge-FEMALE { background: #fce7f3; color: #9d174d; }
+        .badge-OTHER { background: #f1f5f9; color: #475569; }
+        .edit-toggle { transition: all .2s; }
+        .alert-flash { animation: fadeSlide .4s ease; }
+        @keyframes fadeSlide { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{patient/fragments/patient-shell :: nav('profile')}"></div>
+
+<main class="container py-4" style="max-width: 860px;">
+
+    <!-- Flash messages -->
+    <div th:if="${success}" class="alert alert-success alert-dismissible alert-flash mb-3" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible alert-flash mb-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Header -->
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="profile-avatar" th:text="${currentUser != null ? #strings.substring(currentUser.fullName,0,1).toUpperCase() : 'U'}">U</div>
+        <div>
+            <h1 class="fw-bold mb-0" style="font-size:1.5rem;" th:text="${currentUser != null ? currentUser.fullName : ''}">Tên bệnh nhân</h1>
+            <div class="text-muted small" th:text="${currentUser != null ? currentUser.email : ''}">email@example.com</div>
+            <span class="badge bg-primary-subtle text-primary mt-1" style="font-size:.75rem;"><i class="bi bi-person-check me-1"></i>Bệnh nhân</span>
+        </div>
+        <button class="btn btn-outline-primary ms-auto edit-toggle" id="editToggleBtn" onclick="toggleEdit()">
+            <i class="bi bi-pencil-square me-1"></i>Chỉnh sửa
+        </button>
+    </div>
+
+    <!-- VIEW MODE -->
+    <div id="viewMode">
+        <div class="profile-section">
+            <div class="profile-section-title"><i class="bi bi-person-lines-fill"></i>Thông tin cá nhân</div>
+            <div class="info-row">
+                <span class="info-label">Họ và tên</span>
+                <span class="info-value" th:text="${profile != null ? profile.fullName : (currentUser != null ? currentUser.fullName : '—')}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Giới tính</span>
+                <span class="info-value">
+                    <span th:if="${profile != null and profile.gender != null}"
+                          th:classappend="${'badge-' + profile.gender}"
+                          th:text="${profile.gender == 'MALE' ? 'Nam' : (profile.gender == 'FEMALE' ? 'Nữ' : 'Khác')}"
+                          class="badge-gender">—</span>
+                    <span th:if="${profile == null or profile.gender == null}">—</span>
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Ngày sinh</span>
+                <span class="info-value" th:text="${profile != null and profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'dd/MM/yyyy') : '—'}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Số điện thoại</span>
+                <span class="info-value" th:text="${profile != null and profile.phone != null ? profile.phone : (currentUser != null ? currentUser.phone : '—')}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Địa chỉ</span>
+                <span class="info-value" th:text="${profile != null and profile.address != null ? profile.address : '—'}">—</span>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <div class="profile-section-title"><i class="bi bi-heart-pulse-fill"></i>Tiền sử bệnh</div>
+            <p class="text-muted small mb-0" th:if="${profile == null or profile.medicalHistory == null or #strings.isEmpty(profile.medicalHistory)}">
+                <i class="bi bi-info-circle me-1"></i>Chưa có thông tin tiền sử bệnh. Hãy cập nhật để bác sĩ hỗ trợ tốt hơn.
+            </p>
+            <p class="mb-0" style="white-space:pre-wrap;font-size:.9rem;" th:if="${profile != null and profile.medicalHistory != null and !#strings.isEmpty(profile.medicalHistory)}"
+               th:text="${profile.medicalHistory}"></p>
+        </div>
+
+        <div class="profile-section">
+            <div class="profile-section-title"><i class="bi bi-shield-lock-fill"></i>Thông tin tài khoản</div>
+            <div class="info-row">
+                <span class="info-label">Email đăng nhập</span>
+                <span class="info-value" th:text="${currentUser != null ? currentUser.email : '—'}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Trạng thái</span>
+                <span class="info-value"><span class="badge bg-success-subtle text-success">Đang hoạt động</span></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Đổi mật khẩu</span>
+                <span class="info-value"><a th:href="@{/change-password}" class="text-primary fw-semibold text-decoration-none">Đổi mật khẩu <i class="bi bi-arrow-right"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT MODE -->
+    <div id="editMode" style="display:none;">
+        <form th:action="@{/patient/profile}" method="post" onsubmit="return validateProfile()">
+            <div th:if="${_csrf != null}">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-section-title"><i class="bi bi-person-lines-fill"></i>Thông tin cá nhân</div>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="ms-label" for="fullName">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" id="fullName" name="fullName" class="form-control ms-input" required
+                               th:value="${profile != null ? profile.fullName : (currentUser != null ? currentUser.fullName : '')}">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="ms-label" for="phone">Số điện thoại</label>
+                        <input type="tel" id="phone" name="phone" class="form-control ms-input"
+                               maxlength="15" pattern="[0-9]{9,15}" title="So dien thoai tu 9-15 chu so"
+                               th:value="${profile != null ? profile.phone : (currentUser != null ? currentUser.phone : '')}">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="ms-label" for="gender">Giới tính</label>
+                        <select id="gender" name="gender" class="form-select ms-input">
+                            <option value="">-- Chọn --</option>
+                            <option value="MALE" th:selected="${profile != null and profile.gender == 'MALE'}">Nam</option>
+                            <option value="FEMALE" th:selected="${profile != null and profile.gender == 'FEMALE'}">Nữ</option>
+                            <option value="OTHER" th:selected="${profile != null and profile.gender == 'OTHER'}">Khác</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="ms-label" for="dateOfBirth">Ngày sinh</label>
+                        <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-control ms-input"
+                               th:attr="max=${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}"
+                               th:value="${profile != null and profile.dateOfBirth != null ? #temporals.format(profile.dateOfBirth, 'yyyy-MM-dd') : ''}">
+                    </div>
+                    <div class="col-12">
+                        <label class="ms-label" for="address">Địa chỉ</label>
+                        <input type="text" id="address" name="address" class="form-control ms-input"
+                               th:value="${profile != null ? profile.address : ''}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-section-title"><i class="bi bi-heart-pulse-fill"></i>Tiền sử bệnh</div>
+                <label class="ms-label" for="medicalHistory">Tiền sử bệnh / dị ứng / thuốc đang dùng</label>
+                <textarea id="medicalHistory" name="medicalHistory" class="form-control ms-input" rows="4"
+                          placeholder="Ví dụ: Dị ứng penicillin, huyết áp cao, đang dùng thuốc X..."
+                          th:text="${profile != null ? profile.medicalHistory : ''}"></textarea>
+                <div class="small text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Thông tin này giúp bác sĩ chẩn đoán chính xác hơn.</div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn btn-outline-secondary" onclick="toggleEdit()">
+                    <i class="bi bi-x-lg me-1"></i>Hủy
+                </button>
+                <button type="submit" class="btn ms-btn ms-btn-primary text-white px-4">
+                    <i class="bi bi-floppy-fill me-1"></i>Lưu thay đổi
+                </button>
+            </div>
+        </form>
+    </div>
+
+</main>
+
+<div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function toggleEdit() {
+        const v = document.getElementById('viewMode');
+        const e = document.getElementById('editMode');
+        const btn = document.getElementById('editToggleBtn');
+        if (e.style.display === 'none') {
+            v.style.display = 'none';
+            e.style.display = 'block';
+            btn.innerHTML = '<i class="bi bi-eye me-1"></i>Xem ho so';
+            btn.classList.replace('btn-outline-primary', 'btn-outline-secondary');
+        } else {
+            v.style.display = 'block';
+            e.style.display = 'none';
+            btn.innerHTML = '<i class="bi bi-pencil-square me-1"></i>Chinh sua';
+            btn.classList.replace('btn-outline-secondary', 'btn-outline-primary');
+        }
+    }
+    function validateProfile() {
+        const name = document.getElementById('fullName').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const dob = document.getElementById('dateOfBirth').value;
+        if (!name) { alert('Vui long nhap ho va ten.'); return false; }
+        if (phone && !/^[0-9]{9,15}$/.test(phone)) { alert('So dien thoai khong hop le (9-15 chu so).'); return false; }
+        if (dob) {
+            const today = new Date(); const d = new Date(dob);
+            if (d > today) { alert('Ngay sinh khong duoc lon hon hom nay.'); return false; }
+        }
+        return true;
+    }
+    // Auto-open edit if there was an error
+    /*[[${error != null}]]*/
+    if (true === /*[[${error != null}]]*/ false) toggleEdit();
+</script>
+</body>
+</html>
+
