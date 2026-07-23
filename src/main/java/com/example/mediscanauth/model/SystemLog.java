@@ -38,8 +38,7 @@ public class SystemLog {
     @Column(name = "entity_id", length = 100)
     private String entityId;
 
-    @Lob
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "text")
     private String description;
 
     @Size(max = 50)

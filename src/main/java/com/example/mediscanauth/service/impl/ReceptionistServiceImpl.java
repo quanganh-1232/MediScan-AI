@@ -1,5 +1,6 @@
 package com.example.mediscanauth.service.impl;
 
+import com.example.mediscanauth.constant.OperationalConfig;
 import com.example.mediscanauth.exception.customize.DoctorScheduleConflictException;
 import com.example.mediscanauth.exception.customize.InvalidFieldException;
 import com.example.mediscanauth.model.Appointment;
@@ -39,14 +40,14 @@ public class ReceptionistServiceImpl implements ReceptionistService {
             Pattern.compile("^[\\p{L} .'-]{2,100}$");
     private static final Pattern PHONE_PATTERN =
             Pattern.compile("^(0\\d{9}|\\+84\\d{9})$");
-    private static final int MAX_SYMPTOM_LENGTH = 100; // matches appointments.body_part column width
-    private static final int MAX_NOTE_LENGTH = 500;
-    private static final int MAX_FUTURE_BOOKING_DAYS = 90;
-    private static final LocalTime CLINIC_OPEN = LocalTime.of(6, 0);
-    private static final LocalTime CLINIC_CLOSE = LocalTime.of(21, 0);
+    private static final int MAX_SYMPTOM_LENGTH = OperationalConfig.MAX_SYMPTOM_LENGTH; // matches appointments.body_part column width
+    private static final int MAX_NOTE_LENGTH = OperationalConfig.MAX_NOTE_LENGTH;
+    private static final int MAX_FUTURE_BOOKING_DAYS = OperationalConfig.MAX_FUTURE_BOOKING_DAYS;
+    private static final LocalTime CLINIC_OPEN = LocalTime.of(OperationalConfig.CLINIC_OPEN_HOUR, 0);
+    private static final LocalTime CLINIC_CLOSE = LocalTime.of(OperationalConfig.CLINIC_CLOSE_HOUR, 0);
     // Two appointments for the same doctor within this many minutes of each
     // other are treated as a scheduling conflict.
-    private static final long SLOT_MINUTES = 30;
+    private static final long SLOT_MINUTES = OperationalConfig.SLOT_MINUTES;
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
 
     private final AppointmentRepository appointmentRepository;

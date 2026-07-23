@@ -32,6 +32,20 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
     long countByStatusInAndDoctorUserId(List<String> statuses, Long userId);
     List<ImagingRecord> findByDoctorUserIdAndStatusInOrderByCreatedAtDesc(Long userId, List<String> statuses);
 
+    // ==================== AI Diagnosis Monitoring ====================
+    List<ImagingRecord> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
+    long countByDoctorOverrodeAiTrue();
+    long countByDoctorOverrodeAiFalse();
+    long countByStatusInAndDoctorOverrodeAiIsNull(List<String> statuses);
+
+    @Query("select r.riskLevel, count(r) from ImagingRecord r where r.riskLevel is not null group by r.riskLevel")
+    List<Object[]> countGroupByRiskLevel();
+
+    @Query("select r.capturedAt, avg(r.aiConfidence) from ImagingRecord r " +
+           "where r.aiConfidence is not null and r.capturedAt >= :since " +
+           "group by r.capturedAt order by r.capturedAt")
+    List<Object[]> avgConfidenceByDateSince(@Param("since") LocalDate since);
+
     // ==================== Search & Pagination ====================
     @Query(value = """
             select r from ImagingRecord r

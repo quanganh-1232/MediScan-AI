@@ -1,5 +1,6 @@
 package com.example.mediscanauth.service.impl;
 
+import com.example.mediscanauth.constant.OperationalConfig;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
@@ -11,6 +12,7 @@ import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.UserAccountService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -52,9 +54,13 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             "PENDING_DOCTOR");
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
     private static final String AI_SERVICE_URL = "http://localhost:8000/predict";
-    private static final int LEGACY_TEXT_COLUMN_LIMIT = 490;
-    private static final int AI_CONNECT_TIMEOUT_MS = 5_000;
-    private static final int AI_READ_TIMEOUT_MS = 45_000;
+    private static final int LEGACY_TEXT_COLUMN_LIMIT = OperationalConfig.LEGACY_TEXT_COLUMN_LIMIT;
+    // ai-service does real CPU work (YOLO + classical CV + ANFIS); a low read
+    // timeout would false-positive on legitimate slow analyses, but it must
+    // still be bounded so a hung ai-service can't hold this transaction's DB
+    // connection open forever.
+    private static final int AI_CONNECT_TIMEOUT_MS = OperationalConfig.AI_CONNECT_TIMEOUT_MS;
+    private static final int AI_READ_TIMEOUT_MS = OperationalConfig.AI_READ_TIMEOUT_MS;
 
     private final ImagingRecordRepository imagingRecordRepository;
     private final PatientRepository patientRepository;
@@ -65,6 +71,10 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private final NotificationRepository notificationRepository;
     private final Cloudinary cloudinary;
     private final CloudinaryService cloudinaryService;
+    private final AuditLogService auditLogService;
+
+    @Value("${ai.service.api-key:dev-ai-key-change-me}")
+    private String aiServiceApiKey;
 
     public ImagingRecordServiceImpl(
             ImagingRecordRepository imagingRecordRepository,
@@ -73,7 +83,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             UserRepository userRepository,
             NotificationRepository notificationRepository,
             Cloudinary cloudinary,
-            CloudinaryService cloudinaryService) {
+            CloudinaryService cloudinaryService,
+            AuditLogService auditLogService) {
 
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
@@ -82,6 +93,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         this.notificationRepository = notificationRepository;
         this.cloudinary = cloudinary;
         this.cloudinaryService = cloudinaryService;
+        this.auditLogService = auditLogService;
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
         requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
@@ -291,8 +303,9 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
         ImagingRecord record = getRecordById(recordId);
         User doctor = userAccountService.findByEmail(doctorEmail);
-
+        boolean overrodeAi = !isBlank(conclusion);
         record.setDoctor(doctor);
+        record.setDoctorOverrodeAi(overrodeAi);
         record.setDoctorConclusion(cleanSentence(isBlank(conclusion) ? record.getAiPrediction() : conclusion));
         record.setRecommendation(cleanSentence(
                 isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả." : recommendation));
@@ -313,10 +326,13 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         ImagingRecord savedRecord = imagingRecordRepository.save(record);
 
         // === CHỈ TẠO THÔNG BÁO KHI LÀ PUBLIC ===
+        // Lưu ý: notifications.record_id có khoá ngoại trỏ tới medical_records,
+        // không phải imaging_records — hai bảng này độc lập nhau nên không được
+        // gán savedRecord.getRecordId() vào đây (sẽ vi phạm khoá ngoại vì hai
+        // bảng có hai dải ID khác nhau).
         if ("PUBLIC".equalsIgnoreCase(savedRecord.getVisibility())) {
             Notification notification = new Notification();
             notification.setUser(savedRecord.getPatient());
-            notification.setRecordId(savedRecord.getRecordId());
             notification.setTitle("Kết quả X-quang đã có");
             notification.setMessage(
                     "Kết quả chẩn đoán cho hồ sơ " + savedRecord.getRecordCode() + " đã được bác sĩ xác nhận.");
@@ -328,10 +344,13 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             System.out.println("→ [NOTI] Giữ riêng tư (PRIVATE) - Không tạo thông báo");
         }
 
+        auditLogService.log(doctorEmail, "DOCTOR_APPROVED", "ImagingRecord", String.valueOf(recordId),
+                "Bác sĩ xác nhận hồ sơ " + savedRecord.getRecordCode()
+                        + (overrodeAi ? " (chỉnh sửa kết luận so với AI)." : " (giữ nguyên kết luận AI)."));
+
         return savedRecord;
     }
 
-    
     @Override
     @Transactional
     public ImagingRecord rejectDoctorReview(Long recordId, String doctorEmail, String conclusion,
@@ -345,7 +364,10 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
                 isBlank(recommendation) ? "Cần chụp lại, bổ sung tư thế hoặc kiểm tra trực tiếp theo chỉ định bác sĩ."
                         : recommendation));
         record.setStatus("DOCTOR_REJECTED");
-        return imagingRecordRepository.save(record);
+        ImagingRecord saved = imagingRecordRepository.save(record);
+        auditLogService.log(doctorEmail, "DOCTOR_REJECTED", "ImagingRecord", String.valueOf(recordId),
+                "Bác sĩ từ chối kết quả AI cho hồ sơ " + saved.getRecordCode() + ".");
+        return saved;
     }
 
     @Override
@@ -451,6 +473,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private void applyAiAnalysis(ImagingRecord record, Path uploadPath, byte[] fileBytes) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.set("X-Internal-Api-Key", aiServiceApiKey);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new ByteArrayResource(fileBytes) {

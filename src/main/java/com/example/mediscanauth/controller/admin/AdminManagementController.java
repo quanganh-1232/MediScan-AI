@@ -4,6 +4,7 @@ import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.service.impl.AdminManagementService;
 import com.example.mediscanauth.service.impl.UserAdminService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,24 +42,24 @@ public class AdminManagementController {
     @PostMapping("/admin/doctors")
     public String createDoctor(@RequestParam String fullName, @RequestParam String email,
                                @RequestParam(required = false) String phone, @RequestParam String password,
-                               RedirectAttributes redirect) {
+                               Authentication authentication, RedirectAttributes redirect) {
         return run("/admin/doctors", redirect, "Đã thêm bác sĩ mới.",
-                () -> userAdminService.createStaff(fullName, email, phone, password, "DOCTOR"));
+                () -> userAdminService.createStaff(fullName, email, phone, password, "DOCTOR", authentication.getName()));
     }
 
     @PostMapping("/admin/doctors/{id}/update")
     public String updateDoctor(@PathVariable Long id, @RequestParam String fullName,
                                @RequestParam String email, @RequestParam(required = false) String phone,
-                               RedirectAttributes redirect) {
+                               Authentication authentication, RedirectAttributes redirect) {
         return run("/admin/doctors", redirect, "Đã cập nhật thông tin bác sĩ.",
-                () -> userAdminService.updateStaff(id, fullName, email, phone, "DOCTOR"));
+                () -> userAdminService.updateStaff(id, fullName, email, phone, "DOCTOR", authentication.getName()));
     }
 
     @PostMapping("/admin/doctors/{id}/status")
     public String updateDoctorStatus(@PathVariable Long id, @RequestParam String status,
-                                     RedirectAttributes redirect) {
+                                     Authentication authentication, RedirectAttributes redirect) {
         return run("/admin/doctors", redirect, "Đã cập nhật trạng thái bác sĩ.",
-                () -> userAdminService.updateStaffStatus(id, status, "DOCTOR"));
+                () -> userAdminService.updateStaffStatus(id, status, "DOCTOR", authentication.getName()));
     }
 
     @GetMapping("/admin/technicians")
@@ -79,30 +80,30 @@ public class AdminManagementController {
     @PostMapping("/admin/technicians")
     public String createTechnician(@RequestParam String fullName, @RequestParam String email,
                                    @RequestParam(required = false) String phone, @RequestParam String password,
-                                   RedirectAttributes redirect) {
+                                   Authentication authentication, RedirectAttributes redirect) {
         return run("/admin/technicians", redirect, "Đã thêm kỹ thuật viên mới.",
-                () -> userAdminService.createStaff(fullName, email, phone, password, "TECHNICIAN"));
+                () -> userAdminService.createStaff(fullName, email, phone, password, "TECHNICIAN", authentication.getName()));
     }
 
     @PostMapping("/admin/technicians/{id}/update")
     public String updateTechnician(@PathVariable Long id, @RequestParam String fullName,
                                    @RequestParam String email, @RequestParam(required = false) String phone,
-                                   RedirectAttributes redirect) {
+                                   Authentication authentication, RedirectAttributes redirect) {
         return run("/admin/technicians", redirect, "Đã cập nhật kỹ thuật viên.",
-                () -> userAdminService.updateStaff(id, fullName, email, phone, "TECHNICIAN"));
+                () -> userAdminService.updateStaff(id, fullName, email, phone, "TECHNICIAN", authentication.getName()));
     }
 
     @PostMapping("/admin/technicians/{id}/status")
     public String updateTechnicianStatus(@PathVariable Long id, @RequestParam String status,
-                                         RedirectAttributes redirect) {
+                                         Authentication authentication, RedirectAttributes redirect) {
         return run("/admin/technicians", redirect, "Đã cập nhật trạng thái kỹ thuật viên.",
-                () -> userAdminService.updateStaffStatus(id, status, "TECHNICIAN"));
+                () -> userAdminService.updateStaffStatus(id, status, "TECHNICIAN", authentication.getName()));
     }
 
     @PostMapping("/admin/technicians/{id}/delete")
-    public String deleteTechnician(@PathVariable Long id, RedirectAttributes redirect) {
+    public String deleteTechnician(@PathVariable Long id, Authentication authentication, RedirectAttributes redirect) {
         return run("/admin/technicians", redirect, "Đã xóa kỹ thuật viên.",
-                () -> adminManagementService.deleteTechnician(id));
+                () -> adminManagementService.deleteTechnician(id, authentication.getName()));
     }
 
     @PostMapping("/admin/appointments/{id}/assign-technician")
@@ -132,9 +133,10 @@ public class AdminManagementController {
     }
 
     @PostMapping("/admin/patients/{id}/lock")
-    public String lockPatient(@PathVariable Long id, @RequestParam boolean locked, RedirectAttributes redirect) {
+    public String lockPatient(@PathVariable Long id, @RequestParam boolean locked,
+                              Authentication authentication, RedirectAttributes redirect) {
         return run("/admin/patients", redirect, locked ? "Đã khóa hồ sơ bệnh nhân." : "Đã mở khóa hồ sơ bệnh nhân.",
-                () -> adminManagementService.setPatientLocked(id, locked));
+                () -> adminManagementService.setPatientLocked(id, locked, authentication.getName()));
     }
 
     @GetMapping("/admin/appointments")
@@ -157,16 +159,17 @@ public class AdminManagementController {
                                     @RequestParam String status,
                                     @RequestParam(required = false) Long technicianId,
                                     @RequestParam(required = false) Long doctorId,
+                                    Authentication authentication,
                                     RedirectAttributes redirect) {
         return run("/admin/appointments", redirect, "Đã cập nhật lịch hẹn.",
                 () -> adminManagementService.updateAppointment(id, scheduledTime, location, note, status,
-                        technicianId, doctorId));
+                        technicianId, doctorId, authentication.getName()));
     }
 
     @PostMapping("/admin/appointments/{id}/cancel")
-    public String cancelAppointment(@PathVariable Long id, RedirectAttributes redirect) {
+    public String cancelAppointment(@PathVariable Long id, Authentication authentication, RedirectAttributes redirect) {
         return run("/admin/appointments", redirect, "Đã hủy lịch hẹn.",
-                () -> adminManagementService.cancelAppointment(id));
+                () -> adminManagementService.cancelAppointment(id, authentication.getName()));
     }
 
     private String run(String path, RedirectAttributes redirect, String success, Runnable action) {

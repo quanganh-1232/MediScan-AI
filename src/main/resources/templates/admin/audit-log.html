@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Nhật ký hoạt động - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/admin-shell :: nav}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+    <div class="row g-4">
+
+        <!-- ============ Sidebar ============ -->
+        <div class="col-12 col-xl-2">
+            <div th:replace="~{admin/fragments/admin-shell :: sidebar('audit-log')}"></div>
+        </div>
+
+        <!-- ============ Main ============ -->
+        <div class="col-12 col-xl-10">
+            <div class="mb-4">
+                <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-journal-text text-primary me-2"></i>Nhật ký hoạt động</h1>
+                <p class="text-secondary mb-0">Truy vết trách nhiệm: ai đã làm gì, khi nào, trên đối tượng nào — phục vụ kiểm tra và giải trình cho phần mềm y tế.</p>
+            </div>
+
+            <!-- Stat cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-lg-3">
+                    <div class="pt-stat">
+                        <span class="pt-stat-icon"><i class="bi bi-list-ul"></i></span>
+                        <span>
+                            <span class="pt-stat-label d-block">Kết quả lọc</span>
+                            <span class="pt-stat-number" th:text="${logPage.totalElements}">0</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log list -->
+            <section class="pt-card p-4 mb-4">
+                <div class="pt-card-title fs-5 mb-3"><i class="bi bi-list-ul"></i> Danh sách sự kiện</div>
+
+                <form th:action="@{/admin/audit-log}" method="get" class="row g-2 align-items-end mb-3">
+                    <div class="col-12 col-lg-4">
+                        <label for="keyword" class="ms-label">Tìm kiếm</label>
+                        <input id="keyword" name="keyword" class="form-control ms-input"
+                               placeholder="Tên/email người thực hiện, mô tả, ID đối tượng" th:value="${keyword}">
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label for="action" class="ms-label">Hành động</label>
+                        <select id="action" name="action" class="form-select ms-input">
+                            <option value="">Tất cả</option>
+                            <option th:each="a : ${actions}" th:value="${a}" th:text="${a}" th:selected="${a == selectedAction}">ACTION</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label for="entityName" class="ms-label">Đối tượng</label>
+                        <select id="entityName" name="entityName" class="form-select ms-input">
+                            <option value="">Tất cả</option>
+                            <option th:each="e : ${entityNames}" th:value="${e}" th:text="${e}" th:selected="${e == selectedEntity}">Entity</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label for="fromDate" class="ms-label">Từ ngày</label>
+                        <input type="date" id="fromDate" name="fromDate" class="form-control ms-input" th:value="${fromDate}">
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label for="toDate" class="ms-label">Đến ngày</label>
+                        <input type="date" id="toDate" name="toDate" class="form-control ms-input" th:value="${toDate}">
+                    </div>
+                    <div class="col-12 d-flex gap-2">
+                        <button type="submit" class="btn ms-btn ms-btn-primary text-white"><i class="bi bi-search me-1"></i>Lọc</button>
+                        <a th:href="@{/admin/audit-log}" class="btn ms-btn ms-btn-ghost border text-primary">Đặt lại</a>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="pt-table">
+                        <thead>
+                        <tr>
+                            <th>Thời gian</th>
+                            <th>Tài khoản thực hiện</th>
+                            <th>Hành động</th>
+                            <th>Đối tượng</th>
+                            <th>Mô tả</th>
+                            <th>IP</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="log : ${logs}">
+                            <td class="text-nowrap" th:text="${#temporals.format(log.createdAt, 'dd/MM/yyyy HH:mm:ss')}">01/01/2026 00:00:00</td>
+                            <td>
+                                <div class="fw-semibold" th:text="${log.user != null ? log.user.fullName : 'Không xác định'}">User</div>
+                                <div class="small text-muted" th:text="${log.user != null ? log.user.email : ''}">email</div>
+                            </td>
+                            <td>
+                                <span class="pt-status"
+                                      th:classappend="${#strings.contains(log.action, 'FAILED') || #strings.contains(log.action, 'LOCKED') || #strings.contains(log.action, 'REJECTED') || #strings.contains(log.action, 'DELETED')} ? ' pt-status-cancelled' : (${#strings.contains(log.action, 'CREATED') || #strings.contains(log.action, 'UPDATED') || #strings.contains(log.action, 'ASSIGNED') || #strings.contains(log.action, 'CHANGED')} ? ' pt-status-confirmed' : ' pt-status-done')"
+                                      th:text="${log.action}">ACTION</span>
+                            </td>
+                            <td>
+                                <span th:if="${log.entityName != null}" th:text="${log.entityName + (log.entityId != null ? ' #' + log.entityId : '')}">Entity</span>
+                                <span th:if="${log.entityName == null}" class="text-muted">—</span>
+                            </td>
+                            <td class="small" th:text="${log.description}" style="max-width: 360px;">Description</td>
+                            <td class="small text-muted" th:text="${log.ipAddress != null ? log.ipAddress : '—'}">IP</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(logs)}">
+                            <td colspan="6" class="text-center text-muted py-4">Chưa có sự kiện nào được ghi nhận.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <nav th:if="${logPage.totalPages > 1}" class="mt-3" aria-label="Audit log pages">
+                    <ul class="pagination justify-content-end mb-0 gap-1">
+                        <li class="page-item" th:classappend="${logPage.first} ? ' disabled' : ''">
+                            <a class="page-link rounded-3"
+                               th:href="@{/admin/audit-log(keyword=${keyword}, action=${selectedAction}, entityName=${selectedEntity}, fromDate=${fromDate}, toDate=${toDate}, page=${logPage.number - 1})}"><i class="bi bi-chevron-left"></i></a>
+                        </li>
+                        <li class="page-item"
+                            th:each="p : ${#numbers.sequence(0, logPage.totalPages - 1)}"
+                            th:classappend="${p == logPage.number} ? ' active' : ''">
+                            <a class="page-link rounded-3"
+                               th:href="@{/admin/audit-log(keyword=${keyword}, action=${selectedAction}, entityName=${selectedEntity}, fromDate=${fromDate}, toDate=${toDate}, page=${p})}"
+                               th:text="${p + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${logPage.last} ? ' disabled' : ''">
+                            <a class="page-link rounded-3"
+                               th:href="@{/admin/audit-log(keyword=${keyword}, action=${selectedAction}, entityName=${selectedEntity}, fromDate=${fromDate}, toDate=${toDate}, page=${logPage.number + 1})}"><i class="bi bi-chevron-right"></i></a>
+                        </li>
+                    </ul>
+                </nav>
+            </section>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

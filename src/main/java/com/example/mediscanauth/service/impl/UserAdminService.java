@@ -33,11 +33,13 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository = (UserRepository) this.repository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
 
-    public UserAdminService(UserRepository repository, RoleRepository roleRepository) {
+    public UserAdminService(UserRepository repository, RoleRepository roleRepository, AuditLogService auditLogService) {
         super(repository);
         this.roleRepository = roleRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
+        this.auditLogService = auditLogService;
     }
 
     @Autowired
@@ -79,14 +81,20 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
         User user = getUserDetail(userId);
         preventSelfLock(user, currentAdminEmail);
         user.setStatus(STATUS_LOCKED);
-        return update(user);
+        User saved = update(user);
+        auditLogService.log(currentAdminEmail, "ACCOUNT_LOCKED", "User", String.valueOf(userId),
+                "Khóa tài khoản " + user.getEmail() + ".");
+        return saved;
     }
 
     @Transactional
-    public User unlockAccount(Long userId) {
+    public User unlockAccount(Long userId, String currentAdminEmail) {
         User user = getUserDetail(userId);
         user.setStatus(STATUS_ACTIVE);
-        return update(user);
+        User saved = update(user);
+        auditLogService.log(currentAdminEmail, "ACCOUNT_UNLOCKED", "User", String.valueOf(userId),
+                "Mở khóa tài khoản " + user.getEmail() + ".");
+        return saved;
     }
 
     @Transactional
@@ -94,15 +102,20 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
         User user = getUserDetail(userId);
         String normalizedRoleName = normalizeRoleName(roleName);
         preventSelfDemotion(user, normalizedRoleName, currentAdminEmail);
+        String previousRole = user.getRole() == null ? "?" : user.getRole().getRoleName();
 
         Role role = roleRepository.findByRoleName(normalizedRoleName)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + normalizedRoleName));
         user.setRole(role);
-        return update(user);
+        User saved = update(user);
+        auditLogService.log(currentAdminEmail, "ROLE_ASSIGNED", "User", String.valueOf(userId),
+                "Đổi vai trò " + user.getEmail() + " từ " + previousRole + " sang " + normalizedRoleName + ".");
+        return saved;
     }
 
     @Transactional
-    public User createStaff(String fullName, String email, String phone, String rawPassword, String roleName) {
+    public User createStaff(String fullName, String email, String phone, String rawPassword, String roleName,
+                             String currentAdminEmail) {
         String normalizedEmail = normalizeText(email).toLowerCase(Locale.ROOT);
         validateStaffInput(fullName, normalizedEmail, rawPassword);
         if (userRepository.existsByEmail(normalizedEmail)) {
@@ -120,11 +133,15 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
         user.setRole(role);
         user.setStatus(STATUS_ACTIVE);
         user.setAuthProvider("LOCAL");
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        auditLogService.log(currentAdminEmail, "STAFF_CREATED", "User", String.valueOf(saved.getUserId()),
+                "Tạo tài khoản " + normalizedRole + " " + normalizedEmail + ".");
+        return saved;
     }
 
     @Transactional
-    public User updateStaff(Long userId, String fullName, String email, String phone, String expectedRole) {
+    public User updateStaff(Long userId, String fullName, String email, String phone, String expectedRole,
+                             String currentAdminEmail) {
         User user = getUserDetail(userId);
         requireUserRole(user, expectedRole);
         String normalizedEmail = normalizeText(email).toLowerCase(Locale.ROOT);
@@ -137,11 +154,14 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
         user.setFullName(normalizeText(fullName));
         user.setEmail(normalizedEmail);
         user.setPhone(normalizeText(phone));
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        auditLogService.log(currentAdminEmail, "STAFF_UPDATED", "User", String.valueOf(userId),
+                "Cập nhật thông tin " + expectedRole + " " + normalizedEmail + ".");
+        return saved;
     }
 
     @Transactional
-    public User updateStaffStatus(Long userId, String status, String expectedRole) {
+    public User updateStaffStatus(Long userId, String status, String expectedRole, String currentAdminEmail) {
         User user = getUserDetail(userId);
         requireUserRole(user, expectedRole);
         String normalizedStatus = normalizeText(status).toUpperCase(Locale.ROOT);
@@ -149,7 +169,12 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
             throw new IllegalArgumentException("Trạng thái không hợp lệ.");
         }
         user.setStatus(normalizedStatus);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        auditLogService.log(currentAdminEmail,
+                normalizedStatus.equals(STATUS_LOCKED) ? "ACCOUNT_LOCKED" : "ACCOUNT_UNLOCKED",
+                "User", String.valueOf(userId),
+                "Đổi trạng thái " + expectedRole + " " + user.getEmail() + " thành " + normalizedStatus + ".");
+        return saved;
     }
 
     @Transactional(readOnly = true)
