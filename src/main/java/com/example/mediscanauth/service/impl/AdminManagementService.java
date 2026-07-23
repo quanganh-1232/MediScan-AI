@@ -23,15 +23,18 @@ public class AdminManagementService {
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
     private final AppointmentRepository appointmentRepository;
+    private final AuditLogService auditLogService;
 
     public AdminManagementService(UserAdminService userAdminService,
                                   UserRepository userRepository,
                                   PatientRepository patientRepository,
-                                  AppointmentRepository appointmentRepository) {
+                                  AppointmentRepository appointmentRepository,
+                                  AuditLogService auditLogService) {
         this.userAdminService = userAdminService;
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.appointmentRepository = appointmentRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -71,13 +74,16 @@ public class AdminManagementService {
     }
 
     @Transactional
-    public void setPatientLocked(Long patientId, boolean locked) {
+    public void setPatientLocked(Long patientId, boolean locked, String currentAdminEmail) {
         Patient patient = requirePatient(patientId);
         if (patient.getUser() == null) {
             throw new IllegalArgumentException("Bệnh nhân này chưa có tài khoản để khóa.");
         }
         patient.getUser().setStatus(locked ? "LOCKED" : "ACTIVE");
         userRepository.save(patient.getUser());
+        auditLogService.log(currentAdminEmail, locked ? "ACCOUNT_LOCKED" : "ACCOUNT_UNLOCKED",
+                "Patient", String.valueOf(patientId),
+                (locked ? "Khóa" : "Mở khóa") + " hồ sơ bệnh nhân " + patient.getFullName() + ".");
     }
 
     @Transactional(readOnly = true)
@@ -95,18 +101,24 @@ public class AdminManagementService {
 
     @Transactional
     public Appointment updateAppointment(Long appointmentId, LocalDateTime scheduledTime, String location,
-                                         String note, String status, Long technicianId, Long doctorId) {
+                                         String note, String status, Long technicianId, Long doctorId,
+                                         String currentAdminEmail) {
         Appointment appointment = requireAppointment(appointmentId);
         if (scheduledTime == null) {
             throw new IllegalArgumentException("Thời gian hẹn không được để trống.");
         }
+        String previousStatus = appointment.getStatus();
         appointment.setScheduledTime(scheduledTime);
         appointment.setLocation(normalize(location));
         appointment.setNote(normalize(note));
         appointment.setStatus(normalizeAppointmentStatus(status));
         appointment.setTechnician(optionalActiveStaff(technicianId, "TECHNICIAN"));
         appointment.setDoctor(optionalActiveStaff(doctorId, "DOCTOR"));
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+        auditLogService.log(currentAdminEmail, "APPOINTMENT_STATUS_CHANGED", "Appointment",
+                String.valueOf(appointmentId),
+                "Lịch hẹn " + saved.getAppointmentCode() + ": " + previousStatus + " -> " + saved.getStatus() + ".");
+        return saved;
     }
 
     @Transactional
@@ -117,10 +129,13 @@ public class AdminManagementService {
     }
 
     @Transactional
-    public void cancelAppointment(Long appointmentId) {
+    public void cancelAppointment(Long appointmentId, String currentAdminEmail) {
         Appointment appointment = requireAppointment(appointmentId);
         appointment.setStatus("CANCELLED");
         appointmentRepository.save(appointment);
+        auditLogService.log(currentAdminEmail, "APPOINTMENT_STATUS_CHANGED", "Appointment",
+                String.valueOf(appointmentId),
+                "Hủy lịch hẹn " + appointment.getAppointmentCode() + ".");
     }
 
     @Transactional(readOnly = true)
@@ -129,11 +144,13 @@ public class AdminManagementService {
     }
 
     @Transactional
-    public void deleteTechnician(Long technicianId) {
+    public void deleteTechnician(Long technicianId, String currentAdminEmail) {
         if (appointmentRepository.existsByTechnicianUserId(technicianId)) {
             throw new IllegalArgumentException("Không thể xóa kỹ thuật viên đã được phân công. Hãy khóa tài khoản thay thế.");
         }
         userAdminService.deleteStaff(technicianId, "TECHNICIAN");
+        auditLogService.log(currentAdminEmail, "STAFF_DELETED", "User", String.valueOf(technicianId),
+                "Xóa tài khoản kỹ thuật viên.");
     }
 
     public List<String> appointmentStatuses() {

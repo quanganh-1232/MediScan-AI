@@ -29,6 +29,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     Page<Appointment> findByPatientUserOrderByScheduledTimeDesc(User user, Pageable pageable);
 
+    Page<Appointment> findByPatientUserAndStatusInOrderByScheduledTimeDesc(User user, List<String> statuses, Pageable pageable);
+
     @Query("select a from Appointment a left join fetch a.patient left join fetch a.doctor " +
            "where a.scheduledTime between :from and :to order by a.scheduledTime asc")
     List<Appointment> findByScheduledTimeBetweenOrderByScheduledTimeAsc(@Param("from") LocalDateTime from,

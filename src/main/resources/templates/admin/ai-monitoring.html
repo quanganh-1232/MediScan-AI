@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Giám sát AI chẩn đoán - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/admin-shell :: nav}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+    <div class="row g-4">
+
+        <div class="col-12 col-xl-2">
+            <div th:replace="~{admin/fragments/admin-shell :: sidebar('ai-monitoring')}"></div>
+        </div>
+
+        <div class="col-12 col-xl-10">
+            <div class="mb-4">
+                <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-cpu text-primary me-2"></i>Giám sát AI chẩn đoán</h1>
+                <p class="text-secondary mb-0">Chất lượng và độ tin cậy của pipeline AI (YOLOv11 + fractal features + ANFIS) qua các ca đã xử lý.</p>
+            </div>
+
+            <div th:if="${success}" class="alert alert-success ms-auth-alert"><i class="bi bi-check-circle-fill"></i><span th:text="${success}"></span></div>
+            <div th:if="${error}" class="alert alert-danger ms-auth-alert"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
+
+            <!-- KPI cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-lg-3">
+                    <div class="pt-stat">
+                        <span class="pt-stat-icon"><i class="bi bi-arrow-left-right"></i></span>
+                        <span>
+                            <span class="pt-stat-label d-block">Tỉ lệ bác sĩ chỉnh sửa AI</span>
+                            <span class="pt-stat-number" th:text="${overrideStats.overrideRatePercent != null ? overrideStats.overrideRatePercent + '%' : 'N/A'}">N/A</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="pt-stat">
+                        <span class="pt-stat-icon danger"><i class="bi bi-x-octagon"></i></span>
+                        <span>
+                            <span class="pt-stat-label d-block">Tỉ lệ bác sĩ từ chối AI</span>
+                            <span class="pt-stat-number" th:text="${overrideStats.rejectionRatePercent != null ? overrideStats.rejectionRatePercent + '%' : 'N/A'}">N/A</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="pt-stat">
+                        <span class="pt-stat-icon ok"><i class="bi bi-check2-circle"></i></span>
+                        <span>
+                            <span class="pt-stat-label d-block">Đã theo dõi (giữ nguyên/chỉnh sửa)</span>
+                            <span class="pt-stat-number" th:text="${overrideStats.trackedCount}">0</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="pt-stat">
+                        <span class="pt-stat-icon danger"><i class="bi bi-exclamation-triangle"></i></span>
+                        <span>
+                            <span class="pt-stat-label d-block">Ca AI lỗi (AI_FAILED)</span>
+                            <span class="pt-stat-number" th:text="${aiFailedCount}">0</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <p class="text-muted small mb-4" th:if="${overrideStats.legacyUntrackedCount > 0}">
+                <i class="bi bi-info-circle me-1"></i>
+                Còn <strong th:text="${overrideStats.legacyUntrackedCount}">0</strong> hồ sơ đã xác nhận trước khi tính năng theo dõi override được bật, nên chưa có dữ liệu giữ nguyên/chỉnh sửa — không tính vào tỉ lệ trên.
+            </p>
+
+            <div class="row g-4 mb-4">
+                <!-- Risk level distribution -->
+                <div class="col-12 col-lg-6">
+                    <section class="pt-card p-4 h-100">
+                        <div class="pt-card-title fs-5 mb-3"><i class="bi bi-bar-chart"></i> Phân bố mức độ rủi ro</div>
+                        <div th:each="entry : ${riskDistribution}" class="mb-3">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span th:text="${entry.key}">Mức</span>
+                                <span class="fw-semibold" th:text="${entry.value}">0</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-primary" role="progressbar"
+                                     th:style="'width: ' + (${entry.value * 100 / totalRiskCount}) + '%'"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Confidence trend -->
+                <div class="col-12 col-lg-6">
+                    <section class="pt-card p-4 h-100">
+                        <div class="pt-card-title fs-5 mb-3"><i class="bi bi-graph-up"></i> Độ tin cậy AI trung bình (14 ngày gần nhất)</div>
+                        <div class="d-flex align-items-end gap-1" style="height: 140px;">
+                            <div th:each="point : ${confidenceTrend}" class="flex-fill text-center" style="min-width: 0;">
+                                <div class="bg-primary bg-opacity-75 rounded-top mx-auto"
+                                     style="width: 60%;"
+                                     th:style="'width: 60%; height: ' + (${point.avgConfidence != null ? point.avgConfidence : 0}) + '%;'"
+                                     th:title="${point.avgConfidence != null ? point.avgConfidence + '%' : 'Không có dữ liệu'}"></div>
+                                <div class="small text-muted mt-1" style="font-size: 0.6rem;" th:text="${#temporals.format(point.date, 'dd/MM')}">01/01</div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- AI_FAILED cases -->
+            <section class="pt-card p-4 mb-4">
+                <div class="pt-card-title fs-5 mb-3"><i class="bi bi-exclamation-octagon text-danger"></i> Ca AI xử lý lỗi gần đây</div>
+                <div class="table-responsive">
+                    <table class="pt-table">
+                        <thead>
+                        <tr>
+                            <th>Mã hồ sơ</th>
+                            <th>Bệnh nhân</th>
+                            <th>Bộ phận chụp</th>
+                            <th>Thời gian tạo</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="rec : ${aiFailedCases}">
+                            <td th:text="${rec.recordCode}">REC-001</td>
+                            <td th:text="${rec.patient != null ? rec.patient.fullName : '—'}">Bệnh nhân</td>
+                            <td th:text="${rec.bodyPart}">Cổ tay</td>
+                            <td th:text="${rec.createdAt != null ? #temporals.format(rec.createdAt, 'dd/MM/yyyy HH:mm') : '—'}">—</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(aiFailedCases)}">
+                            <td colspan="4" class="text-center text-muted py-4">Không có ca AI lỗi nào gần đây.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Model version registry -->
+            <section class="pt-card p-4">
+                <div class="pt-card-title fs-5 mb-3"><i class="bi bi-box-seam"></i> Phiên bản model đang sử dụng</div>
+                <div class="table-responsive mb-3">
+                    <table class="pt-table">
+                        <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Phiên bản</th>
+                            <th>Độ chính xác</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày ghi nhận</th>
+                            <th>Ghi chú</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="m : ${modelVersions}">
+                            <td th:text="${m.modelName}">YOLOv11</td>
+                            <td th:text="${m.version}">v1.0</td>
+                            <td th:text="${m.accuracy != null ? m.accuracy + '%' : '—'}">—</td>
+                            <td><span class="pt-status pt-status-done" th:text="${m.status}">ACTIVE</span></td>
+                            <td th:text="${m.createdAt != null ? #temporals.format(m.createdAt, 'dd/MM/yyyy') : '—'}">—</td>
+                            <td class="small" th:text="${m.description}">—</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(modelVersions)}">
+                            <td colspan="6" class="text-center text-muted py-4">Chưa có phiên bản model nào được ghi nhận. Hãy thêm bên dưới khi retrain model mới.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <form th:action="@{/admin/ai-monitoring/models}" method="post" class="row g-2 align-items-end">
+                    <div class="col-6 col-lg-2">
+                        <label class="ms-label">Tên model</label>
+                        <input name="modelName" class="form-control ms-input" placeholder="YOLOv11 + ANFIS" required>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label class="ms-label">Phiên bản</label>
+                        <input name="version" class="form-control ms-input" placeholder="v1.2.0" required>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label class="ms-label">Độ chính xác (%)</label>
+                        <input name="accuracy" type="number" step="0.01" min="0" max="100" class="form-control ms-input" placeholder="92.5">
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <label class="ms-label">Endpoint / weights file</label>
+                        <input name="apiEndpoint" class="form-control ms-input" placeholder="fracture_anfis.pt">
+                    </div>
+                    <div class="col-12 col-lg-2">
+                        <label class="ms-label">Ghi chú</label>
+                        <input name="description" class="form-control ms-input" placeholder="Retrain trên tập dữ liệu mới">
+                    </div>
+                    <div class="col-12 col-lg-1">
+                        <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

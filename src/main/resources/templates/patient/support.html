@@ -34,6 +34,9 @@
 <div th:replace="~{patient/fragments/patient-shell :: nav('support')}"></div>
 <main class="container py-4" style="max-width:860px;">
 
+    <div th:if="${success}" class="alert alert-success ms-auth-alert"><i class="bi bi-check-circle-fill"></i><span th:text="${success}"></span></div>
+    <div th:if="${error}" class="alert alert-danger ms-auth-alert"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
+
     <!-- Hero -->
     <div class="support-hero">
         <h1 class="fw-bold mb-1" style="font-size:1.6rem;"><i class="bi bi-life-preserver me-2"></i>Trung tâm Hỗ trợ</h1>
@@ -179,6 +182,49 @@
         </div>
     </div>
 
+    <div class="row g-4 mt-1">
+        <div class="col-12 col-lg-5">
+            <section class="pt-card p-4 h-100">
+                <div class="pt-card-title mb-3"><i class="bi bi-send"></i> Gửi yêu cầu hỗ trợ</div>
+                <form th:action="@{/patient/support}" method="post">
+                    <div class="mb-3">
+                        <label class="ms-label" for="subject">Tiêu đề</label>
+                        <input id="subject" name="subject" class="form-control ms-input" placeholder="VD: Không xem được kết quả X-quang" required maxlength="200">
+                    </div>
+                    <div class="mb-3">
+                        <label class="ms-label" for="message">Nội dung</label>
+                        <textarea id="message" name="message" class="form-control ms-input" rows="4" placeholder="Mô tả chi tiết vấn đề bạn gặp phải..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100"><i class="bi bi-send me-1"></i>Gửi yêu cầu</button>
+                </form>
+            </section>
+        </div>
+
+        <div class="col-12 col-lg-7">
+            <section class="pt-card p-4 h-100">
+                <div class="pt-card-title mb-3"><i class="bi bi-clock-history"></i> Yêu cầu của bạn</div>
+                <div class="d-grid gap-3" th:if="${!#lists.isEmpty(supportRequests)}">
+                    <div class="p-3 rounded-3 border" th:each="req : ${supportRequests}">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                            <div class="fw-semibold" th:text="${req.subject}">Tiêu đề</div>
+                            <span class="pt-status"
+                                  th:classappend="${req.status == 'RESOLVED'} ? ' pt-status-done' : (${req.status == 'IN_PROGRESS'} ? ' pt-status-confirmed' : ' pt-status-cancelled')"
+                                  th:text="${req.status == 'OPEN' ? 'Chờ xử lý' : (req.status == 'IN_PROGRESS' ? 'Đang xử lý' : 'Đã giải quyết')}">Trạng thái</span>
+                        </div>
+                        <div class="small text-muted mb-2" th:text="${#temporals.format(req.createdAt, 'dd/MM/yyyy HH:mm')}">Ngày gửi</div>
+                        <div class="small mb-2" th:text="${req.message}">Nội dung</div>
+                        <div class="p-2 rounded-3 small" style="background:#f8fafd;" th:if="${req.adminResponse != null}">
+                            <div class="fw-semibold text-primary mb-1"><i class="bi bi-reply-fill me-1"></i>Phản hồi từ phòng khám</div>
+                            <div th:text="${req.adminResponse}">Phản hồi</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-muted small text-center py-4" th:if="${#lists.isEmpty(supportRequests)}">
+                    Bạn chưa gửi yêu cầu hỗ trợ nào.
+                </div>
+            </section>
+        </div>
+    </div>
 </main>
 <div th:replace="~{patient/fragments/patient-shell :: chatbot}"></div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

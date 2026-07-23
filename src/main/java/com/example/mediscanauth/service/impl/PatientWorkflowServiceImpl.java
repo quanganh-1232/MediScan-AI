@@ -1,5 +1,6 @@
 package com.example.mediscanauth.service.impl;
 
+import com.example.mediscanauth.constant.OperationalConfig;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.repository.ImagingRecordRepository;
@@ -48,9 +49,9 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     private final ObjectMapper objectMapper;
 
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
-    private static final int LEGACY_TEXT_COLUMN_LIMIT = 900;
-    private static final int AI_CONNECT_TIMEOUT_MS = 5_000;
-    private static final int AI_READ_TIMEOUT_MS = 45_000;
+    private static final int LEGACY_TEXT_COLUMN_LIMIT = OperationalConfig.LEGACY_TEXT_COLUMN_LIMIT;
+    private static final int AI_CONNECT_TIMEOUT_MS = OperationalConfig.AI_CONNECT_TIMEOUT_MS;
+    private static final int AI_READ_TIMEOUT_MS = OperationalConfig.AI_READ_TIMEOUT_MS;
 
     @Value("${ai.service.url:http://localhost:8000/predict}")
     private String aiServiceUrl;
@@ -193,7 +194,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
         builder.append("Khuyến nghị:");
 
         if (fractureDetected) {
-            if (confidence >= 80) {
+            if (confidence >= OperationalConfig.AI_CONFIDENCE_STRONG_THRESHOLD) {
                 builder.append("\n- Nên liên hệ bác sĩ chuyên khoa xương khớp ngay để được chẩn đoán hình ảnh chính xác và lên kế hoạch điều trị.");
             } else {
                 builder.append("\n- Kết quả cho thấy khả năng gãy xương, cần thăm khám lâm sàng và xét nghiệm bổ sung để xác nhận.");

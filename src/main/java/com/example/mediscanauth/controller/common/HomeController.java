@@ -39,12 +39,13 @@ public class HomeController {
     @GetMapping("/home")
     public String home(Authentication authentication, 
                        @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+                       @org.springframework.web.bind.annotation.RequestParam(required = false) String statusFilter,
                        Model model) {
         User user = userAccountService.findByEmail(authentication.getName());
         model.addAttribute("currentUser", user);
 
         if (isPatient(user)) {
-            return patientHome(user, page, model);
+            return patientHome(user, page, statusFilter, model);
         }
 
         if (hasRole(user, "RECEPTIONIST")) {
@@ -78,11 +79,18 @@ public class HomeController {
         return "common/home";
     }
 
-    private String patientHome(User user, int page, Model model) {
+    private String patientHome(User user, int page, String statusFilter, Model model) {
         List<Appointment> allAppointments = appointmentRepository.findByPatientUserOrderByScheduledTimeDesc(user);
         
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(Math.max(page, 0), 5);
-        org.springframework.data.domain.Page<Appointment> appointmentPage = appointmentRepository.findByPatientUserOrderByScheduledTimeDesc(user, pageable);
+        org.springframework.data.domain.Page<Appointment> appointmentPage;
+
+        if (statusFilter == null || statusFilter.isBlank()) {
+            appointmentPage = appointmentRepository.findByPatientUserOrderByScheduledTimeDesc(user, pageable);
+        } else {
+            List<String> statuses = List.of(statusFilter.split(","));
+            appointmentPage = appointmentRepository.findByPatientUserAndStatusInOrderByScheduledTimeDesc(user, statuses, pageable);
+        }
         
         Appointment upcoming = allAppointments.stream()
                 .filter(a -> a.getScheduledTime() != null && a.getScheduledTime().isAfter(LocalDateTime.now()))
@@ -93,6 +101,7 @@ public class HomeController {
         model.addAttribute("myAppointments", appointmentPage.getContent());
         model.addAttribute("appointmentPage", appointmentPage);
         model.addAttribute("currentPage", page);
+        model.addAttribute("statusFilter", statusFilter == null ? "" : statusFilter);
         
         model.addAttribute("upcomingAppointment", upcoming);
         model.addAttribute("doctors", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
