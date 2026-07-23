@@ -101,7 +101,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         this.objectMapper = new ObjectMapper();
     }
 
-    // ==================== DOCTOR DASHBOARD METHODS (từ code trên)
+    // ==================== DOCTOR DASHBOARD METHODS (tá»« code trÃªn)
     // ====================
     @Override
     public DashboardDTO getDoctorDashboardStats(Long doctorId) {
@@ -144,7 +144,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     @Override
     public ImagingRecord getRecordDetail(Long recordId) {
         return imagingRecordRepository.findById(recordId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ ID: " + recordId));
+                .orElseThrow(() -> new RuntimeException("KhÃ´ng tÃ¬m tháº¥y há»“ sÆ¡ ID: " + recordId));
     }
 
     @Override
@@ -152,7 +152,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         return imagingRecordRepository.findAiRegionsByRecordId(recordId);
     }
 
-    // ==================== CORE METHODS (giữ logic từ code dưới)
+    // ==================== CORE METHODS (giá»¯ logic tá»« code dÆ°á»›i)
     // ====================
     @Override
     public List<ImagingRecord> findForPatient(User patient) {
@@ -207,7 +207,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         record.setTechnician(technician);
         record.setBodyPart(bodyPart);
         record.setFileName(fileName);
-        record.setAiPrediction("Chờ AI phân tích");
+        record.setAiPrediction("Chá» AI phÃ¢n tÃ­ch");
         record.setAiConfidence(0);
         record.setStatus("PENDING_AI");
         return imagingRecordRepository.save(record);
@@ -242,25 +242,25 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             record.setPatient(patient);
             record.setDoctor(doctor);
             record.setTechnician(technician);
-            record.setBodyPart("Ảnh X-Ray ngẫu nhiên");
+            record.setBodyPart("áº¢nh X-Ray ngáº«u nhiÃªn");
             record.setFileName(fileName);
-            record.setAiPrediction("Đang phân tích AI bằng YOLO+ANFIS");
+            record.setAiPrediction("Äang phÃ¢n tÃ­ch AI báº±ng YOLO+ANFIS");
             record.setAiConfidence(0);
-            record.setRecommendation("Chờ bác sĩ xác nhận kết quả AI.");
+            record.setRecommendation("Chá» bÃ¡c sÄ© xÃ¡c nháº­n káº¿t quáº£ AI.");
             record.setStatus("PENDING_AI");
 
             ImagingRecord savedRecord = imagingRecordRepository.save(record);
             applyAiAnalysis(savedRecord, uploadPath, imageBytes);
             return imagingRecordRepository.save(savedRecord);
         } catch (IOException e) {
-            throw new RuntimeException("Không thể lấy ảnh ngẫu nhiên hoặc phân tích ảnh X-Ray: " + e.getMessage(), e);
+            throw new RuntimeException("KhÃ´ng thá»ƒ láº¥y áº£nh ngáº«u nhiÃªn hoáº·c phÃ¢n tÃ­ch áº£nh X-Ray: " + e.getMessage(), e);
         }
     }
 
     @Override
     public ImagingRecord getRecordById(Long recordId) {
         return imagingRecordRepository.findById(recordId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hồ sơ #" + recordId));
+                .orElseThrow(() -> new IllegalArgumentException("KhÃ´ng tÃ¬m tháº¥y há»“ sÆ¡ #" + recordId));
     }
 
     @Override
@@ -276,7 +276,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     @Override
     public Patient getPatientById(Long patientId) {
         return patientRepository.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bệnh nhân ID: " + patientId));
+                .orElseThrow(() -> new RuntimeException("KhÃ´ng tÃ¬m tháº¥y bá»‡nh nhÃ¢n ID: " + patientId));
     }
 
     @Override
@@ -308,13 +308,13 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         record.setDoctorOverrodeAi(overrodeAi);
         record.setDoctorConclusion(cleanSentence(isBlank(conclusion) ? record.getAiPrediction() : conclusion));
         record.setRecommendation(cleanSentence(
-                isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả." : recommendation));
+                isBlank(recommendation) ? "BÃ¡c sÄ© Ä‘Ã£ xÃ¡c nháº­n káº¿t quáº£." : recommendation));
 
         record.setStatus("COMPLETED");
         record.setConfirmedAt(LocalDateTime.now());
-        record.setVisibility(visibility); // <-- Lưu visibility từ bác sĩ chọn
+        record.setVisibility(visibility); // <-- LÆ°u visibility tá»« bÃ¡c sÄ© chá»n
 
-        // === XỬ LÝ UPLOAD ẢNH CHỤP MÀN HÌNH ===
+        // === Xá»¬ LÃ UPLOAD áº¢NH CHá»¤P MÃ€N HÃŒNH ===
         String dbFileName = record.getFileName();
         if (dbFileName != null && !dbFileName.isEmpty() && base64ImageData != null && !base64ImageData.isEmpty()) {
             String patientName = record.getPatient() != null ? record.getPatient().getFullName() : "Unknown_Patient";
@@ -325,28 +325,29 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
         ImagingRecord savedRecord = imagingRecordRepository.save(record);
 
-        // === CHỈ TẠO THÔNG BÁO KHI LÀ PUBLIC ===
-        // Lưu ý: notifications.record_id có khoá ngoại trỏ tới medical_records,
-        // không phải imaging_records — hai bảng này độc lập nhau nên không được
-        // gán savedRecord.getRecordId() vào đây (sẽ vi phạm khoá ngoại vì hai
-        // bảng có hai dải ID khác nhau).
+        // === CHá»ˆ Táº O THÃ”NG BÃO KHI LÃ€ PUBLIC ===
+        // LÆ°u Ã½: notifications.record_id cÃ³ khoÃ¡ ngoáº¡i trá» tá»›i medical_records,
+        // khÃ´ng pháº£i imaging_records â€” hai báº£ng nÃ y Ä‘á»™c láº­p nhau nÃªn khÃ´ng Ä‘Æ°á»£c
+        // gÃ¡n savedRecord.getRecordId() vÃ o Ä‘Ã¢y (sáº½ vi pháº¡m khoÃ¡ ngoáº¡i vÃ¬ hai
+        // báº£ng cÃ³ hai dáº£i ID khÃ¡c nhau).
         if ("PUBLIC".equalsIgnoreCase(savedRecord.getVisibility())) {
             Notification notification = new Notification();
             notification.setUser(savedRecord.getPatient());
-            notification.setTitle("Kết quả X-quang đã có");
+            notification.setRecordId(savedRecord.getRecordId());
+            notification.setTitle("Káº¿t quáº£ X-quang Ä‘Ã£ cÃ³");
             notification.setMessage(
-                    "Kết quả chẩn đoán cho hồ sơ " + savedRecord.getRecordCode() + " đã được bác sĩ xác nhận.");
+                    "Káº¿t quáº£ cháº©n Ä‘oÃ¡n cho há»“ sÆ¡ " + savedRecord.getRecordCode() + " Ä‘Ã£ Ä‘Æ°á»£c bÃ¡c sÄ© xÃ¡c nháº­n.");
             notification.setRead(false);
             notificationRepository.save(notification);
 
-            System.out.println("→ [NOTI] Đã tạo thông báo cho bệnh nhân (PUBLIC)");
+            System.out.println("â†’ [NOTI] ÄÃ£ táº¡o thÃ´ng bÃ¡o cho bá»‡nh nhÃ¢n (PUBLIC)");
         } else {
-            System.out.println("→ [NOTI] Giữ riêng tư (PRIVATE) - Không tạo thông báo");
+            System.out.println("â†’ [NOTI] Giá»¯ riÃªng tÆ° (PRIVATE) - KhÃ´ng táº¡o thÃ´ng bÃ¡o");
         }
 
         auditLogService.log(doctorEmail, "DOCTOR_APPROVED", "ImagingRecord", String.valueOf(recordId),
-                "Bác sĩ xác nhận hồ sơ " + savedRecord.getRecordCode()
-                        + (overrodeAi ? " (chỉnh sửa kết luận so với AI)." : " (giữ nguyên kết luận AI)."));
+                "BÃ¡c sÄ© xÃ¡c nháº­n há»“ sÆ¡ " + savedRecord.getRecordCode()
+                        + (overrodeAi ? " (chá»‰nh sá»­a káº¿t luáº­n so vá»›i AI)." : " (giá»¯ nguyÃªn káº¿t luáº­n AI)."));
 
         return savedRecord;
     }
@@ -359,14 +360,14 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         User doctor = userAccountService.findByEmail(doctorEmail);
         record.setDoctor(doctor);
         record.setDoctorConclusion(
-                cleanSentence(isBlank(conclusion) ? "Bác sĩ chưa xác nhận kết quả AI; cần đánh giá lại." : conclusion));
+                cleanSentence(isBlank(conclusion) ? "BÃ¡c sÄ© chÆ°a xÃ¡c nháº­n káº¿t quáº£ AI; cáº§n Ä‘Ã¡nh giÃ¡ láº¡i." : conclusion));
         record.setRecommendation(cleanSentence(
-                isBlank(recommendation) ? "Cần chụp lại, bổ sung tư thế hoặc kiểm tra trực tiếp theo chỉ định bác sĩ."
+                isBlank(recommendation) ? "Cáº§n chá»¥p láº¡i, bá»• sung tÆ° tháº¿ hoáº·c kiá»ƒm tra trá»±c tiáº¿p theo chá»‰ Ä‘á»‹nh bÃ¡c sÄ©."
                         : recommendation));
         record.setStatus("DOCTOR_REJECTED");
         ImagingRecord saved = imagingRecordRepository.save(record);
         auditLogService.log(doctorEmail, "DOCTOR_REJECTED", "ImagingRecord", String.valueOf(recordId),
-                "Bác sĩ từ chối kết quả AI cho hồ sơ " + saved.getRecordCode() + ".");
+                "BÃ¡c sÄ© tá»« chá»‘i káº¿t quáº£ AI cho há»“ sÆ¡ " + saved.getRecordCode() + ".");
         return saved;
     }
 
@@ -385,7 +386,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     public void deleteRecordForPatient(Long recordId, User patient) {
         ImagingRecord record = getRecordById(recordId);
         if (!record.getPatient().getUserId().equals(patient.getUserId())) {
-            throw new IllegalArgumentException("Bạn không có quyền xóa hồ sơ này.");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n xÃ³a há»“ sÆ¡ nÃ y.");
         }
         if (record.getFileName() != null && !record.getFileName().isEmpty()) {
             try {
@@ -446,7 +447,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         return value.substring(0, Math.max(0, maxLength - 3)).trim() + "...";
     }
 
-    // ==================== AI & UPLOAD HELPERS (giữ nguyên từ code dưới)
+    // ==================== AI & UPLOAD HELPERS (giá»¯ nguyÃªn tá»« code dÆ°á»›i)
     // ====================
     private StoredImage selectRandomUploadImage(Path uploadPath) throws IOException {
         List<Path> imageFiles = Files.list(uploadPath)
@@ -461,7 +462,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
                 .collect(Collectors.toList());
 
         if (imageFiles.isEmpty()) {
-            throw new IOException("Không có ảnh mẫu trong kho ảnh để chụp.");
+            throw new IOException("KhÃ´ng cÃ³ áº£nh máº«u trong kho áº£nh Ä‘á»ƒ chá»¥p.");
         }
 
         Path randomImage = imageFiles.get(ThreadLocalRandom.current().nextInt(imageFiles.size()));
@@ -488,7 +489,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
                     AI_SERVICE_URL, new HttpEntity<>(body, headers), String.class);
 
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-                markAiFailed(record, "AI service không trả về kết quả hợp lệ.");
+                markAiFailed(record, "AI service khÃ´ng tráº£ vá» káº¿t quáº£ há»£p lá»‡.");
                 return;
             }
 
@@ -516,20 +517,20 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             record.setRecommendation(limitText(recommendation, LEGACY_TEXT_COLUMN_LIMIT));
             record.setStatus("PENDING_DOCTOR");
         } catch (Exception ex) {
-            markAiFailed(record, "Lỗi kết nối/phân tích AI: " + ex.getMessage());
+            markAiFailed(record, "Lá»—i káº¿t ná»‘i/phÃ¢n tÃ­ch AI: " + ex.getMessage());
         }
     }
 
     private void markAiFailed(ImagingRecord record, String message) {
         record.setAiPrediction(limitText(message, LEGACY_TEXT_COLUMN_LIMIT));
         record.setAiConfidence(0);
-        record.setRecommendation("Vui lòng kiểm tra AI service hoặc gửi bác sĩ đọc phim thủ công.");
+        record.setRecommendation("Vui lÃ²ng kiá»ƒm tra AI service hoáº·c gá»­i bÃ¡c sÄ© Ä‘á»c phim thá»§ cÃ´ng.");
         record.setStatus("AI_FAILED");
     }
 
     private String buildRecommendationText(JsonNode recommendationsNode) {
         if (recommendationsNode == null || !recommendationsNode.isArray() || recommendationsNode.isEmpty()) {
-            return "Chờ bác sĩ xác nhận kết quả và đưa ra hướng điều trị phù hợp.";
+            return "Chá» bÃ¡c sÄ© xÃ¡c nháº­n káº¿t quáº£ vÃ  Ä‘Æ°a ra hÆ°á»›ng Ä‘iá»u trá»‹ phÃ¹ há»£p.";
         }
         StringBuilder sb = new StringBuilder();
         int limit = Math.min(recommendationsNode.size(), 3);
@@ -541,7 +542,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
                 sb.append(cleanSentence(item));
             }
         }
-        return sb.isEmpty() ? "Chờ bác sĩ xác nhận kết quả và đưa ra hướng điều trị phù hợp." : sb.toString();
+        return sb.isEmpty() ? "Chá» bÃ¡c sÄ© xÃ¡c nháº­n káº¿t quáº£ vÃ  Ä‘Æ°a ra hÆ°á»›ng Ä‘iá»u trá»‹ phÃ¹ há»£p." : sb.toString();
     }
 
     private record StoredImage(String fileName, byte[] fileBytes) {

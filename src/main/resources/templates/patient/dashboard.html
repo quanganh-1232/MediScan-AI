@@ -133,7 +133,7 @@
                         <!-- Step 3: Doctor -->
                         <div class="timeline-item">
                             <div th:switch="${latestRecord.status}">
-                                <div th:case="'DOCTOR_CONFIRMED'" class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                                <div th:case="'COMPLETED'" class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
                                 <div th:case="'DOCTOR_REJECTED'" class="timeline-dot warn"><i class="bi bi-arrow-counterclockwise"></i></div>
                                 <div th:case="'PENDING_DOCTOR'" class="timeline-dot active"><i class="bi bi-person-check"></i></div>
                                 <div th:case="*" class="timeline-dot"><i class="bi bi-person"></i></div>
@@ -144,8 +144,8 @@
                         </div>
                         <!-- Step 4: Done -->
                         <div class="timeline-item" style="padding-bottom:0">
-                            <div th:if="${latestRecord.status == 'DOCTOR_CONFIRMED'}" class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
-                            <div th:unless="${latestRecord.status == 'DOCTOR_CONFIRMED'}" class="timeline-dot"></div>
+                            <div th:if="${latestRecord.status == 'COMPLETED'}" class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                            <div th:unless="${latestRecord.status == 'COMPLETED'}" class="timeline-dot"></div>
                             <div class="fw-semibold small">Hoàn thành</div>
                             <div class="text-muted" style="font-size:.75rem;"
                                  th:text="${latestRecord.confirmedAt != null ? #temporals.format(latestRecord.confirmedAt, 'dd/MM/yyyy HH:mm') : 'Chờ kết luận bác sĩ'}">-</div>
@@ -185,7 +185,7 @@
                          class="record-row d-flex align-items-center gap-3 py-3 px-2 border-bottom">
                         <!-- Status icon -->
                         <div style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
-                             th:classappend="${r.status == 'DOCTOR_CONFIRMED' ? 'background:#dcfce7;color:#16a34a' :
+                             th:classappend="${r.status == 'COMPLETED' ? 'background:#dcfce7;color:#16a34a' :
                                              r.status == 'DOCTOR_REJECTED' ? 'background:#fee2e2;color:#dc2626' :
                                              r.status == 'AI_FAILED'       ? 'background:#fee2e2;color:#dc2626' :
                                              'background:#dbeafe;color:#2563eb'}"
@@ -205,7 +205,7 @@
                                 <span th:case="'PENDING_AI'"       class="pt-status pt-status-pending">Chờ AI</span>
                                 <span th:case="'AI_ANALYZED'"      class="pt-status pt-status-confirmed">AI xong</span>
                                 <span th:case="'PENDING_DOCTOR'"   class="pt-status pt-status-confirmed">Chờ BS</span>
-                                <span th:case="'DOCTOR_CONFIRMED'" class="pt-status pt-status-done">Hoàn thành</span>
+                                <span th:case="'COMPLETED'"        class="pt-status pt-status-done">Hoàn thành</span>
                                 <span th:case="'DOCTOR_REJECTED'"  class="pt-status pt-status-cancelled">Cần chụp lại</span>
                                 <span th:case="'AI_FAILED'"        class="pt-status pt-status-cancelled">Lỗi AI</span>
                                 <span th:case="*"                  class="pt-status pt-status-pending" th:text="${r.status}">-</span>

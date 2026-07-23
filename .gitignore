@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Python ###
+__pycache__/
+*.py[cod]
+*.class
+
+### Uploads ###
+src/main/resources/static/uploads/
+*.csv
