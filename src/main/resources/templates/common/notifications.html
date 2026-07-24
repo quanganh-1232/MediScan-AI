@@ -34,25 +34,21 @@
 
     <section class="pt-card p-3 p-lg-4">
         <div th:if="${#lists.isEmpty(notifications)}" class="text-center text-muted py-5">
-            <i class="bi bi-bell-slash fs-1 d-block mb-2 opacity-50"></i>
-            Chưa có thông báo cá nhân.
+            <div class="small">Chưa có thông báo nào.</div>
         </div>
         <div class="d-grid gap-2" th:if="${!#lists.isEmpty(notifications)}">
             <a th:each="n : ${notifications}"
                th:href="@{/notifications/click(id=${n.notificationId})}"
-               class="text-decoration-none text-dark p-3 rounded-3 d-block"
-               th:style="${n.read} ? 'background:#fbfcfe; border:1px solid rgba(15,23,42,0.05);' : 'background:rgba(26,110,244,0.05); border:1px solid rgba(26,110,244,0.18);'">
-                <div class="d-flex justify-content-between gap-3">
-                    <div class="min-w-0">
-                        <div th:class="${n.read} ? 'text-dark' : 'fw-bold text-dark'" th:text="${n.title}">Tiêu đề</div>
-                        <div class="text-muted small mt-1" th:text="${n.message}">Nội dung</div>
-                        <div class="small text-muted mt-1">
-                            <i class="bi bi-clock me-1"></i>
-                            <span th:text="${n.createdAt != null ? #temporals.format(n.createdAt, 'HH:mm dd/MM/yyyy') : 'Vừa cập nhật'}">08:30 12/06/2026</span>
-                        </div>
-                    </div>
-                    <span th:if="${!n.read}" class="pt-status pt-status-pending flex-shrink-0">Mới</span>
-                    <span th:if="${n.read}" class="pt-status pt-status-done flex-shrink-0">Đã đọc</span>
+               class="ms-notif-item rounded-3 shadow-sm"
+               th:classappend="${!n.read} ? ' unread' : ''">
+                <div class="d-flex align-items-center justify-content-between mb-1.5">
+                    <div class="fw-bold text-dark fs-6" th:text="${n.title}">Tiêu đề thông báo</div>
+                    <span th:if="${!n.read}" class="badge bg-teal text-white flex-shrink-0 px-2.5 py-1">Chưa đọc</span>
+                    <span th:if="${n.read}" class="badge bg-light text-muted border flex-shrink-0 px-2.5 py-1">Đã đọc</span>
+                </div>
+                <div class="text-secondary mb-2" style="font-size: 0.9rem; line-height: 1.5;" th:text="${n.message}">Nội dung thông báo</div>
+                <div class="text-muted small">
+                    <span th:text="${n.createdAt != null ? #temporals.format(n.createdAt, 'HH:mm • dd/MM/yyyy') : 'Vừa cập nhật'}">08:30 • 20/07/2026</span>
                 </div>
             </a>
         </div>

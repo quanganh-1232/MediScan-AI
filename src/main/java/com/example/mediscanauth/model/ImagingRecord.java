@@ -51,7 +51,7 @@ public class ImagingRecord {
     @Column(name = "status", nullable = false, length = 40)
     private String status = "PENDING_AI";
 
-    @Column(name = "visibility", length = 20)
+    @Column(name = "visibility", nullable = false, length = 20)
     private String visibility = "PRIVATE"; // PRIVATE hoặc PUBLIC
 
     @Column(name = "captured_at")

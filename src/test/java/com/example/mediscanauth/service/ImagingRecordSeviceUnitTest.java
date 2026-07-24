@@ -30,4 +30,9 @@ public class ImagingRecordSeviceUnitTest {
 
     @InjectMocks
     private ImagingRecordServiceImpl imagingRecordService;
+
+    @Test
+    void testTechnicianUploadImage(){
+
+    }
 }

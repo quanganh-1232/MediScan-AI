@@ -1,12 +1,16 @@
 package com.example.mediscanauth.service.impl;
 
+import com.cloudinary.Cloudinary;
 import com.example.mediscanauth.model.ImagingRecord;
+import com.example.mediscanauth.model.Notification;
 import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.model.dto.DashboardDTO;
 import com.example.mediscanauth.repository.ImagingRecordRepository;
+import com.example.mediscanauth.repository.NotificationRepository;
 import com.example.mediscanauth.repository.PatientRepository;
 import com.example.mediscanauth.repository.UserRepository;
+import com.example.mediscanauth.service.CloudinaryService;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.UserAccountService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,22 +18,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-import com.example.mediscanauth.repository.NotificationRepository;
-import com.example.mediscanauth.model.Notification;
-import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
-import java.util.Map;
-import com.example.mediscanauth.service.CloudinaryService;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -41,6 +41,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -50,8 +51,19 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private static final List<String> ACTIVE_QUEUE_STATUSES = List.of("PENDING_AI", "AI_DONE", "AI_ANALYZED",
             "PENDING_DOCTOR");
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
-    private static final String AI_SERVICE_URL = "http://localhost:8000/predict";
     private static final int LEGACY_TEXT_COLUMN_LIMIT = 490;
+    // ai-service does real CPU work (YOLO + classical CV + ANFIS); a low read
+    // timeout would false-positive on legitimate slow analyses, but it must
+    // still be bounded so a hung ai-service can't hold this transaction's DB
+    // connection open forever.
+    private static final int AI_CONNECT_TIMEOUT_MS = 5_000;
+    private static final int AI_READ_TIMEOUT_MS = 45_000;
+
+    @Value("${ai.service.url}")
+    private String aiServiceUrl;
+
+    @Value("${ai.service.api-key}")
+    private String aiServiceApiKey;
 
     private final ImagingRecordRepository imagingRecordRepository;
     private final PatientRepository patientRepository;
@@ -295,62 +307,46 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     @Override
     @Transactional
     public ImagingRecord confirmDoctorReview(Long recordId, String doctorEmail, String conclusion,
-            String recommendation) {
+                                             String recommendation, String base64ImageData, String visibility) {
+
         ImagingRecord record = getRecordById(recordId);
         User doctor = userAccountService.findByEmail(doctorEmail);
+
         record.setDoctor(doctor);
         record.setDoctorConclusion(cleanSentence(isBlank(conclusion) ? record.getAiPrediction() : conclusion));
         record.setRecommendation(cleanSentence(
-                isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả. Theo dõi và điều trị theo chỉ định chuyên môn."
-                        : recommendation));
+                isBlank(recommendation) ? "Bác sĩ đã xác nhận kết quả." : recommendation));
+
         record.setStatus("COMPLETED");
         record.setConfirmedAt(LocalDateTime.now());
+        record.setVisibility(visibility); // <-- Lưu visibility từ bác sĩ chọn
 
-        // ==================== TẠO VÀ UPLOAD ẢNH DOCTOR LÊN CLOUDINARY
-        // ====================
-        String originalUrl = record.getFileName(); // Lấy URL ảnh gốc hiện tại
+        // === XỬ LÝ UPLOAD ẢNH CHỤP MÀN HÌNH ===
+        String dbFileName = record.getFileName();
+        if (dbFileName != null && !dbFileName.isEmpty() && base64ImageData != null && !base64ImageData.isEmpty()) {
+            String patientName = record.getPatient() != null ? record.getPatient().getFullName() : "Unknown_Patient";
+            String recordCode = record.getRecordCode() != null ? record.getRecordCode() : "Unknown_Code";
 
-        // Kiểm tra xem bác sĩ có cập nhật tọa độ box không
-        if (originalUrl != null && !originalUrl.isEmpty() && record.getBboxX() != null) {
-            System.out.println("====== [CONFIRM DOCTOR PROCESS] ======");
-            System.out.println("-> Ảnh tham chiếu: " + originalUrl);
-            System.out.println(String.format("-> Tọa độ bác sĩ vẽ: X:%d, Y:%d, W:%d, H:%d",
-                    record.getBboxX(), record.getBboxY(), record.getBboxWidth(), record.getBboxHeight()));
-
-            // Gọi service vẽ đè và tải lên Cloudinary dưới dạng tệp "doctor_..." riêng biệt
-            String doctorImageUrl = cloudinaryService.generateAndUploadDoctorImage(
-                    originalUrl,
-                    record.getBboxX(),
-                    record.getBboxY(),
-                    record.getBboxWidth(),
-                    record.getBboxHeight());
-
-            if (doctorImageUrl != null && !doctorImageUrl.isEmpty()) {
-                System.out.println("-> ĐÃ TẢI ẢNH DOCTOR LÊN CLOUDINARY! URL: " + doctorImageUrl);
-
-                // Cập nhật trường hiển thị của Hồ sơ sang ảnh của Bác sĩ vừa tạo
-                // (Bạn có thể đổi sang setDoctorFileName(doctorImageUrl) nếu DB của bạn có
-                // trường riêng)
-                String doctorFileNameOnly = doctorImageUrl.substring(doctorImageUrl.lastIndexOf('/') + 1);
-                record.setFileName(doctorFileNameOnly);
-            } else {
-                System.err.println("-> [LỖI] Không thể tạo ảnh Doctor. Giữ nguyên liên kết ảnh gốc.");
-            }
-            System.out.println("======================================");
+            cloudinaryService.generateAndUploadDoctorImage(base64ImageData, patientName, recordCode, dbFileName);
         }
-        // =================================================================================
 
         ImagingRecord savedRecord = imagingRecordRepository.save(record);
 
-        // Tạo thông báo gửi cho bệnh nhân
-        Notification notification = new Notification();
-        notification.setUser(savedRecord.getPatient());
-        notification.setRecordId(savedRecord.getRecordId());
-        notification.setTitle("Kết quả X-quang đã có");
-        notification.setMessage("Kết quả chẩn đoán cho hồ sơ " + savedRecord.getRecordCode()
-                + " đã được bác sĩ xác nhận. Vui lòng đăng nhập để xem chi tiết.");
-        notification.setRead(false);
-        notificationRepository.save(notification);
+        // === CHỈ TẠO THÔNG BÁO KHI LÀ PUBLIC ===
+        if ("PUBLIC".equalsIgnoreCase(savedRecord.getVisibility())) {
+            Notification notification = new Notification();
+            notification.setUser(savedRecord.getPatient());
+            notification.setRecordId(savedRecord.getRecordId());
+            notification.setTitle("Kết quả X-quang đã có");
+            notification.setMessage(
+                    "Kết quả chẩn đoán cho hồ sơ " + savedRecord.getRecordCode() + " đã được bác sĩ xác nhận.");
+            notification.setRead(false);
+            notificationRepository.save(notification);
+
+            System.out.println("→ [NOTI] Đã tạo thông báo cho bệnh nhân (PUBLIC)");
+        } else {
+            System.out.println("→ [NOTI] Giữ riêng tư (PRIVATE) - Không tạo thông báo");
+        }
 
         return savedRecord;
     }
@@ -474,6 +470,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private void applyAiAnalysis(ImagingRecord record, Path uploadPath, byte[] fileBytes) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.set("X-Internal-Api-Key", aiServiceApiKey);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new ByteArrayResource(fileBytes) {
@@ -485,7 +482,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(
-                    AI_SERVICE_URL, new HttpEntity<>(body, headers), String.class);
+                    aiServiceUrl, new HttpEntity<>(body, headers), String.class);
 
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 markAiFailed(record, "AI service không trả về kết quả hợp lệ.");
@@ -543,7 +540,6 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         }
         return sb.isEmpty() ? "Chờ bác sĩ xác nhận kết quả và đưa ra hướng điều trị phù hợp." : sb.toString();
     }
-
     private record StoredImage(String fileName, byte[] fileBytes) {
     }
 }

@@ -282,8 +282,10 @@
                             <div class="ms-xray-wrapper" id="xrayWrapper">
                                 <div class="pan-zoom-container" id="panZoomContainer">
 
-                                    <img src="https://res.cloudinary.com/xo59jq3r/image/upload/f_auto,q_auto/v1784184990/img-2026-0002-ankle_zsta1p.jpg"
-                                        id="xrayImage" class="ms-xray-viewport rounded-3" alt="X-ray Cloudinary">
+                                    <img th:src="${displayImageUrl}" id="xrayImage" class="ms-xray-viewport rounded-3"
+                                        alt="X-ray Image"
+                                        onerror="this.onerror=null; this.src='https://via.placeholder.com/600x400?text=IMAGE+NOT+FOUND'; console.error('Image load failed! URL was: ' + this.src);"
+                                        style="max-height: 520px; width: auto;">
 
                                     <div class="ms-xray-overlay" id="overlayContainer">
                                         <div th:each="region : ${aiRegions}" class="ai-box"
@@ -350,7 +352,11 @@
                         </div>
                     </div>
 
-                    <form th:action="@{'/doctor/records/' + ${record.recordId} + '/conclusion'}" method="POST">
+                    <form th:action="@{'/doctor/records/' + ${record.recordId} + '/conclusion'}" method="POST"
+                        id="reviewForm">
+                        <!-- Thêm input ẩn này để lưu ảnh Base64 -->
+                        <input type="hidden" name="screenshotData" id="screenshotData">
+
                         <div class="ms-card-solid rounded-5 p-4">
                             <h2 class="ms-section-title h5 mb-3">Kết luận & Chẩn đoán lâm sàng</h2>
                             <textarea name="conclusion"
@@ -358,7 +364,9 @@
                                 placeholder="Nhập nhận định chuyên môn tại đây..."></textarea>
 
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn ms-btn ms-btn-primary text-white py-2 fw-bold">
+                                <!-- Đổi type="submit" thành type="button" hoặc xử lý trực tiếp qua sự kiện submit của form -->
+                                <button type="submit" class="btn ms-btn ms-btn-primary text-white py-2 fw-bold"
+                                    id="btnSubmitReview">
                                     <i class="bi bi-file-earmark-check-fill me-1"></i> Hoàn tất & Ký số kết quả
                                 </button>
                                 <a th:href="@{/doctor/records/pending}"
@@ -373,6 +381,7 @@
         </main>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
@@ -500,6 +509,62 @@
 
         window.addEventListener('load', renderAIBoundingBoxes);
         window.addEventListener('resize', renderAIBoundingBoxes);
+
+        document.getElementById('reviewForm').addEventListener('submit', function (e) {
+            e.preventDefault(); // Chặn submit mặc định để chụp ảnh trước
+
+            const form = this;
+            const submitBtn = document.getElementById('btnSubmitReview');
+
+            // Vô hiệu hóa nút để tránh bác sĩ bấm liên tục
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang xử lý ảnh...';
+
+            // 1. Lưu lại các thông số biến đổi hiện tại của bác sĩ
+            const originalScale = scale;
+            const originalTx = translateX;
+            const originalTy = translateY;
+
+            // 2. Tạm thời đưa khung ảnh về trạng thái chuẩn (tỉ lệ 1:1, không lệch tọa độ) để chụp không bị lệch/mất góc
+            scale = 1.0;
+            translateX = 0;
+            translateY = 0;
+            updateTransform();
+
+            // Đối tượng cần chụp (Wrapper bao gồm cả ảnh X-quang và các overlay viền đỏ của AI)
+            const targetElement = document.getElementById('xrayWrapper');
+
+            // Chờ một chút để trình duyệt cập nhật lại render DOM trước khi chụp
+            setTimeout(() => {
+                html2canvas(targetElement, {
+                    useCORS: true, // Cho phép chụp ảnh lấy từ nguồn ngoài (Cloudinary)
+                    backgroundColor: null, // Giữ nền trong suốt hoặc khớp khung
+                    logging: false,
+                    scale: 2 // Tăng chất lượng ảnh chụp (retina/HD)
+                }).then(canvas => {
+                    // Khôi phục lại trạng thái Zoom & Pan ban đầu cho bác sĩ đỡ bị giật màn hình
+                    scale = originalScale;
+                    translateX = originalTx;
+                    translateY = originalTy;
+                    updateTransform();
+
+                    // Chuyển canvas thành chuỗi Base64 dạng hình ảnh png/jpeg
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+                    // Gán dữ liệu vào input ẩn
+                    document.getElementById('screenshotData').value = dataUrl;
+
+                    // Submit form thực tế lên Server
+                    form.submit();
+                }).catch(err => {
+                    console.error("Lỗi khi chụp ảnh màn hình: ", err);
+                    // Khôi phục nút bấm nếu lỗi
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bi bi-file-earmark-check-fill me-1"></i> Hoàn tất & Ký số kết quả';
+                    alert("Có lỗi xảy ra trong quá trình chụp xử lý ảnh trực quan. Vui lòng thử lại!");
+                });
+            }, 200);
+        });
     </script>
 </body>
 
