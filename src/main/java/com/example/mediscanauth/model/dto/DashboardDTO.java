@@ -26,6 +26,14 @@ public class DashboardDTO {
         private String status;
         private String fileName;           
         private String doctorConclusion;
+        
+        private DoctorDTO doctor;
+    }
+
+    @Data
+    @Builder
+    public static class DoctorDTO {
+        private String fullName;
     }
 
     @Data

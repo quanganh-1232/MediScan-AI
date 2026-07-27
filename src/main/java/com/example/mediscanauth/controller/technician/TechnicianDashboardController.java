@@ -1,6 +1,5 @@
 package com.example.mediscanauth.controller.technician;
 
-import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.TechnicianWorkflowService;
 import org.springframework.security.core.Authentication;
@@ -12,21 +11,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 @Controller
 public class TechnicianDashboardController {
 
     private final TechnicianWorkflowService technicianWorkflowService;
     private final ImagingRecordService imagingRecordService;
-    private final UserRepository userRepository;
 
     public TechnicianDashboardController(TechnicianWorkflowService technicianWorkflowService,
-                                         ImagingRecordService imagingRecordService,
-                                         UserRepository userRepository) {
+                                         ImagingRecordService imagingRecordService) {
         this.technicianWorkflowService = technicianWorkflowService;
         this.imagingRecordService = imagingRecordService;
-        this.userRepository = userRepository;
     }
 
     @GetMapping("/technician/dashboard")
@@ -64,23 +58,21 @@ public class TechnicianDashboardController {
     }
 
     @GetMapping("/technician/recent")
-    public String recent() {
-        return "redirect:/technician/xray-upload";
+    public String recent(Model model, Authentication authentication) {
+        addDashboardData(model, authentication);
+        return "technician/recent";
     }
 
     @PostMapping("/technician/xray-upload")
     public String uploadXray(Authentication authentication,
                              @RequestParam("image")
                              MultipartFile image,
-                             @RequestParam String patientEmail,
-                             @RequestParam(required = false)
-                                 String doctorEmail,
+                             @RequestParam Long appointmentId,
                              Model model) {
         try {
             imagingRecordService.captureAndAnalyzeFromTechnician(
                     authentication.getName(),
-                    patientEmail,
-                    doctorEmail,
+                    appointmentId,
                     image
             );
             return "redirect:/technician/xray-upload?success=true";
@@ -108,8 +100,7 @@ public class TechnicianDashboardController {
         model.addAttribute("uploadedImageCount", technicianWorkflowService.countUploadedImages());
         model.addAttribute("aiSuccessCount", technicianWorkflowService.countSuccessfulAiResults());
         model.addAttribute("approvedReviewCount", technicianWorkflowService.countApprovedReviews());
-        model.addAttribute("patients", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(List.of("PATIENT", "ROLE_PATIENT"), "ACTIVE"));
-        model.addAttribute("doctors", userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(List.of("DOCTOR", "ROLE_DOCTOR"), "ACTIVE"));
+        model.addAttribute("eligibleAppointments", imagingRecordService.findAppointmentsEligibleForCapture());
         model.addAttribute("historyRecords", imagingRecordService.findRecordsUploadedByTechnician(authentication.getName()));
     }
 }

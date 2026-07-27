@@ -9,6 +9,7 @@ import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.PatientRepository;
 import com.example.mediscanauth.repository.UserRepository;
+import com.example.mediscanauth.service.NotificationService;
 import com.example.mediscanauth.service.PatientWorkflowService;
 import com.example.mediscanauth.service.UserAccountService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,6 +48,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final NotificationService notificationService;
 
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
     private static final int LEGACY_TEXT_COLUMN_LIMIT = OperationalConfig.LEGACY_TEXT_COLUMN_LIMIT;
@@ -63,12 +65,14 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
                                       UserAccountService userAccountService,
                                       AppointmentRepository appointmentRepository,
                                       PatientRepository patientRepository,
-                                      UserRepository userRepository) {
+                                      UserRepository userRepository,
+                                      NotificationService notificationService) {
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
         requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
@@ -299,7 +303,18 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
             appointment.setBodyPart(note); // hiển thị ở cột "Lý do khám"
         }
 
-        return appointmentRepository.save(appointment);
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+
+        // Notify Receptionists
+        notificationService.notifyRoleUsers(
+            java.util.List.of("RECEPTIONIST"), 
+            "Lịch hẹn mới", 
+            "Bệnh nhân " + user.getFullName() + " vừa đặt lịch khám mới.", 
+            null, 
+            "/receptionist/appointments"
+        );
+
+        return savedAppointment;
     }
 
     @Override

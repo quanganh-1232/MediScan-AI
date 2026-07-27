@@ -201,6 +201,20 @@ public class ReceptionistDashboardController {
         return "redirect:" + safeRedirect(redirectTo, "/receptionist/appointments");
     }
 
+    @PostMapping("/receptionist/appointments/{id}/call-in")
+    public String callInAppointment(@PathVariable("id") Long appointmentId,
+                                     @RequestParam(required = false) String redirectTo,
+                                     Authentication authentication,
+                                     RedirectAttributes redirectAttributes) {
+        try {
+            receptionistService.callInAppointment(appointmentId, authentication.getName());
+            redirectAttributes.addFlashAttribute("success", "Đã gọi bệnh nhân vào phòng khám/chụp.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:" + safeRedirect(redirectTo, "/receptionist/waiting");
+    }
+
     @GetMapping("/receptionist/appointments/{id}")
     public String appointmentDetail(@PathVariable("id") Long appointmentId, Model model,
                                     RedirectAttributes redirectAttributes) {
@@ -282,7 +296,7 @@ public class ReceptionistDashboardController {
      */
     @GetMapping("/receptionist/waiting")
     public String waitingList(Model model) {
-        model.addAttribute("waitingList", appointmentRepository.findByStatusOrderByScheduledTimeAsc("CHECKED_IN"));
+        model.addAttribute("waitingList", appointmentRepository.findByStatusOrderByQueueNumberAsc("CHECKED_IN"));
         return "receptionist/waiting";
     }
 

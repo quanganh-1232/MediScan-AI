@@ -49,6 +49,9 @@ public class Appointment {
     @Column(name = "note", columnDefinition = "text")
     private String note;
 
+    @Column(name = "queue_number")
+    private Integer queueNumber;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -142,6 +145,14 @@ public class Appointment {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public Integer getQueueNumber() {
+        return queueNumber;
+    }
+
+    public void setQueueNumber(Integer queueNumber) {
+        this.queueNumber = queueNumber;
     }
 
     public LocalDateTime getCreatedAt() {

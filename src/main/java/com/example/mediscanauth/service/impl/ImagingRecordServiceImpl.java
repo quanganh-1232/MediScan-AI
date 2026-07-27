@@ -1,10 +1,12 @@
 package com.example.mediscanauth.service.impl;
 
 import com.example.mediscanauth.constant.OperationalConfig;
+import com.example.mediscanauth.model.Appointment;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.model.dto.DashboardDTO;
+import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.ImagingRecordRepository;
 import com.example.mediscanauth.repository.PatientRepository;
 import com.example.mediscanauth.repository.UserRepository;
@@ -28,6 +30,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import com.example.mediscanauth.repository.NotificationRepository;
+import com.example.mediscanauth.service.NotificationService;
 import com.example.mediscanauth.model.Notification;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
@@ -50,8 +53,8 @@ import java.util.stream.Collectors;
 @Service
 public class ImagingRecordServiceImpl implements ImagingRecordService {
 
-    private static final List<String> ACTIVE_QUEUE_STATUSES = List.of("PENDING_AI", "AI_DONE", "AI_ANALYZED",
-            "PENDING_DOCTOR");
+    private static final List<String> ACTIVE_QUEUE_STATUSES = List.of(
+            "PENDING_AI", "AI_DONE", "AI_ANALYZED", "PENDING_DOCTOR", "AI_FAILED");
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
     private static final String AI_SERVICE_URL = "http://localhost:8000/predict";
     private static final int LEGACY_TEXT_COLUMN_LIMIT = OperationalConfig.LEGACY_TEXT_COLUMN_LIMIT;
@@ -69,9 +72,13 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
     private final Cloudinary cloudinary;
     private final CloudinaryService cloudinaryService;
     private final AuditLogService auditLogService;
+    private final AppointmentRepository appointmentRepository;
+
+    private static final List<String> CAPTURE_ELIGIBLE_STATUSES = List.of("IN_PROGRESS");
 
     @Value("${ai.service.api-key:dev-ai-key-change-me}")
     private String aiServiceApiKey;
@@ -82,18 +89,22 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             PatientRepository patientRepository,
             UserRepository userRepository,
             NotificationRepository notificationRepository,
+            NotificationService notificationService,
             Cloudinary cloudinary,
             CloudinaryService cloudinaryService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            AppointmentRepository appointmentRepository) {
 
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
         this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
         this.cloudinary = cloudinary;
         this.cloudinaryService = cloudinaryService;
         this.auditLogService = auditLogService;
+        this.appointmentRepository = appointmentRepository;
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
         requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
@@ -138,6 +149,13 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         List<String> completedStatuses = List.of("COMPLETED");
         List<ImagingRecord> records = imagingRecordRepository
                 .findByDoctorUserIdAndStatusInOrderByCreatedAtDesc(doctorId, completedStatuses);
+        return records.stream().map(this::toQueueItemDTO).toList();
+    }
+
+    public List<DashboardDTO.QueueItemDTO> getAllCompletedDTOs() {
+        List<String> completedStatuses = List.of("COMPLETED");
+        List<ImagingRecord> records = imagingRecordRepository
+                .findByStatusInOrderByCreatedAtDesc(completedStatuses);
         return records.stream().map(this::toQueueItemDTO).toList();
     }
 
@@ -190,6 +208,11 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     }
 
     @Override
+    public List<ImagingRecord> findQueueForDoctor(Long doctorId) {
+        return imagingRecordRepository.findQueueForDoctor(ACTIVE_QUEUE_STATUSES, doctorId);
+    }
+
+    @Override
     public List<ImagingRecord> findRecent() {
         return imagingRecordRepository.findTop10ByOrderByCreatedAtDesc();
     }
@@ -216,12 +239,20 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     @Override
     @Transactional
     public ImagingRecord captureAndAnalyzeFromTechnician(String technicianEmail,
-            String patientEmail,
-            String doctorEmail,
+            Long appointmentId,
             MultipartFile image) {
         User technician = userAccountService.findByEmail(technicianEmail);
-        User patient = userAccountService.findByEmail(patientEmail);
-        User doctor = isBlank(doctorEmail) ? null : userAccountService.findByEmail(doctorEmail);
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lich hen #" + appointmentId));
+        if (appointment.getDoctor() == null) {
+            throw new IllegalArgumentException("Lich hen nay chua duoc le tan gan bac si phu trach.");
+        }
+        if (appointment.getPatient() == null || appointment.getPatient().getUser() == null) {
+            throw new IllegalArgumentException(
+                    "Benh nhan cua lich hen nay chua co tai khoan dang nhap, khong the tao ho so chup.");
+        }
+        User patient = appointment.getPatient().getUser();
+        User doctor = appointment.getDoctor();
 
         try {
             Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
@@ -242,19 +273,32 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             record.setPatient(patient);
             record.setDoctor(doctor);
             record.setTechnician(technician);
-            record.setBodyPart("áº¢nh X-Ray ngáº«u nhiÃªn");
+            record.setBodyPart(isBlank(appointment.getBodyPart()) ? "X-Ray" : appointment.getBodyPart());
             record.setFileName(fileName);
-            record.setAiPrediction("Äang phÃ¢n tÃ­ch AI báº±ng YOLO+ANFIS");
+            record.setAiPrediction("Dang phan tich AI bang YOLO+ANFIS");
             record.setAiConfidence(0);
-            record.setRecommendation("Chá» bÃ¡c sÄ© xÃ¡c nháº­n káº¿t quáº£ AI.");
+            record.setRecommendation("Cho bac si xac nhan ket qua AI.");
             record.setStatus("PENDING_AI");
 
             ImagingRecord savedRecord = imagingRecordRepository.save(record);
+            
+            // Notify doctor
+            if (doctor != null) {
+                notificationService.sendNotification(doctor, "Có kết quả chụp mới",
+                        "Kỹ thuật viên vừa gửi một kết quả chụp X-Quang mới cần bạn chẩn đoán.",
+                        null, "/doctor/records/" + savedRecord.getRecordId() + "/review");
+            }
+            
             applyAiAnalysis(savedRecord, uploadPath, imageBytes);
             return imagingRecordRepository.save(savedRecord);
         } catch (IOException e) {
-            throw new RuntimeException("KhÃ´ng thá»ƒ láº¥y áº£nh ngáº«u nhiÃªn hoáº·c phÃ¢n tÃ­ch áº£nh X-Ray: " + e.getMessage(), e);
+            throw new RuntimeException("Khong the luu hoac phan tich anh X-Ray: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public List<Appointment> findAppointmentsEligibleForCapture() {
+        return appointmentRepository.findEligibleForImagingCapture(CAPTURE_ELIGIBLE_STATUSES);
     }
 
     @Override
@@ -312,9 +356,24 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
         record.setStatus("COMPLETED");
         record.setConfirmedAt(LocalDateTime.now());
-        record.setVisibility(visibility); // <-- LÆ°u visibility tá»« bÃ¡c sÄ© chá»n
+        record.setVisibility(visibility); // <-- Lưu visibility từ bác sĩ chọn
+        
+        // Cập nhật trạng thái Appointment thành COMPLETED
+        if (record.getPatient() != null) {
+            List<Appointment> apps = appointmentRepository.findByPatientUserOrderByScheduledTimeDesc(record.getPatient());
+            for (Appointment appointment : apps) {
+                if ("IN_PROGRESS".equals(appointment.getStatus())) {
+                    appointment.setStatus("COMPLETED");
+                    appointmentRepository.save(appointment);
+                    break;
+                }
+            }
+        }
 
-        // === Xá»¬ LÃ UPLOAD áº¢NH CHá»¤P MÃ€N HÃŒNH ===
+        // === Xá»¬ LÃ  UPLOAD áº¢NH CHá»¤P MÃ€N HÃŒNH ===
+        record.setVisibility(visibility); // <-- LÆ°u visibility tá»« bÃ¡c sÄ© chá» n
+
+        // === Xá»¬ LÃ  UPLOAD áº¢NH CHá»¤P MÃ€N HÃŒNH ===
         String dbFileName = record.getFileName();
         if (dbFileName != null && !dbFileName.isEmpty() && base64ImageData != null && !base64ImageData.isEmpty()) {
             String patientName = record.getPatient() != null ? record.getPatient().getFullName() : "Unknown_Patient";
@@ -325,18 +384,17 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
         ImagingRecord savedRecord = imagingRecordRepository.save(record);
 
-        // === CHá»ˆ Táº O THÃ”NG BÃO KHI LÃ€ PUBLIC ===
-        // LÆ°u Ã½: notifications.record_id cÃ³ khoÃ¡ ngoáº¡i trá» tá»›i medical_records,
-        // khÃ´ng pháº£i imaging_records â€” hai báº£ng nÃ y Ä‘á»™c láº­p nhau nÃªn khÃ´ng Ä‘Æ°á»£c
-        // gÃ¡n savedRecord.getRecordId() vÃ o Ä‘Ã¢y (sáº½ vi pháº¡m khoÃ¡ ngoáº¡i vÃ¬ hai
-        // báº£ng cÃ³ hai dáº£i ID khÃ¡c nhau).
+        // === CHỈ TẠO THÔNG BÁO KHI LÀ PUBLIC ===
+        // Lưu ý: notifications.record_id có khoá ngoại trỏ tới medical_records,
+        // không phải imaging_records — hai bảng này độc lập nhau nên không được
+        // gán savedRecord.getRecordId() vào đây (sẽ vi phạm khoá ngoại vì hai
+        // bảng có hai dải ID khác nhau).
         if ("PUBLIC".equalsIgnoreCase(savedRecord.getVisibility())) {
             Notification notification = new Notification();
             notification.setUser(savedRecord.getPatient());
-            notification.setRecordId(savedRecord.getRecordId());
-            notification.setTitle("Káº¿t quáº£ X-quang Ä‘Ã£ cÃ³");
-            notification.setMessage(
-                    "Káº¿t quáº£ cháº©n Ä‘oÃ¡n cho há»“ sÆ¡ " + savedRecord.getRecordCode() + " Ä‘Ã£ Ä‘Æ°á»£c bÃ¡c sÄ© xÃ¡c nháº­n.");
+            notification.setTargetUrl("/patient/records/" + savedRecord.getRecordId());
+            notification.setTitle("Có kết quả chẩn đoán X-quang mới");
+            notification.setMessage("Bác sĩ đã xác nhận kết quả X-quang cho ca chụp " + savedRecord.getRecordCode() + ". Vui lòng xem chi tiết tại hồ sơ của bạn.");
             notification.setRead(false);
             notificationRepository.save(notification);
 
@@ -360,14 +418,15 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         User doctor = userAccountService.findByEmail(doctorEmail);
         record.setDoctor(doctor);
         record.setDoctorConclusion(
-                cleanSentence(isBlank(conclusion) ? "BÃ¡c sÄ© chÆ°a xÃ¡c nháº­n káº¿t quáº£ AI; cáº§n Ä‘Ã¡nh giÃ¡ láº¡i." : conclusion));
+                cleanSentence(isBlank(conclusion) ? "BÃ¡c sÃ­ chÆ°a xÃ¡c nháº­n káº¿t quáº£ AI; cáº§n Ä‘Ã¡nh giÃ¡ láº¡i." : conclusion));
         record.setRecommendation(cleanSentence(
-                isBlank(recommendation) ? "Cáº§n chá»¥p láº¡i, bá»• sung tÆ° tháº¿ hoáº·c kiá»ƒm tra trá»±c tiáº¿p theo chá»‰ Ä‘á»‹nh bÃ¡c sÄ©."
+                isBlank(recommendation) ? "Cáº§n chá»¥p láº¡i, bá»• sung tÆ° thÃª hoáº·c kiá»ƒm tra trá»±c tiáº¿p theo chá»‰ Ä‘á»‹nh bÃ¡c sÃ­."
                         : recommendation));
         record.setStatus("DOCTOR_REJECTED");
+        
         ImagingRecord saved = imagingRecordRepository.save(record);
         auditLogService.log(doctorEmail, "DOCTOR_REJECTED", "ImagingRecord", String.valueOf(recordId),
-                "BÃ¡c sÄ© tá»« chá»‘i káº¿t quáº£ AI cho há»“ sÆ¡ " + saved.getRecordCode() + ".");
+                "Bác sĩ từ chối kết quả AI cho hồ sơ " + saved.getRecordCode() + ".");
         return saved;
     }
 
@@ -413,6 +472,9 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
                 .capturedAt(record.getCreatedAt())
                 .patient(DashboardDTO.PatientDTO.builder()
                         .fullName(record.getPatient() != null ? record.getPatient().getFullName() : "N/A")
+                        .build())
+                .doctor(DashboardDTO.DoctorDTO.builder()
+                        .fullName(record.getDoctor() != null ? record.getDoctor().getFullName() : "Chưa có")
                         .build())
                 .bodyPart(record.getBodyPart())
                 .aiPrediction(record.getAiPrediction())

@@ -232,5 +232,7 @@
     function toggleFaq(btn){const a=btn.nextElementSibling;const o=a.classList.contains('show');document.querySelectorAll('.faq-answer').forEach(x=>x.classList.remove('show'));document.querySelectorAll('.faq-question').forEach(x=>x.classList.remove('open'));if(!o){a.classList.add('show');btn.classList.add('open');}}
     function filterFaq(q){const s=q.toLowerCase();document.querySelectorAll('.faq-item').forEach(i=>{i.style.display=(!s||i.textContent.toLowerCase().includes(s))?'':'none';});}
 </script>
+
+<script th:src="@{/js/status-translator.js}"></script>
 </body>
 </html>

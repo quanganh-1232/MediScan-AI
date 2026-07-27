@@ -22,6 +22,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import com.example.mediscanauth.repository.RoleRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import com.example.mediscanauth.model.Role;
 
 import com.example.mediscanauth.service.NotificationService;
 
@@ -55,17 +58,23 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
     private final NotificationService notificationService;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public ReceptionistServiceImpl(AppointmentRepository appointmentRepository,
                                    AppointmentStatusHistoryRepository historyRepository,
                                    UserRepository userRepository,
                                    PatientRepository patientRepository,
-                                   NotificationService notificationService) {
+                                   NotificationService notificationService,
+                                   RoleRepository roleRepository,
+                                   PasswordEncoder passwordEncoder) {
         this.appointmentRepository = appointmentRepository;
         this.historyRepository = historyRepository;
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.notificationService = notificationService;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -89,11 +98,11 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         String formattedTime = appointment.getScheduledTime() != null ? appointment.getScheduledTime().format(TIME_FORMAT) : "";
         if (appointment.getDoctor() != null) {
             notificationService.sendNotification(appointment.getDoctor(), "Xác nhận lịch hẹn khám",
-                    "Lịch hẹn khám lúc " + formattedTime + " đã được xác nhận.", null);
+                    "Lịch hẹn khám lúc " + formattedTime + " đã được xác nhận.", null, null);
         }
         if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
             notificationService.sendNotification(appointment.getPatient().getUser(), "Lịch hẹn đã được xác nhận",
-                    "Lịch hẹn khám của bạn vào " + formattedTime + " đã được lễ tân xác nhận.", null);
+                    "Lịch hẹn khám của bạn vào " + formattedTime + " đã được lễ tân xác nhận.", null, "/patient/appointments");
         }
         return appointment;
     }
@@ -110,20 +119,33 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                     "Lịch hẹn này được đặt cho ngày " + appointment.getScheduledTime().toLocalDate()
                     + ", chưa thể check-in hôm nay.");
         }
+        
+        // Generate queue number
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime nextDay = startOfDay.plusDays(1);
+        Integer maxQueue = appointmentRepository.findMaxQueueNumberForDate(startOfDay, nextDay);
+        appointment.setQueueNumber((maxQueue == null ? 0 : maxQueue) + 1);
+        
         User receptionist = findReceptionist(receptionistEmail);
         appointment.setReceptionist(receptionist);
         appointment.setStatus("CHECKED_IN");
         appointmentRepository.save(appointment);
-        logStatusChange(appointment, "CHECKED_IN", receptionist, "Bệnh nhân đã check-in tại quầy lễ tân.");
+        logStatusChange(appointment, "CHECKED_IN", receptionist, "Bệnh nhân đã check-in tại quầy lễ tân (Số thứ tự: " + appointment.getQueueNumber() + ").");
 
         String formattedTime = appointment.getScheduledTime() != null ? appointment.getScheduledTime().format(TIME_FORMAT) : "";
         String patientName = appointment.getPatient() != null ? appointment.getPatient().getFullName() : "bệnh nhân";
         if (appointment.getDoctor() != null) {
             notificationService.sendNotification(appointment.getDoctor(), "Bệnh nhân đã check-in",
-                    "Bệnh nhân " + patientName + " đã check-in lúc " + formattedTime + ", đang trong danh sách chờ khám.", null);
+                    "Bệnh nhân " + patientName + " đã check-in lúc " + formattedTime + ", đang trong danh sách chờ khám.", null, null);
         }
         notificationService.notifyRoleUsers(RECEPTIONIST_ROLE_NAMES, "Bệnh nhân đã check-in",
-                "Bệnh nhân " + patientName + " đã check-in tại quầy.", null);
+                "Bệnh nhân " + patientName + " đã check-in tại quầy.", null, null);
+                
+        if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
+            notificationService.sendNotification(appointment.getPatient().getUser(), "Đã check-in thành công",
+                    "Bạn đã được cấp số thứ tự " + appointment.getQueueNumber() + ", vui lòng đợi ở phòng chờ.", null, "/patient/appointments");
+        }
+
         return appointment;
     }
 
@@ -143,6 +165,9 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         User previousDoctor = appointment.getDoctor();
         appointment.setDoctor(doctor);
         appointment.setReceptionist(receptionist);
+        if (cleanNote != null) {
+            appointment.setNote(cleanNote);
+        }
         appointmentRepository.save(appointment);
 
         String historyNote = previousDoctor != null
@@ -183,17 +208,19 @@ public class ReceptionistServiceImpl implements ReceptionistService {
             ensureDoctorAvailable(doctor, scheduledAt, null);
         }
 
-        Patient existing = patientRepository.findFirstByPhoneOrderByPatientIdDesc(cleanPhone).orElse(null);
+                Patient existing = patientRepository.findFirstByPhoneOrderByPatientIdDesc(cleanPhone).orElse(null);
         Patient patient;
         if (existing != null) {
             if (existing.getUser() == null) {
                 existing.setFullName(cleanFullName);
+                existing.setUser(createDummyUser(cleanFullName, cleanPhone));
             }
             patient = existing;
         } else {
             patient = new Patient();
             patient.setFullName(cleanFullName);
             patient.setPhone(cleanPhone);
+            patient.setUser(createDummyUser(cleanFullName, cleanPhone));
         }
         patient = patientRepository.save(patient);
 
@@ -241,6 +268,9 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         User receptionist = findReceptionist(receptionistEmail);
         appointment.setReceptionist(receptionist);
         appointment.setStatus("CANCELLED");
+        if (cleanReason != null) {
+            appointment.setNote(cleanReason);
+        }
         appointmentRepository.save(appointment);
 
         String note = "Lễ tân hủy lịch hẹn.";
@@ -280,7 +310,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     @Transactional
     public Appointment callNextPatient(String receptionistEmail) {
         User receptionist = findReceptionist(receptionistEmail);
-        List<Appointment> waiting = appointmentRepository.findByStatusOrderByScheduledTimeAsc("CHECKED_IN");
+        List<Appointment> waiting = appointmentRepository.findByStatusOrderByQueueNumberAsc("CHECKED_IN");
         for (Appointment candidate : waiting) {
             int claimed = appointmentRepository.claimAppointment(
                     candidate.getAppointmentId(), "CHECKED_IN", "IN_PROGRESS", receptionist);
@@ -451,6 +481,20 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     // ── Shared helpers ───────────────────────────────────────────────────
 
+    private User createDummyUser(String fullName, String phone) {
+        User user = new User();
+        user.setFullName(fullName);
+        user.setEmail("walkin_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@mediscan.local");
+        user.setPhone(phone);
+        user.setPasswordHash(passwordEncoder.encode("123456"));
+        user.setAuthProvider("LOCAL");
+        user.setStatus("ACTIVE");
+        Role role = roleRepository.findByRoleName("PATIENT").orElseThrow(() -> new RuntimeException("Patient role not found"));
+        user.setRole(role);
+        return userRepository.save(user);
+    }
+
+
     private String nextCode(String prefix, long next) {
         return prefix + "-" + LocalDate.now().getYear() + "-" + String.format("%05d", next);
     }
@@ -472,5 +516,26 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         history.setActor(actor);
         history.setNote(note);
         historyRepository.save(history);
+    }
+    
+    @Override
+    @Transactional
+    public Appointment callInAppointment(Long appointmentId, String receptionistEmail) {
+        Appointment appointment = getAppointmentOrThrow(appointmentId);
+        if (!"CHECKED_IN".equals(appointment.getStatus())) {
+            throw new InvalidFieldException("Chỉ có thể gọi vào các bệnh nhân đang ở trạng thái CHECKED_IN.");
+        }
+        User receptionist = findReceptionist(receptionistEmail);
+        appointment.setReceptionist(receptionist);
+        appointment.setStatus("IN_PROGRESS");
+        appointmentRepository.save(appointment);
+        logStatusChange(appointment, "IN_PROGRESS", receptionist, "Lễ tân đã gọi bệnh nhân vào phòng chụp/khám.");
+        
+        if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
+            notificationService.sendNotification(appointment.getPatient().getUser(), "Đến lượt khám",
+                    "Đã đến lượt của bạn (Số " + appointment.getQueueNumber() + "), vui lòng vào phòng chụp X-Quang.", null, "/patient/appointments");
+        }
+        
+        return appointment;
     }
 }

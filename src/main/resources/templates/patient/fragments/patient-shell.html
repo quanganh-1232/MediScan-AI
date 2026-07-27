@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
@@ -98,14 +98,14 @@
 
         <!-- Quick chips -->
         <div class="chatbot-chips" id="chipArea">
-            <button class="chat-chip" onclick="sendChip(this)">Đặt lịch khám</button>
-            <button class="chat-chip" onclick="sendChip(this)">Xem hồ sơ</button>
-            <button class="chat-chip" onclick="sendChip(this)">Kết quả mới nhất</button>
-            <button class="chat-chip" onclick="sendChip(this)">Đau lưng</button>
-            <button class="chat-chip" onclick="sendChip(this)">Đau vai gáy</button>
-            <button class="chat-chip" onclick="sendChip(this)">Đau khớp gối</button>
-            <button class="chat-chip" onclick="sendChip(this)">Đau cổ tay</button>
-            <button class="chat-chip" onclick="sendChip(this)">Nghi gãy xương</button>
+            
+            
+            
+            
+            
+            
+            
+            
         </div>
 
         <div class="chatbot-input">
@@ -265,17 +265,19 @@
             bookingState.active = false;
             bookingState.step = null;
             showTyping();
-            const token  = document.getElementById('csrfToken').dataset.token;
-            const header = document.getElementById('csrfHeader').dataset.header;
+            const token  = document.getElementById('csrfToken')?.dataset?.token || '';
+            const header = document.getElementById('csrfHeader')?.dataset?.header || 'X-CSRF-TOKEN';
             const form   = new URLSearchParams();
             if (bookingState.doctorId) form.append('doctorId', bookingState.doctorId);
             form.append('date', bookingState.date);
             form.append('time', time);
+            if (token) form.append('_csrf', token);
+            
             fetch('/patient/book-appointment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded', [header]: token },
                 body: form.toString()
-            }).then(r => r.json()).then(data => {
+            }).then(r => r.json().catch(() => ({}))).then(data => {
                 hideTyping();
                 if (data.success) {
                     appendBotHTML(`🎉 <strong>Đặt lịch thành công!</strong><br><br>
@@ -286,10 +288,15 @@
 ⚠️ Lịch hẹn cần <strong>lễ tân xác nhận</strong> trước khi có hiệu lực.<br>
 <a class="chat-link-btn" href="/home">📋 Xem lịch hẹn</a>`);
                 } else {
-                    appendBotHTML(`❌ <strong>Không thể đặt lịch:</strong><br>${data.message || 'Có lỗi xảy ra.'}<br><br>
+                    const errMsg = data.message || data.error || 'Có lỗi xảy ra hoặc hết phiên đăng nhập.';
+                    appendBotHTML(`❌ <strong>Không thể đặt lịch:</strong><br>${errMsg}<br><br>
 <button class="chat-link-btn" style="cursor:pointer;" onclick="startBookingFlow()">🔄 Thử lại</button>`);
                 }
-            }).catch(() => { hideTyping(); appendBotHTML('Lỗi kết nối. Vui lòng thử lại sau.'); });
+            }).catch(err => { 
+                console.error('Lỗi khi đặt lịch:', err);
+                hideTyping(); 
+                appendBotHTML('Lỗi kết nối. Vui lòng tải lại trang và thử lại.'); 
+            });
         }
 
         function handleBookingInput(text) {
@@ -309,10 +316,22 @@
                 bookingState.date = text;
                 bookingState.step = 'time';
                 const slots = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','13:30','14:00','14:30','15:00','15:30'];
+                const now = new Date();
+                const isToday = chosen.toDateString() === now.toDateString();
                 let html = `✅ Ngày: <strong>${text}</strong><br><br>⏰ Chọn <strong>giờ khám</strong>:<br><br>`;
+                let hasSlots = false;
                 slots.forEach(s => {
+                    if (isToday) {
+                        const [h, m] = s.split(':').map(Number);
+                        if (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes())) return;
+                    }
+                    hasSlots = true;
                     html += `<button class="chat-link-btn" style="margin:.15rem;" onclick="selectTime('${s}')">${s}</button>`;
                 });
+                if (!hasSlots) {
+                    html = `⚠️ Hôm nay đã hết giờ khám. Vui lòng chọn ngày khác.`;
+                    bookingState.step = 'date';
+                }
                 appendBotHTML(html);
             }
         }
@@ -347,7 +366,7 @@
             } catch (error) {
                 console.error('Chatbot API Error:', error);
                 hideTyping();
-                appendBotHTML('Xin l?i, m�y ch? AI hi?n t?i dang qu� t?i. Vui l�ng th? l?i sau.');
+                appendBotHTML('Xin l?i, m�y ch? AI hi?n t?i dang qu� t?i. Vui l�ng th? l?i sau.');
             }
         }
 
@@ -361,7 +380,10 @@
     </script>
 </div>
 
+
+<script th:src="@{/js/status-translator.js}"></script>
 </body>
 </html>
+
 
 
