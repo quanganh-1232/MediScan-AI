@@ -185,8 +185,10 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
         Patient existing = patientRepository.findFirstByPhoneOrderByPatientIdDesc(cleanPhone).orElse(null);
         Patient patient;
-        if (existing != null && existing.getUser() == null) {
-            existing.setFullName(cleanFullName);
+        if (existing != null) {
+            if (existing.getUser() == null) {
+                existing.setFullName(cleanFullName);
+            }
             patient = existing;
         } else {
             patient = new Patient();
@@ -194,6 +196,14 @@ public class ReceptionistServiceImpl implements ReceptionistService {
             patient.setPhone(cleanPhone);
         }
         patient = patientRepository.save(patient);
+
+        // Kiểm tra trùng lịch của bệnh nhân (±30 phút)
+        LocalDateTime conflictFrom = scheduledAt.minusMinutes(SLOT_MINUTES - 1);
+        LocalDateTime conflictTo = scheduledAt.plusMinutes(SLOT_MINUTES);
+        long patientConflicts = appointmentRepository.countPatientConflictsByPatient(patient, conflictFrom, conflictTo);
+        if (patientConflicts > 0) {
+            throw new RuntimeException("Bệnh nhân có số điện thoại " + cleanPhone + " đã có lịch hẹn vào khoảng thời gian này.");
+        }
 
         Appointment appointment = new Appointment();
         appointment.setAppointmentCode("TMP-" + java.util.UUID.randomUUID());
