@@ -50,9 +50,9 @@
                 </tr>
 
                 <tr th:each="appointment : ${scheduledAppointments}">
-                    <td th:text="${appointment.patient.fullName}"></td>
-                    <td th:text="${appointment.appointmentTime}"></td>
-                    <td th:text="${appointment.doctor.fullName}"></td>
+                    <td th:text="${appointment.getPatient()}"></td>
+                    <td th:text="${appointment.getScheduledTime()}"></td>
+                    <td th:text="${appointment.getDoctor()}"></td>
 
                     <td>
                         <span class="badge bg-warning"
