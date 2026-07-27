@@ -54,6 +54,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                               @Param("from") LocalDateTime from,
                               @Param("to") LocalDateTime to);
 
+    /**
+     * Kiểm tra bệnh nhân đã có lịch hẹn trong khoảng [from, to) chưa (bỏ qua lịch đã huỷ/bỏ lỡ).
+     */
+    @Query("""
+            select count(a) from Appointment a
+            where a.patient.user = :patientUser
+              and a.scheduledTime >= :from
+              and a.scheduledTime < :to
+              and a.status not in ('CANCELLED', 'MISSED')
+            """)
+    long countPatientConflicts(@Param("patientUser") User patientUser,
+                               @Param("from") LocalDateTime from,
+                               @Param("to") LocalDateTime to);
+
     long countByTechnicianUserIdAndStatus(Long technicianId, String status);
 
     boolean existsByTechnicianUserId(Long technicianId);

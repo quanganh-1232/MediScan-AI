@@ -201,11 +201,12 @@ public class PatientDashboardController {
             Authentication authentication,
             @RequestParam(required = false) Long doctorId,
             @RequestParam String date,
-            @RequestParam String time) {
+            @RequestParam String time,
+            @RequestParam(required = false, defaultValue = "") String note) {
         Map<String, Object> result = new HashMap<>();
         try {
             com.example.mediscanauth.model.Appointment appointment = 
-                patientWorkflowService.bookAppointment(authentication.getName(), doctorId, date, time);
+                patientWorkflowService.bookAppointment(authentication.getName(), doctorId, date, time, note);
             result.put("success", true);
             result.put("message", "Đặt lịch khám thành công!");
             return ResponseEntity.ok(result);

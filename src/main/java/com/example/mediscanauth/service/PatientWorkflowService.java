@@ -11,7 +11,7 @@ public interface PatientWorkflowService {
     
     ImagingRecord uploadImageAndAnalyze(String patientEmail, String bodyPart, MultipartFile file);
     
-    Appointment bookAppointment(String patientEmail, Long doctorId, String date, String time);
+    Appointment bookAppointment(String patientEmail, Long doctorId, String date, String time, String note);
 
     void cancelAppointment(String patientEmail, Long appointmentId);
 

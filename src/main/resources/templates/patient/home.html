@@ -201,7 +201,7 @@
                         <div class="col-12 col-md-4">
                             <label class="ms-label" for="bkDoctor">Bác sĩ</label>
                             <select id="bkDoctor" class="form-select ms-input">
-                                <option value="">Chọn bác sĩ</option>
+                                <option value="">Chọn bác sĩ (tuỳ chọn)</option>
                                 <option th:each="d : ${doctors}" th:value="${d.userId}" th:text="${'BS. ' + d.fullName}">BS. Trần Minh Đức</option>
                             </select>
                         </div>
@@ -217,7 +217,11 @@
                                 <option>14:00</option><option>14:30</option><option>15:00</option><option>15:30</option>
                             </select>
                         </div>
-                        <div class="col-12 col-md-3 d-grid">
+                        <div class="col-12">
+                            <label class="ms-label" for="bkNote">Lý do khám / Triệu chứng</label>
+                            <input type="text" id="bkNote" class="form-control ms-input" placeholder="Ví dụ: Đau khớp gối phải, chấn thương vai..." maxlength="200">
+                        </div>
+                        <div class="col-12 d-grid">
                             <button type="submit" class="btn ms-btn ms-btn-primary text-white">
                                 <i class="bi bi-calendar2-check me-1"></i> Đặt lịch ngay
                             </button>
@@ -375,10 +379,12 @@
             }
         }
 
+        const note = document.getElementById('bkNote').value.trim();
         const formData = new URLSearchParams();
         if (doctorId) formData.append('doctorId', doctorId);
         formData.append('date', date);
         formData.append('time', time);
+        if (note) formData.append('note', note);
 
         try {
             const token = document.getElementById('csrfToken')?.dataset.token;

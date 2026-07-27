@@ -244,7 +244,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
 
     @Override
     @Transactional
-    public Appointment bookAppointment(String patientEmail, Long doctorId, String date, String time) {
+    public Appointment bookAppointment(String patientEmail, Long doctorId, String date, String time, String note) {
         User user = userAccountService.findByEmail(patientEmail);
         Patient patient = patientRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ bệnh nhân"));
@@ -267,11 +267,17 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
             throw new RuntimeException("Chỉ có thể đặt lịch trong giờ hành chính (07:00 - 17:00).");
         }
 
+        // Kiểm tra bệnh nhân đã có lịch hẹn trong cùng khung giờ chưa (±30 phút)
+        java.time.LocalDateTime conflictFrom = scheduledTime.minusMinutes(29);
+        java.time.LocalDateTime conflictTo   = scheduledTime.plusMinutes(30);
+        long patientConflicts = appointmentRepository.countPatientConflicts(user, conflictFrom, conflictTo);
+        if (patientConflicts > 0) {
+            throw new RuntimeException("Bạn đã có lịch hẹn trong khung giờ này. Vui lòng chọn giờ khác (cách ít nhất 30 phút).");
+        }
+
         // Kiểm tra trùng lịch bác sĩ (±30 phút)
         if (doctor != null) {
-            java.time.LocalDateTime from = scheduledTime.minusMinutes(29);
-            java.time.LocalDateTime to   = scheduledTime.plusMinutes(30);
-            long conflicts = appointmentRepository.countDoctorConflicts(doctor, from, to);
+            long conflicts = appointmentRepository.countDoctorConflicts(doctor, conflictFrom, conflictTo);
             if (conflicts > 0) {
                 throw new RuntimeException(
                     "Bác sĩ " + doctor.getFullName() + " đã có lịch hẹn vào khung giờ này. " +
@@ -285,8 +291,13 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
         appointment.setPatient(patient);
         appointment.setDoctor(doctor);
         appointment.setScheduledTime(scheduledTime);
-        appointment.setStatus("SCHEDULED");
+        // Nếu đã chọn bác sĩ → SCHEDULED, nếu chưa → PENDING để lễ tân phân công
+        appointment.setStatus(doctor != null ? "SCHEDULED" : "PENDING");
         appointment.setAppointmentType("DOCTOR_CONSULTATION");
+        if (note != null && !note.isBlank()) {
+            appointment.setNote(note);
+            appointment.setBodyPart(note); // hiển thị ở cột "Lý do khám"
+        }
 
         return appointmentRepository.save(appointment);
     }
