@@ -35,6 +35,8 @@ public interface ImagingRecordService {
 
     List<DashboardDTO.QueueItemDTO> getCompletedDTOsForDoctor(Long doctorId);
 
+    List<DashboardDTO.QueueItemDTO> getAllCompletedDTOs();
+
     // ==================== Queue & Stats ====================
     long countQueue();
 

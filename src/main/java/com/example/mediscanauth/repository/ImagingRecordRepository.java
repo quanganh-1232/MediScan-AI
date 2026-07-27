@@ -58,7 +58,7 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
     // ==================== Search & Pagination ====================
     @Query(value = """
             select r from ImagingRecord r
-            where r.status = 'DOCTOR_CONFIRMED'
+            where r.status = 'COMPLETED'
               and (:bodyPart is null or :bodyPart = '' or lower(r.bodyPart) like lower(concat('%', :bodyPart, '%')))
               and (:keyword is null or :keyword = ''
                 or lower(r.recordCode) like lower(concat('%', :keyword, '%'))

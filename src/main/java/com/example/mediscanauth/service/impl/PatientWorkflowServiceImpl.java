@@ -48,6 +48,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final NotificationService notificationService;
 
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
     private static final int LEGACY_TEXT_COLUMN_LIMIT = OperationalConfig.LEGACY_TEXT_COLUMN_LIMIT;

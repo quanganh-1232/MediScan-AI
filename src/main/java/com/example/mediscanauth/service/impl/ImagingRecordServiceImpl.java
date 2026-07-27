@@ -155,7 +155,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     public List<DashboardDTO.QueueItemDTO> getAllCompletedDTOs() {
         List<String> completedStatuses = List.of("COMPLETED");
         List<ImagingRecord> records = imagingRecordRepository
-                .findByStatusOrderByCreatedAtDesc("COMPLETED");
+                .findByStatusInOrderByCreatedAtDesc(completedStatuses);
         return records.stream().map(this::toQueueItemDTO).toList();
     }
 
