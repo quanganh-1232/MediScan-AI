@@ -286,7 +286,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             if (doctor != null) {
                 notificationService.sendNotification(doctor, "Có kết quả chụp mới",
                         "Kỹ thuật viên vừa gửi một kết quả chụp X-Quang mới cần bạn chẩn đoán.",
-                        savedRecord.getRecordId(), "/doctor/records/" + savedRecord.getRecordId() + "/review");
+                        null, "/doctor/records/" + savedRecord.getRecordId() + "/review");
             }
             
             applyAiAnalysis(savedRecord, uploadPath, imageBytes);
