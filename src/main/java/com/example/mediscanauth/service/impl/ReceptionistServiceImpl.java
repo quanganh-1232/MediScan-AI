@@ -22,6 +22,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import com.example.mediscanauth.repository.RoleRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import com.example.mediscanauth.model.Role;
 
 import com.example.mediscanauth.service.NotificationService;
 
@@ -55,17 +58,23 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
     private final NotificationService notificationService;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public ReceptionistServiceImpl(AppointmentRepository appointmentRepository,
                                    AppointmentStatusHistoryRepository historyRepository,
                                    UserRepository userRepository,
                                    PatientRepository patientRepository,
-                                   NotificationService notificationService) {
+                                   NotificationService notificationService,
+                                   RoleRepository roleRepository,
+                                   PasswordEncoder passwordEncoder) {
         this.appointmentRepository = appointmentRepository;
         this.historyRepository = historyRepository;
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.notificationService = notificationService;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -143,6 +152,9 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         User previousDoctor = appointment.getDoctor();
         appointment.setDoctor(doctor);
         appointment.setReceptionist(receptionist);
+        if (cleanNote != null) {
+            appointment.setNote(cleanNote);
+        }
         appointmentRepository.save(appointment);
 
         String historyNote = previousDoctor != null
@@ -183,17 +195,19 @@ public class ReceptionistServiceImpl implements ReceptionistService {
             ensureDoctorAvailable(doctor, scheduledAt, null);
         }
 
-        Patient existing = patientRepository.findFirstByPhoneOrderByPatientIdDesc(cleanPhone).orElse(null);
+                Patient existing = patientRepository.findFirstByPhoneOrderByPatientIdDesc(cleanPhone).orElse(null);
         Patient patient;
         if (existing != null) {
             if (existing.getUser() == null) {
                 existing.setFullName(cleanFullName);
+                existing.setUser(createDummyUser(cleanFullName, cleanPhone));
             }
             patient = existing;
         } else {
             patient = new Patient();
             patient.setFullName(cleanFullName);
             patient.setPhone(cleanPhone);
+            patient.setUser(createDummyUser(cleanFullName, cleanPhone));
         }
         patient = patientRepository.save(patient);
 
@@ -241,6 +255,9 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         User receptionist = findReceptionist(receptionistEmail);
         appointment.setReceptionist(receptionist);
         appointment.setStatus("CANCELLED");
+        if (cleanReason != null) {
+            appointment.setNote(cleanReason);
+        }
         appointmentRepository.save(appointment);
 
         String note = "Lễ tân hủy lịch hẹn.";
@@ -450,6 +467,20 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     }
 
     // ── Shared helpers ───────────────────────────────────────────────────
+
+    private User createDummyUser(String fullName, String phone) {
+        User user = new User();
+        user.setFullName(fullName);
+        user.setEmail("walkin_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@mediscan.local");
+        user.setPhone(phone);
+        user.setPasswordHash(passwordEncoder.encode("123456"));
+        user.setAuthProvider("LOCAL");
+        user.setStatus("ACTIVE");
+        Role role = roleRepository.findByRoleName("PATIENT").orElseThrow(() -> new RuntimeException("Patient role not found"));
+        user.setRole(role);
+        return userRepository.save(user);
+    }
+
 
     private String nextCode(String prefix, long next) {
         return prefix + "-" + LocalDate.now().getYear() + "-" + String.format("%05d", next);

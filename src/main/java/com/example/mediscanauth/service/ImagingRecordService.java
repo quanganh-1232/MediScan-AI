@@ -1,5 +1,6 @@
 package com.example.mediscanauth.service;
 
+import com.example.mediscanauth.model.Appointment;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
@@ -43,6 +44,10 @@ public interface ImagingRecordService {
 
     List<ImagingRecord> findQueue();
 
+    // Same as findQueue() but scoped to one doctor's assigned cases (plus
+    // any legacy/unassigned ones) — used for the doctor's own pending list.
+    List<ImagingRecord> findQueueForDoctor(Long doctorId);
+
     List<ImagingRecord> findRecent();
 
     // ==================== Record Operations ====================
@@ -50,9 +55,12 @@ public interface ImagingRecordService {
 
     ImagingRecord captureAndAnalyzeFromTechnician(
             String technicianEmail,
-            String patientEmail,
-            String doctorEmail,
+            Long appointmentId,
             MultipartFile image);
+
+    // Appointments already assigned a doctor by reception, ready for a
+    // technician to capture — replaces manual doctor selection at capture time.
+    List<Appointment> findAppointmentsEligibleForCapture();
 
     ImagingRecord getRecordById(Long recordId);
     

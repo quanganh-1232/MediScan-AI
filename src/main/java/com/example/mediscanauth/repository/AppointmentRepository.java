@@ -86,6 +86,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     boolean existsByTechnicianUserId(Long technicianId);
 
+    /**
+     * Appointments ready for a technician to capture an X-ray for: a doctor
+     * has already been assigned (by reception at booking time) and the
+     * patient has a real login account (imaging records require a User, not
+     * just a bare walk-in Patient profile).
+     */
+    @Query("select a from Appointment a left join fetch a.patient p left join fetch p.user left join fetch a.doctor " +
+           "where a.status in :statuses and a.doctor is not null and p.user is not null " +
+           "order by a.scheduledTime asc")
+    List<Appointment> findEligibleForImagingCapture(@Param("statuses") List<String> statuses);
+
     List<Appointment> findByDoctorAndScheduledTimeBetween(User doctor, LocalDateTime from, LocalDateTime to);
 
     /**

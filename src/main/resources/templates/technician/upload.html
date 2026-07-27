@@ -21,19 +21,18 @@
                     <form id="technicianCaptureForm" th:action="@{/technician/xray-upload}" method="post" enctype="multipart/form-data">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="ms-label" for="uploadPatientEmail">Bệnh nhân</label>
-                                <select id="uploadPatientEmail" name="patientEmail" class="form-select ms-input" required>
-                                    <option value="">Chọn bệnh nhân</option>
-                                    <option th:each="patient : ${patients}" th:value="${patient.email}" th:text="${patient.fullName + ' - ' + patient.email}">Patient</option>
+                            <div class="col-12">
+                                <label class="ms-label" for="uploadAppointmentId">Lịch hẹn (bệnh nhân đã được lễ tân xếp bác sĩ)</label>
+                                <select id="uploadAppointmentId" name="appointmentId" class="form-select ms-input" required>
+                                    <option value="">Chọn lịch hẹn</option>
+                                    <option th:each="appt : ${eligibleAppointments}" th:value="${appt.appointmentId}"
+                                            th:text="${appt.patient.fullName + ' — BS. ' + appt.doctor.fullName + ' — ' + #temporals.format(appt.scheduledTime, 'HH:mm dd/MM/yyyy')}">
+                                        Patient — Doctor — Time
+                                    </option>
                                 </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="ms-label" for="uploadDoctorEmail">Bác sĩ nhận kết quả</label>
-                                <select id="uploadDoctorEmail" name="doctorEmail" class="form-select ms-input">
-                                    <option value="">Đưa vào hàng đợi chung</option>
-                                    <option th:each="doctor : ${doctors}" th:value="${doctor.email}" th:text="${doctor.fullName + ' - ' + doctor.email}">Doctor</option>
-                                </select>
+                                <small class="text-muted" th:if="${#lists.isEmpty(eligibleAppointments)}">
+                                    Không có lịch hẹn nào đã được lễ tân xếp bác sĩ và sẵn sàng chụp. Hãy kiểm tra lại ở màn Lễ tân.
+                                </small>
                             </div>
                         </div>
 

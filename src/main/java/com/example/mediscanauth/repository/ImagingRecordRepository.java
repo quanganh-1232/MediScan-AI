@@ -32,6 +32,15 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
     long countByStatusInAndDoctorUserId(List<String> statuses, Long userId);
     List<ImagingRecord> findByDoctorUserIdAndStatusInOrderByCreatedAtDesc(Long userId, List<String> statuses);
 
+    /**
+     * Pending queue for one doctor: cases routed to them by reception's
+     * appointment assignment, plus any legacy/unassigned cases (doctor is
+     * null) so nothing silently disappears from every doctor's view.
+     */
+    @Query("select r from ImagingRecord r where r.status in :statuses " +
+           "and (r.doctor is null or r.doctor.userId = :doctorId) order by r.createdAt desc")
+    List<ImagingRecord> findQueueForDoctor(@Param("statuses") List<String> statuses, @Param("doctorId") Long doctorId);
+
     // ==================== AI Diagnosis Monitoring ====================
     List<ImagingRecord> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
     long countByDoctorOverrodeAiTrue();

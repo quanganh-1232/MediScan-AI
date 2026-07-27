@@ -36,6 +36,11 @@ public class HomeController {
         this.appointmentRepository = appointmentRepository;
     }
 
+    @GetMapping("/")
+    public String root() {
+        return "redirect:/login";
+    }
+
     @GetMapping("/home")
     public String home(Authentication authentication, 
                        @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,

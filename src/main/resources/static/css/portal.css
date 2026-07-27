@@ -584,8 +584,8 @@ body {
     bottom: 5.8rem;
     right: 1.5rem;
     z-index: 1059;
-    width: min(23rem, calc(100vw - 2rem));
-    height: min(32rem, calc(100vh - 8rem));
+    width: min(28rem, calc(100vw - 2rem));
+    height: min(40rem, calc(100vh - 8rem));
     min-height: 0;
     max-height: none;
     display: none;

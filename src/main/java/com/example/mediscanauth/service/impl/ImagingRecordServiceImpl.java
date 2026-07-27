@@ -1,10 +1,12 @@
 package com.example.mediscanauth.service.impl;
 
 import com.example.mediscanauth.constant.OperationalConfig;
+import com.example.mediscanauth.model.Appointment;
 import com.example.mediscanauth.model.ImagingRecord;
 import com.example.mediscanauth.model.Patient;
 import com.example.mediscanauth.model.User;
 import com.example.mediscanauth.model.dto.DashboardDTO;
+import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.ImagingRecordRepository;
 import com.example.mediscanauth.repository.PatientRepository;
 import com.example.mediscanauth.repository.UserRepository;
@@ -72,6 +74,9 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     private final Cloudinary cloudinary;
     private final CloudinaryService cloudinaryService;
     private final AuditLogService auditLogService;
+    private final AppointmentRepository appointmentRepository;
+
+    private static final List<String> CAPTURE_ELIGIBLE_STATUSES = List.of("CONFIRMED", "CHECKED_IN", "IN_PROGRESS");
 
     @Value("${ai.service.api-key:dev-ai-key-change-me}")
     private String aiServiceApiKey;
@@ -84,7 +89,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             NotificationRepository notificationRepository,
             Cloudinary cloudinary,
             CloudinaryService cloudinaryService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            AppointmentRepository appointmentRepository) {
 
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
@@ -94,6 +100,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         this.cloudinary = cloudinary;
         this.cloudinaryService = cloudinaryService;
         this.auditLogService = auditLogService;
+        this.appointmentRepository = appointmentRepository;
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
         requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
@@ -190,6 +197,11 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     }
 
     @Override
+    public List<ImagingRecord> findQueueForDoctor(Long doctorId) {
+        return imagingRecordRepository.findQueueForDoctor(ACTIVE_QUEUE_STATUSES, doctorId);
+    }
+
+    @Override
     public List<ImagingRecord> findRecent() {
         return imagingRecordRepository.findTop10ByOrderByCreatedAtDesc();
     }
@@ -216,12 +228,20 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     @Override
     @Transactional
     public ImagingRecord captureAndAnalyzeFromTechnician(String technicianEmail,
-            String patientEmail,
-            String doctorEmail,
+            Long appointmentId,
             MultipartFile image) {
         User technician = userAccountService.findByEmail(technicianEmail);
-        User patient = userAccountService.findByEmail(patientEmail);
-        User doctor = isBlank(doctorEmail) ? null : userAccountService.findByEmail(doctorEmail);
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lich hen #" + appointmentId));
+        if (appointment.getDoctor() == null) {
+            throw new IllegalArgumentException("Lich hen nay chua duoc le tan gan bac si phu trach.");
+        }
+        if (appointment.getPatient() == null || appointment.getPatient().getUser() == null) {
+            throw new IllegalArgumentException(
+                    "Benh nhan cua lich hen nay chua co tai khoan dang nhap, khong the tao ho so chup.");
+        }
+        User patient = appointment.getPatient().getUser();
+        User doctor = appointment.getDoctor();
 
         try {
             Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
@@ -242,19 +262,24 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             record.setPatient(patient);
             record.setDoctor(doctor);
             record.setTechnician(technician);
-            record.setBodyPart("áº¢nh X-Ray ngáº«u nhiÃªn");
+            record.setBodyPart(isBlank(appointment.getBodyPart()) ? "X-Ray" : appointment.getBodyPart());
             record.setFileName(fileName);
-            record.setAiPrediction("Äang phÃ¢n tÃ­ch AI báº±ng YOLO+ANFIS");
+            record.setAiPrediction("Dang phan tich AI bang YOLO+ANFIS");
             record.setAiConfidence(0);
-            record.setRecommendation("Chá» bÃ¡c sÄ© xÃ¡c nháº­n káº¿t quáº£ AI.");
+            record.setRecommendation("Cho bac si xac nhan ket qua AI.");
             record.setStatus("PENDING_AI");
 
             ImagingRecord savedRecord = imagingRecordRepository.save(record);
             applyAiAnalysis(savedRecord, uploadPath, imageBytes);
             return imagingRecordRepository.save(savedRecord);
         } catch (IOException e) {
-            throw new RuntimeException("KhÃ´ng thá»ƒ láº¥y áº£nh ngáº«u nhiÃªn hoáº·c phÃ¢n tÃ­ch áº£nh X-Ray: " + e.getMessage(), e);
+            throw new RuntimeException("Khong the luu hoac phan tich anh X-Ray: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public List<Appointment> findAppointmentsEligibleForCapture() {
+        return appointmentRepository.findEligibleForImagingCapture(CAPTURE_ELIGIBLE_STATUSES);
     }
 
     @Override

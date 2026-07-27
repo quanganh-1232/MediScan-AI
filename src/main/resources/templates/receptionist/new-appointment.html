@@ -220,7 +220,7 @@
                                         </div>
                                     </div>
                                     <div class="text-end flex-shrink-0">
-                                        <span class="badge bg-teal bg-opacity-10 text-teal border border-teal border-opacity-25"
+                                        <span class="badge bg-primary text-white"
                                               th:text="${dw.totalAppointments} + ' Ca đã gán'">0 Ca</span>
                                     </div>
                                 </div>
@@ -250,10 +250,16 @@
                                         </div>
                                     </div>
                                     <span th:switch="${r.status}">
-                                        <span th:case="'PENDING'" class="badge bg-warning text-dark">Chờ</span>
-                                        <span th:case="'CONFIRMED'" class="badge bg-primary">Xác nhận</span>
-                                        <span th:case="'CHECKED_IN'" class="badge bg-teal text-white">Check-in</span>
-                                        <span th:case="*" class="badge bg-secondary" th:text="${r.status}">-</span>
+                                        <span th:case="'PENDING'" class="badge bg-warning text-dark">Chờ xác nhận</span>
+                                        <span th:case="'CONFIRMED'" class="badge bg-primary text-white">Đã xác nhận</span>
+                                        <span th:case="'SCHEDULED'" class="badge bg-primary text-white">Đã đặt</span>
+                                        <span th:case="'CHECKED_IN'" class="badge bg-teal text-white">Đã check-in</span>
+                                        <span th:case="'TRIAGED'" class="badge bg-info text-white">Khám sơ bộ</span>
+                                        <span th:case="'IN_PROGRESS'" class="badge bg-info text-white">Đang khám</span>
+                                        <span th:case="'COMPLETED'" class="badge bg-success text-white">Hoàn thành</span>
+                                        <span th:case="'CANCELLED'" class="badge bg-danger text-white">Đã hủy</span>
+                                        <span th:case="'MISSED'" class="badge bg-danger text-white">Vắng mặt</span>
+                                        <span th:case="*" class="badge bg-secondary text-white" th:text="${r.status}">-</span>
                                     </span>
                                 </div>
                             </div>

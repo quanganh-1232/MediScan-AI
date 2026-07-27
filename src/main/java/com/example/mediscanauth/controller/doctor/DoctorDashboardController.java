@@ -67,8 +67,9 @@ public class DoctorDashboardController {
     }
 
     @GetMapping("/doctor/records/pending")
-    public String pendingList(Model model) {
-        model.addAttribute("pendingRecords", imagingRecordService.findQueue());
+    public String pendingList(Model model, Principal principal) {
+        Long doctorId = imagingRecordService.getDoctorIdByEmail(principal.getName());
+        model.addAttribute("pendingRecords", imagingRecordService.findQueueForDoctor(doctorId));
         model.addAttribute("todayRecordCount", imagingRecordService.countToday());
         model.addAttribute("totalRecordCount", imagingRecordService.countAll());
         model.addAttribute("libraryPreview", imagingRecordService.searchConfirmedLibrary(null, null,
