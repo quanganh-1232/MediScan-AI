@@ -58,12 +58,19 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void sendNotification(User recipient, String title, String message, Long recordId) {
+        sendNotification(recipient, title, message, recordId, null);
+    }
+
+    @Override
+    @Transactional
+    public void sendNotification(User recipient, String title, String message, Long recordId, String targetUrl) {
         if (recipient == null) return;
         Notification n = new Notification();
         n.setUser(recipient);
         n.setTitle(title);
         n.setMessage(message);
         n.setRecordId(recordId);
+        n.setTargetUrl(targetUrl);
         n.setRead(false);
         notificationRepository.save(n);
     }
@@ -71,9 +78,15 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void notifyRoleUsers(List<String> roleNames, String title, String message, Long recordId) {
+        notifyRoleUsers(roleNames, title, message, recordId, null);
+    }
+
+    @Override
+    @Transactional
+    public void notifyRoleUsers(List<String> roleNames, String title, String message, Long recordId, String targetUrl) {
         List<User> users = userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(roleNames, "ACTIVE");
         for (User u : users) {
-            sendNotification(u, title, message, recordId);
+            sendNotification(u, title, message, recordId, targetUrl);
         }
     }
 }

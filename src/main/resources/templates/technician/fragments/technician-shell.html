@@ -50,11 +50,13 @@
 <div class="rc-sidebar" th:fragment="sidebar(active)">
     <div class="d-grid gap-1">
         <a class="rc-nav-item" th:classappend="${active == 'upload'} ? ' active'" th:href="@{/technician/xray-upload}"><i class="bi bi-camera"></i> Chụp X-quang</a>
-        <a class="rc-nav-item" th:href="@{/technician/xray-upload#history}"><i class="bi bi-clock-history"></i> Lịch sử chụp</a>
+        <a class="rc-nav-item" th:classappend="${active == 'recent'} ? ' active'" th:href="@{/technician/recent}"><i class="bi bi-clock-history"></i> Lịch sử chụp</a>
         <hr class="my-2">
         <a class="rc-nav-item" th:href="@{/notifications}"><i class="bi bi-bell"></i> Thông báo</a>
     </div>
 </div>
 
+
+<script th:src="@{/js/status-translator.js}"></script>
 </body>
 </html>

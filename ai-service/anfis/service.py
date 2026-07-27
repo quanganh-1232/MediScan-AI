@@ -114,21 +114,21 @@ def _build_impression(score: float, level: str, inputs: Dict[str, float]) -> str
     ms           = inputs["morphology_strength"]
 
     if region_count == 0 or level == "very_low":
-        return "Không ghi nhận dấu hiệu gãy xương rõ rệt. Cấu trúc xương bình thường. Đề nghị kết hợp khám lâm sàng để loại trừ rạn xương vi thể."
+        return "Thưa bác sĩ, hệ thống không ghi nhận dấu hiệu gãy xương rõ rệt trên phim chụp này. Cấu trúc xương trông khá bình thường. Tuy nhiên, tôi đề xuất bác sĩ kết hợp thêm khám lâm sàng để loại trừ hoàn toàn các vết rạn xương vi thể (nếu có)."
 
     if level == "very_high":
-        fracture_char = "Đường gãy rõ nét và kéo dài." if ei >= 0.65 and ms >= 0.65 else "Dấu hiệu tách rời vỏ xương." if ei >= 0.65 else "Tổn thương xương diện rộng."
-        return f"Phát hiện {_region_desc(region_count)} có dấu hiệu gãy xương (độ tin cậy {conf_pct}%). {fracture_char} Đánh giá nguy cơ gãy xương: RẤT CAO."
+        fracture_char = "Đường gãy rất rõ nét và kéo dài." if ei >= 0.65 and ms >= 0.65 else "Có dấu hiệu tách rời vỏ xương khá rõ." if ei >= 0.65 else "Tổn thương xương lan rộng."
+        return f"Thưa bác sĩ, hệ thống phát hiện {_region_desc(region_count)} có dấu hiệu gãy xương (độ tin cậy {conf_pct}%). {fracture_char} Dựa trên phân tích, tôi đánh giá nguy cơ gãy xương ở ca này là RẤT CAO."
 
     if level == "high":
-        char = "Gợi ý gãy một phần hoặc nứt xương." if ms >= 0.5 else "Bờ xương mất liên tục, nghi ngờ nứt hoặc gãy ngang."
-        return f"Ghi nhận {_region_desc(region_count)} bất thường (độ tin cậy {conf_pct}%). {char} Đánh giá nguy cơ tổn thương xương: CAO."
+        char = "Hình thái gợi ý gãy một phần hoặc nứt xương." if ms >= 0.5 else "Bờ xương mất liên tục, nghi ngờ nứt hoặc gãy ngang."
+        return f"Thưa bác sĩ, hệ thống ghi nhận {_region_desc(region_count)} bất thường (độ tin cậy {conf_pct}%). {char} Tôi đánh giá nguy cơ tổn thương xương là CAO."
 
     if level == "moderate":
-        detail = "Viền xương thay đổi cục bộ, nghi ngờ nứt nhẹ." if ei >= 0.4 else "Thay đổi cấu trúc nhẹ, theo dõi rạn xương hoặc biến thể giải phẫu."
-        return f"Ghi nhận {_region_desc(region_count)} thay đổi nhẹ (độ tin cậy {conf_pct}%). {detail} Nguy cơ tổn thương xương: TRUNG BÌNH. Cần đối chiếu với triệu chứng lâm sàng."
+        detail = "Viền xương thay đổi cục bộ, nghi ngờ nứt nhẹ." if ei >= 0.4 else "Thay đổi cấu trúc nhẹ, cần theo dõi rạn xương hoặc biến thể giải phẫu."
+        return f"Thưa bác sĩ, hệ thống ghi nhận {_region_desc(region_count)} thay đổi nhẹ (độ tin cậy {conf_pct}%). {detail} Nguy cơ tổn thương xương hiện ở mức TRUNG BÌNH. Đề nghị bác sĩ đối chiếu thêm với các triệu chứng lâm sàng của bệnh nhân."
 
-    return f"Phát hiện {_region_desc(region_count)} bất thường nhẹ (độ tin cậy {conf_pct}%). Chưa đủ bằng chứng chẩn đoán gãy xương, có thể là tổn thương mô mềm hoặc hình thái tự nhiên. Nguy cơ tổn thương: THẤP."
+    return f"Thưa bác sĩ, hệ thống có phát hiện {_region_desc(region_count)} bất thường nhẹ (độ tin cậy {conf_pct}%). Tuy nhiên, hiện chưa đủ bằng chứng để chẩn đoán gãy xương; đây có thể chỉ là tổn thương phần mềm hoặc hình thái tự nhiên. Nguy cơ tổn thương xương được đánh giá ở mức THẤP."
 
 
 # ── Khuyến nghị lâm sàng ─────────────────────────────────────────────────────
@@ -141,26 +141,26 @@ def _build_recommendations(level: str, inputs: Dict[str, float]) -> List[str]:
 
     if level == "very_high":
         recommendations.extend([
-            "Chỉ định bất động ngay lập tức vùng tổn thương.",
-            "Cân nhắc chụp X-quang thêm các góc (nghiêng, chếch) hoặc CT-scan để đánh giá chi tiết mức độ di lệch.",
-            "Chuẩn bị hội chẩn chuyên khoa Chấn thương Chỉnh hình để can thiệp (bó bột/phẫu thuật)."
+            "Đề xuất bác sĩ chỉ định bất động ngay lập tức vùng tổn thương.",
+            "Tôi đề xuất chụp X-quang thêm các góc (nghiêng, chếch) hoặc CT-scan để bác sĩ đánh giá chi tiết mức độ di lệch.",
+            "Cân nhắc chuẩn bị hội chẩn chuyên khoa Chấn thương Chỉnh hình để can thiệp (bó bột/phẫu thuật)."
         ])
     elif level == "high":
         recommendations.extend([
-            "Chỉ định nẹp cố định tạm thời vùng nghi ngờ.",
-            "Khuyến cáo chụp thêm phim ở các góc khác để làm rõ tổn thương.",
-            "Theo dõi sát các triệu chứng chèn ép khoang hoặc tổn thương thần kinh mạch máu."
+            "Đề xuất bác sĩ chỉ định nẹp cố định tạm thời vùng nghi ngờ.",
+            "Nên yêu cầu chụp thêm phim ở các góc khác để làm rõ tổn thương.",
+            "Đề xuất theo dõi sát các triệu chứng chèn ép khoang hoặc tổn thương thần kinh mạch máu."
         ])
     elif level == "moderate":
         recommendations.extend([
-            "Khai thác kỹ tiền sử chấn thương và đối chiếu điểm đau khu trú.",
-            "Chỉ định hạn chế vận động mạnh; hẹn chụp lại sau vài ngày nếu triệu chứng không thuyên giảm.",
-            "Cân nhắc siêu âm kiểm tra tổn thương mô mềm hoặc dây chằng."
+            "Đề xuất khai thác kỹ tiền sử chấn thương và đối chiếu điểm đau khu trú của bệnh nhân.",
+            "Nên chỉ định hạn chế vận động mạnh; hẹn chụp lại sau vài ngày nếu triệu chứng không thuyên giảm.",
+            "Bác sĩ có thể cân nhắc siêu âm kiểm tra thêm tổn thương mô mềm hoặc dây chằng."
         ])
     else:
         recommendations.extend([
-            "Theo dõi lâm sàng; điều trị giảm đau mô mềm nếu cần.",
-            "Dặn dò bệnh nhân tái khám nếu xuất hiện sưng đau tăng dần."
+            "Đề xuất tiếp tục theo dõi lâm sàng; điều trị giảm đau mô mềm nếu cần.",
+            "Bác sĩ có thể dặn dò bệnh nhân tái khám nếu xuất hiện sưng đau tăng dần."
         ])
 
     if bc < 0.25:

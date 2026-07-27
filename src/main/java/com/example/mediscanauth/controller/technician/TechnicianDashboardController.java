@@ -58,8 +58,9 @@ public class TechnicianDashboardController {
     }
 
     @GetMapping("/technician/recent")
-    public String recent() {
-        return "redirect:/technician/xray-upload";
+    public String recent(Model model, Authentication authentication) {
+        addDashboardData(model, authentication);
+        return "technician/recent";
     }
 
     @PostMapping("/technician/xray-upload")

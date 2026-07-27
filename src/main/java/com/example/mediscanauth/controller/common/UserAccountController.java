@@ -98,6 +98,10 @@ public class UserAccountController {
         boolean isDoctor = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_DOCTOR"));
 
+        if (n.getTargetUrl() != null && !n.getTargetUrl().isEmpty()) {
+            return "redirect:" + n.getTargetUrl();
+        }
+
         if (isDoctor && n.getRecordId() != null) {
             return "redirect:/doctor/records/" + n.getRecordId() + "/review";
         }

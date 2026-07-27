@@ -174,7 +174,7 @@
                             </div>
 
                             <div class="mb-3">
-                                <small class="text-muted fw-bold">Kết luận BS:</small>
+                                <small class="text-muted fw-bold">Kết luận (<span th:text="${record.doctor?.fullName ?: 'N/A'}"></span>):</small>
                                 <p class="small mb-0 ai-text-truncate text-dark fw-medium" th:text="${record.doctorConclusion ?: 'Chưa có'}">Chưa có kết luận</p>
                             </div>
 
@@ -381,5 +381,7 @@
         }
     }
 </script>
+
+<script th:src="@{/js/status-translator.js}"></script>
 </body>
 </html>

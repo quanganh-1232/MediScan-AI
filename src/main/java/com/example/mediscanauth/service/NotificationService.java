@@ -21,5 +21,9 @@ public interface NotificationService {
 
     void sendNotification(User recipient, String title, String message, Long recordId);
 
+    void sendNotification(User recipient, String title, String message, Long recordId, String targetUrl);
+
     void notifyRoleUsers(List<String> roleNames, String title, String message, Long recordId);
+
+    void notifyRoleUsers(List<String> roleNames, String title, String message, Long recordId, String targetUrl);
 }

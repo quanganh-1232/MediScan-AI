@@ -19,6 +19,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
            "where a.status = :status order by a.scheduledTime asc")
     List<Appointment> findByStatusOrderByScheduledTimeAsc(@Param("status") String status);
 
+    List<Appointment> findByStatusOrderByQueueNumberAsc(String status);
+
     List<Appointment> findByDoctorUserIdOrderByScheduledTimeDesc(Long doctorId);
 
     List<Appointment> findByDoctorUserIdAndStatusOrderByScheduledTimeDesc(Long doctorId, String status);
@@ -83,6 +85,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                                         @Param("to") LocalDateTime to);
 
     long countByTechnicianUserIdAndStatus(Long technicianId, String status);
+
+    @Query("SELECT COALESCE(MAX(a.queueNumber), 0) FROM Appointment a WHERE a.scheduledTime >= :startOfDay AND a.scheduledTime < :nextDay")
+    Integer findMaxQueueNumberForDate(@Param("startOfDay") LocalDateTime startOfDay, @Param("nextDay") LocalDateTime nextDay);
 
     boolean existsByTechnicianUserId(Long technicianId);
 

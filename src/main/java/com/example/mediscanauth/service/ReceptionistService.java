@@ -11,6 +11,8 @@ public interface ReceptionistService {
 
     Appointment checkInAppointment(Long appointmentId, String receptionistEmail);
 
+    Appointment callInAppointment(Long appointmentId, String receptionistEmail);
+
     Appointment assignDoctor(Long appointmentId, Long doctorId, String note, String receptionistEmail);
 
     Appointment createWalkInAppointment(String fullName,

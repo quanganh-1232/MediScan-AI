@@ -85,11 +85,9 @@ public class DoctorDashboardController {
         String recordCode = record.getRecordCode() != null ? record.getRecordCode() : "Unknown_Record";
 
         // URL hiển thị
-        String displayUrl = cloudinaryService.getDisplayImageUrl(
-                record.getFileName(), record.getStatus(), patientName, recordCode);
+        String displayUrl = "/uploads/" + record.getFileName();
 
-        String originalUrl = cloudinaryService.getOriginalImageUrl(
-                record.getFileName(), patientName, recordCode);
+        String originalUrl = "/uploads/" + record.getFileName();
 
         model.addAttribute("record", record);
         model.addAttribute("displayImageUrl", displayUrl);
@@ -173,7 +171,7 @@ public class DoctorDashboardController {
         String email = principal.getName();
         Long doctorId = imagingRecordService.getDoctorIdByEmail(email);
 
-        List<DashboardDTO.QueueItemDTO> completedList = imagingRecordService.getCompletedDTOsForDoctor(doctorId);
+        List<DashboardDTO.QueueItemDTO> completedList = imagingRecordService.getAllCompletedDTOs();
 
         // Filter client-side
         if (q != null && !q.trim().isEmpty()) {

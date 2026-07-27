@@ -98,11 +98,11 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         String formattedTime = appointment.getScheduledTime() != null ? appointment.getScheduledTime().format(TIME_FORMAT) : "";
         if (appointment.getDoctor() != null) {
             notificationService.sendNotification(appointment.getDoctor(), "Xác nhận lịch hẹn khám",
-                    "Lịch hẹn khám lúc " + formattedTime + " đã được xác nhận.", null);
+                    "Lịch hẹn khám lúc " + formattedTime + " đã được xác nhận.", null, null);
         }
         if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
             notificationService.sendNotification(appointment.getPatient().getUser(), "Lịch hẹn đã được xác nhận",
-                    "Lịch hẹn khám của bạn vào " + formattedTime + " đã được lễ tân xác nhận.", null);
+                    "Lịch hẹn khám của bạn vào " + formattedTime + " đã được lễ tân xác nhận.", null, "/patient/appointments");
         }
         return appointment;
     }
@@ -119,20 +119,33 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                     "Lịch hẹn này được đặt cho ngày " + appointment.getScheduledTime().toLocalDate()
                     + ", chưa thể check-in hôm nay.");
         }
+        
+        // Generate queue number
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime nextDay = startOfDay.plusDays(1);
+        Integer maxQueue = appointmentRepository.findMaxQueueNumberForDate(startOfDay, nextDay);
+        appointment.setQueueNumber((maxQueue == null ? 0 : maxQueue) + 1);
+        
         User receptionist = findReceptionist(receptionistEmail);
         appointment.setReceptionist(receptionist);
         appointment.setStatus("CHECKED_IN");
         appointmentRepository.save(appointment);
-        logStatusChange(appointment, "CHECKED_IN", receptionist, "Bệnh nhân đã check-in tại quầy lễ tân.");
+        logStatusChange(appointment, "CHECKED_IN", receptionist, "Bệnh nhân đã check-in tại quầy lễ tân (Số thứ tự: " + appointment.getQueueNumber() + ").");
 
         String formattedTime = appointment.getScheduledTime() != null ? appointment.getScheduledTime().format(TIME_FORMAT) : "";
         String patientName = appointment.getPatient() != null ? appointment.getPatient().getFullName() : "bệnh nhân";
         if (appointment.getDoctor() != null) {
             notificationService.sendNotification(appointment.getDoctor(), "Bệnh nhân đã check-in",
-                    "Bệnh nhân " + patientName + " đã check-in lúc " + formattedTime + ", đang trong danh sách chờ khám.", null);
+                    "Bệnh nhân " + patientName + " đã check-in lúc " + formattedTime + ", đang trong danh sách chờ khám.", null, null);
         }
         notificationService.notifyRoleUsers(RECEPTIONIST_ROLE_NAMES, "Bệnh nhân đã check-in",
-                "Bệnh nhân " + patientName + " đã check-in tại quầy.", null);
+                "Bệnh nhân " + patientName + " đã check-in tại quầy.", null, null);
+                
+        if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
+            notificationService.sendNotification(appointment.getPatient().getUser(), "Đã check-in thành công",
+                    "Bạn đã được cấp số thứ tự " + appointment.getQueueNumber() + ", vui lòng đợi ở phòng chờ.", null, "/patient/appointments");
+        }
+
         return appointment;
     }
 
@@ -297,7 +310,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     @Transactional
     public Appointment callNextPatient(String receptionistEmail) {
         User receptionist = findReceptionist(receptionistEmail);
-        List<Appointment> waiting = appointmentRepository.findByStatusOrderByScheduledTimeAsc("CHECKED_IN");
+        List<Appointment> waiting = appointmentRepository.findByStatusOrderByQueueNumberAsc("CHECKED_IN");
         for (Appointment candidate : waiting) {
             int claimed = appointmentRepository.claimAppointment(
                     candidate.getAppointmentId(), "CHECKED_IN", "IN_PROGRESS", receptionist);
@@ -503,5 +516,26 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         history.setActor(actor);
         history.setNote(note);
         historyRepository.save(history);
+    }
+    
+    @Override
+    @Transactional
+    public Appointment callInAppointment(Long appointmentId, String receptionistEmail) {
+        Appointment appointment = getAppointmentOrThrow(appointmentId);
+        if (!"CHECKED_IN".equals(appointment.getStatus())) {
+            throw new InvalidFieldException("Chỉ có thể gọi vào các bệnh nhân đang ở trạng thái CHECKED_IN.");
+        }
+        User receptionist = findReceptionist(receptionistEmail);
+        appointment.setReceptionist(receptionist);
+        appointment.setStatus("IN_PROGRESS");
+        appointmentRepository.save(appointment);
+        logStatusChange(appointment, "IN_PROGRESS", receptionist, "Lễ tân đã gọi bệnh nhân vào phòng chụp/khám.");
+        
+        if (appointment.getPatient() != null && appointment.getPatient().getUser() != null) {
+            notificationService.sendNotification(appointment.getPatient().getUser(), "Đến lượt khám",
+                    "Đã đến lượt của bạn (Số " + appointment.getQueueNumber() + "), vui lòng vào phòng chụp X-Quang.", null, "/patient/appointments");
+        }
+        
+        return appointment;
     }
 }
