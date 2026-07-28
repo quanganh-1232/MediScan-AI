@@ -239,26 +239,45 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     @Override
     @Transactional
     public ImagingRecord captureAndAnalyzeFromTechnician(String technicianEmail,
-            Long appointmentId,
-            MultipartFile image) {
+                                                         Long appointmentId,
+                                                         MultipartFile image) {
+
         User technician = userAccountService.findByEmail(technicianEmail);
+
         Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lich hen #" + appointmentId));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Không tìm thấy lịch hẹn #" + appointmentId));
+
         if (appointment.getDoctor() == null) {
-            throw new IllegalArgumentException("Lich hen nay chua duoc le tan gan bac si phu trach.");
-        }
-        if (appointment.getPatient() == null || appointment.getPatient().getUser() == null) {
             throw new IllegalArgumentException(
-                    "Benh nhan cua lich hen nay chua co tai khoan dang nhap, khong the tao ho so chup.");
+                    "Lịch hẹn này chưa được lễ tân gán bác sĩ phụ trách.");
         }
+
+        if (appointment.getPatient() == null
+                || appointment.getPatient().getUser() == null) {
+            throw new IllegalArgumentException(
+                    "Bệnh nhân của lịch hẹn này chưa có tài khoản đăng nhập, không thể tạo hồ sơ chụp.");
+        }
+
         User patient = appointment.getPatient().getUser();
         User doctor = appointment.getDoctor();
 
         try {
-            Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
+
+            //====================================================
+            // Create local upload folder
+            //====================================================
+            Path uploadPath = Paths.get(UPLOAD_DIR)
+                    .toAbsolutePath()
+                    .normalize();
+
             Files.createDirectories(uploadPath);
 
+            //====================================================
+            // Save uploaded image locally
+            //====================================================
             String fileName = image.getOriginalFilename();
+
             Path destination = uploadPath.resolve(fileName);
 
             Files.copy(
@@ -268,31 +287,74 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
             byte[] imageBytes = image.getBytes();
 
+            //====================================================
+            // Create Imaging Record
+            //====================================================
             ImagingRecord record = new ImagingRecord();
+
             record.setRecordCode(nextRecordCode());
             record.setPatient(patient);
             record.setDoctor(doctor);
             record.setTechnician(technician);
-            record.setBodyPart(isBlank(appointment.getBodyPart()) ? "X-Ray" : appointment.getBodyPart());
+
+            record.setBodyPart(
+                    isBlank(appointment.getBodyPart())
+                            ? "X-Ray"
+                            : appointment.getBodyPart());
+
+            // Save original filename only
             record.setFileName(fileName);
-            record.setAiPrediction("Dang phan tich AI bang YOLO+ANFIS");
+
+            record.setAiPrediction("Đang phân tích AI bằng YOLO + ANFIS");
             record.setAiConfidence(0);
-            record.setRecommendation("Cho bac si xac nhan ket qua AI.");
+
+            record.setRecommendation(
+                    "Chờ bác sĩ xác nhận kết quả AI.");
+
             record.setStatus("PENDING_AI");
 
-            ImagingRecord savedRecord = imagingRecordRepository.save(record);
-            
-            // Notify doctor
-            if (doctor != null) {
-                notificationService.sendNotification(doctor, "Có kết quả chụp mới",
-                        "Kỹ thuật viên vừa gửi một kết quả chụp X-Quang mới cần bạn chẩn đoán.",
-                        null, "/doctor/records/" + savedRecord.getRecordId() + "/review");
-            }
-            
-            applyAiAnalysis(savedRecord, uploadPath, imageBytes);
+            ImagingRecord savedRecord =
+                    imagingRecordRepository.save(record);
+
+            //====================================================
+            // Notify assigned doctor
+            //====================================================
+            notificationService.sendNotification(
+                    doctor,
+                    "Có kết quả chụp mới",
+                    "Kỹ thuật viên vừa gửi một kết quả chụp X-Quang mới cần bạn chẩn đoán.",
+                    null,
+                    "/doctor/records/" + savedRecord.getRecordId() + "/review");
+
+            //====================================================
+            // Run AI analysis
+            // This creates:
+            // annotated_<originalFileName>
+            //====================================================
+            applyAiAnalysis(
+                    savedRecord,
+                    uploadPath,
+                    imageBytes);
+
+            //====================================================
+            // Upload Original + AI image to Cloudinary
+            //====================================================
+            cloudinaryService.uploadTechnicianImages(
+                    uploadPath.toString(),
+                    fileName,
+                    patient.getFullName(),
+                    savedRecord.getRecordCode());
+
+            //====================================================
+            // Save final record
+            //====================================================
             return imagingRecordRepository.save(savedRecord);
+
         } catch (IOException e) {
-            throw new RuntimeException("Khong the luu hoac phan tich anh X-Ray: " + e.getMessage(), e);
+            throw new RuntimeException(
+                    "Không thể lưu hoặc phân tích ảnh X-Ray: "
+                            + e.getMessage(),
+                    e);
         }
     }
 

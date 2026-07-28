@@ -4,8 +4,13 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.example.mediscanauth.dto.CloudinaryUploadResult;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.Normalizer;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -147,5 +152,90 @@ public class CloudinaryService {
         return String.format(
                 "https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/MedicalAI/%s/%s/Origin/%s?t=%d",
                 cloudName, safePatient, safeRecord, safeFileName, System.currentTimeMillis());
+    }
+
+    public Map<String, String> uploadTechnicianImages(
+            String uploadDir,
+            String originalFileName,
+            String patientName,
+            String recordCode) {
+
+        try {
+
+            System.out.println("====== [TECHNICIAN CLOUDINARY UPLOAD] ======");
+
+            String safePatient = removeAccent(patientName.trim());
+
+            String rootFolder = String.format(
+                    "MedicalAI/%s/%s",
+                    safePatient,
+                    recordCode.trim());
+
+            File originalFile = new File(uploadDir, originalFileName);
+            File aiFile = new File(uploadDir, "annotated_" + originalFileName);
+
+            if (!originalFile.exists()) {
+                throw new IOException("Original image not found: "
+                        + originalFile.getAbsolutePath());
+            }
+
+            if (!aiFile.exists()) {
+                throw new IOException("AI image not found: "
+                        + aiFile.getAbsolutePath());
+            }
+
+            // ---------------- ORIGINAL ----------------
+
+            String originalPublicId =
+                    buildSafeCloudinaryPublicId(originalFileName, "");
+
+            Map<?, ?> originalResult =
+                    cloudinary.uploader().upload(
+                            originalFile,
+                            ObjectUtils.asMap(
+                                    "folder", rootFolder + "/Origin",
+                                    "public_id", originalPublicId,
+                                    "overwrite", true,
+                                    "invalidate", true));
+
+            // ---------------- AI ----------------
+
+            String aiPublicId =
+                    buildSafeCloudinaryPublicId(originalFileName, "annotated_");
+
+            Map<?, ?> aiResult =
+                    cloudinary.uploader().upload(
+                            aiFile,
+                            ObjectUtils.asMap(
+                                    "folder", rootFolder + "/AI",
+                                    "public_id", aiPublicId,
+                                    "overwrite", true,
+                                    "invalidate", true));
+
+            Map<String, String> urls = new HashMap<>();
+
+            urls.put(
+                    "original",
+                    originalResult.get("secure_url").toString());
+
+            urls.put(
+                    "annotated",
+                    aiResult.get("secure_url").toString());
+
+            System.out.println("Patient : " + patientName);
+            System.out.println("Record  : " + recordCode);
+            System.out.println("Original: " + urls.get("original"));
+            System.out.println("AI      : " + urls.get("annotated"));
+            System.out.println("==========================================");
+
+            return urls;
+
+        } catch (Exception e) {
+
+            System.err.println("TECHNICIAN CLOUDINARY UPLOAD FAILED");
+            e.printStackTrace();
+
+            throw new RuntimeException(e);
+        }
     }
 }
