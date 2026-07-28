@@ -55,6 +55,76 @@ public class CloudinaryService {
     }
 
     /**
+     * Upload ảnh gốc từ Kỹ thuật viên lên Cloudinary.
+     * Thư mục: MedicalAI/{patientName}/{recordCode}/Origin/
+     * Tên file: Origin_{tên file gốc}
+     */
+    public String uploadOriginImage(byte[] imageBytes, String patientName, String recordCode, String fileName) {
+        try {
+            System.out.println("====== [UPLOAD ORIGIN IMAGE TO CLOUDINARY] ======");
+            System.out.println("Patient    : " + patientName);
+            System.out.println("Record     : " + recordCode);
+            System.out.println("File Name  : " + fileName);
+
+            String safePatient = removeAccent(patientName.trim());
+            String folderPath = String.format("MedicalAI/%s/%s/Origin", safePatient, recordCode.trim());
+            String originFileName = buildSafeCloudinaryPublicId(fileName, "Origin_");
+
+            Map<String, Object> params = ObjectUtils.asMap(
+                    "folder", folderPath,
+                    "public_id", originFileName,
+                    "overwrite", true,
+                    "invalidate", true);
+
+            Map<?, ?> result = cloudinary.uploader().upload(imageBytes, params);
+            String secureUrl = (String) result.get("secure_url");
+
+            System.out.println("UPLOAD ORIGIN SUCCESS — URL: " + secureUrl);
+            System.out.println("======================================");
+            return secureUrl;
+        } catch (Exception e) {
+            System.err.println("UPLOAD ORIGIN IMAGE FAILED: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Upload ảnh đã được AI khoanh vùng (annotated) lên Cloudinary.
+     * Thư mục: MedicalAI/{patientName}/{recordCode}/AI/
+     * Tên file: Annotation_{tên file gốc}
+     */
+    public String uploadAiAnnotatedImage(byte[] imageBytes, String patientName, String recordCode, String fileName) {
+        try {
+            System.out.println("====== [UPLOAD AI ANNOTATED IMAGE TO CLOUDINARY] ======");
+            System.out.println("Patient    : " + patientName);
+            System.out.println("Record     : " + recordCode);
+            System.out.println("File Name  : " + fileName);
+
+            String safePatient = removeAccent(patientName.trim());
+            String folderPath = String.format("MedicalAI/%s/%s/AI", safePatient, recordCode.trim());
+            String annotationFileName = buildSafeCloudinaryPublicId(fileName, "Annotation_");
+
+            Map<String, Object> params = ObjectUtils.asMap(
+                    "folder", folderPath,
+                    "public_id", annotationFileName,
+                    "overwrite", true,
+                    "invalidate", true);
+
+            Map<?, ?> result = cloudinary.uploader().upload(imageBytes, params);
+            String secureUrl = (String) result.get("secure_url");
+
+            System.out.println("UPLOAD ANNOTATION SUCCESS — URL: " + secureUrl);
+            System.out.println("======================================");
+            return secureUrl;
+        } catch (Exception e) {
+            System.err.println("UPLOAD AI ANNOTATED IMAGE FAILED: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
      * Nhận chuỗi ảnh Base64 chụp màn hình từ trình duyệt của bác sĩ,
      * tự động tạo thư mục và upload trực tiếp lên Cloudinary với quy tắc đặt tên mới.
      * Tên file đích: doctor_ + [tên file gốc] (Ví dụ: doctor_img-2026-0002-ankle.png)
