@@ -281,7 +281,11 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             record.setStatus("PENDING_AI");
 
             ImagingRecord savedRecord = imagingRecordRepository.save(record);
-            
+
+            // Upload ảnh gốc lên Cloudinary (Origin)
+            String patientFullName = patient.getFullName() != null ? patient.getFullName() : "Unknown_Patient";
+            cloudinaryService.uploadOriginImage(imageBytes, patientFullName, savedRecord.getRecordCode(), fileName);
+
             // Notify doctor
             if (doctor != null) {
                 notificationService.sendNotification(doctor, "Có kết quả chụp mới",
@@ -565,10 +569,15 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
             if (!isBlank(annotatedBase64) && !"null".equalsIgnoreCase(annotatedBase64)) {
                 byte[] decodedBytes = Base64.getDecoder().decode(annotatedBase64);
                 String annotatedFileName = "annotated_" + record.getFileName();
+                // Ghi file annotated xuống local disk (giữ nguyên)
                 try (FileOutputStream fos = new FileOutputStream(uploadPath.resolve(annotatedFileName).toFile())) {
                     fos.write(decodedBytes);
                 }
                 record.setFileName(annotatedFileName);
+                // Upload ảnh AI khoanh vùng lên Cloudinary (AI/Annotation_...)
+                String patientName = record.getPatient() != null && record.getPatient().getFullName() != null
+                        ? record.getPatient().getFullName() : "Unknown_Patient";
+                cloudinaryService.uploadAiAnnotatedImage(decodedBytes, patientName, record.getRecordCode(), annotatedFileName);
             }
 
             String clinicalText = !isBlank(impression) ? impression : summary;
