@@ -152,7 +152,7 @@ public class ChatbotNLPService {
         String nfdNormalizedString = Normalizer.normalize(text.toLowerCase(), Normalizer.Form.NFD); 
         Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
         String noAccents = pattern.matcher(nfdNormalizedString).replaceAll("");
-        noAccents = noAccents.replaceAll("Ã„â€˜", "d").replaceAll("Ã„Â", "D");
+        noAccents = noAccents.replaceAll("\u0111", "d").replaceAll("\u0110", "D");
         return noAccents.replaceAll("[^a-z0-9\\s]", "").trim();
     }
 
