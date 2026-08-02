@@ -79,6 +79,10 @@
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2 mb-3">
                     <div class="pt-card-title fs-5 mb-0"><i class="bi bi-list-ul"></i> Danh sách tài khoản</div>
                     <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-sm ms-btn ms-btn-primary text-white"
+                                data-bs-toggle="modal" data-bs-target="#createEmployeeModal">
+                            <i class="bi bi-person-plus me-1"></i>Thêm nhân viên
+                        </button>
                         <a class="btn btn-sm ms-btn ms-btn-ghost border text-primary"
                            th:href="@{/admin/users/export-excel(keyword=${keyword}, role=${selectedRole}, status=${selectedStatus})}">
                             <i class="bi bi-file-earmark-excel me-1"></i>Xuất Excel
@@ -266,6 +270,51 @@
         </div>
     </div>
 </main>
+<div class="modal fade" id="createEmployeeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form th:action="@{/admin/users/create}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2 text-primary"></i>Thêm tài khoản nhân viên</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body row g-3">
+                    <div class="col-12">
+                        <label class="form-label ms-label">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" name="fullName" class="form-control ms-input" placeholder="Ví dụ: Nguyễn Văn A" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label ms-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control ms-input" placeholder="example@mediscan.ai" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label ms-label">Số điện thoại</label>
+                        <input type="tel" name="phone" class="form-control ms-input" placeholder="0901234567">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label ms-label">Mật khẩu tạm thời <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control ms-input" placeholder="Tối thiểu 6 ký tự" minlength="6" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label ms-label">Vai trò nhân viên <span class="text-danger">*</span></label>
+                        <select name="roleName" class="form-select ms-input" required>
+                            <option value="" disabled selected>-- Chọn vai trò --</option>
+                            <option value="TECHNICIAN">Kỹ thuật viên (Technician)</option>
+                            <option value="DOCTOR">Bác sĩ (Doctor)</option>
+                            <option value="RECEPTIONIST">Lễ tân (Receptionist)</option>
+                            <option value="ADMIN">Quản trị viên (Admin)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn ms-btn ms-btn-primary text-white">Tạo tài khoản</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="importUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">

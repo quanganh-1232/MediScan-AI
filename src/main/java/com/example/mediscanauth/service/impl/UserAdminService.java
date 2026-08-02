@@ -23,12 +23,14 @@ import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 @Service
 public class UserAdminService extends BaseServiceImpl<User, Long> {
 
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_LOCKED = "LOCKED";
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
 
     private final RoleRepository roleRepository;
     private final UserRepository userRepository = (UserRepository) this.repository;
@@ -115,13 +117,15 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
 
     @Transactional
     public User createStaff(String fullName, String email, String phone, String rawPassword, String roleName,
-                             String currentAdminEmail) {
+            String currentAdminEmail) {
         String normalizedEmail = normalizeText(email).toLowerCase(Locale.ROOT);
         validateStaffInput(fullName, normalizedEmail, rawPassword);
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new IllegalArgumentException("Email đã tồn tại trong hệ thống.");
         }
-
+        if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
+            throw new IllegalArgumentException("Email không đúng định dạng.");
+        }
         String normalizedRole = requireStaffRole(roleName);
         Role role = roleRepository.findByRoleName(normalizedRole)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy vai trò " + normalizedRole));
@@ -141,16 +145,21 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
 
     @Transactional
     public User updateStaff(Long userId, String fullName, String email, String phone, String expectedRole,
-                             String currentAdminEmail) {
+            String currentAdminEmail) {
         User user = getUserDetail(userId);
         requireUserRole(user, expectedRole);
         String normalizedEmail = normalizeText(email).toLowerCase(Locale.ROOT);
         if (normalizeText(fullName).isBlank() || normalizedEmail.isBlank()) {
             throw new IllegalArgumentException("Họ tên và email không được để trống.");
         }
+        if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
+            throw new IllegalArgumentException("Email không đúng định dạng.");
+        }
         userRepository.findByEmail(normalizedEmail)
                 .filter(existing -> !existing.getUserId().equals(userId))
-                .ifPresent(existing -> { throw new IllegalArgumentException("Email đã tồn tại trong hệ thống."); });
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException("Email đã tồn tại trong hệ thống.");
+                });
         user.setFullName(normalizeText(fullName));
         user.setEmail(normalizedEmail);
         user.setPhone(normalizeText(phone));
@@ -190,10 +199,10 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
     }
 
     private BaseFilterRequest buildUserFilterRequest(String keyword,
-                                                     String roleName,
-                                                     String status,
-                                                     Integer page,
-                                                     Integer size) {
+            String roleName,
+            String status,
+            Integer page,
+            Integer size) {
         List<FilterCriteria> filters = new ArrayList<>();
         String normalizedKeyword = normalizeText(keyword).toLowerCase(Locale.ROOT);
         String normalizedRoleName = normalizeRoleName(roleName);
@@ -270,6 +279,9 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
         if (normalizeText(fullName).isBlank() || email.isBlank()) {
             throw new IllegalArgumentException("Họ tên và email không được để trống.");
         }
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            throw new IllegalArgumentException("Email không đúng định dạng.");
+        }
         if (rawPassword == null || rawPassword.length() < 6) {
             throw new IllegalArgumentException("Mật khẩu phải có ít nhất 6 ký tự.");
         }
@@ -277,7 +289,7 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
 
     private String requireStaffRole(String roleName) {
         String normalizedRole = normalizeRoleName(roleName);
-        if (!List.of("DOCTOR", "TECHNICIAN").contains(normalizedRole)) {
+        if (!List.of("DOCTOR", "TECHNICIAN", "RECEPTIONIST", "ADMIN").contains(normalizedRole)) {
             throw new IllegalArgumentException("Vai trò nhân sự không hợp lệ.");
         }
         return normalizedRole;
@@ -312,7 +324,8 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
 
     private void preventSelfDemotion(User user, String newRoleName, String currentAdminEmail) {
         if (isSameUser(user, currentAdminEmail) && !"ADMIN".equals(newRoleName)) {
-            throw new IllegalArgumentException("You cannot remove ADMIN role from the account that is currently signed in.");
+            throw new IllegalArgumentException(
+                    "You cannot remove ADMIN role from the account that is currently signed in.");
         }
     }
 
@@ -321,7 +334,7 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
     }
 
     public User createUserFromImport(String fullName, String email, String phone,
-                                     String rawPassword, String roleName, String status) {
+            String rawPassword, String roleName, String status) {
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists: " + email);
         }

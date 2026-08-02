@@ -94,6 +94,23 @@ public class AdminDashboardController {
         return "redirect:/admin/users";
     }
 
+    @PostMapping("/admin/users/create")
+    public String createUser(@RequestParam String fullName,
+                             @RequestParam String email,
+                             @RequestParam(required = false) String phone,
+                             @RequestParam String password,
+                             @RequestParam String roleName,
+                             Authentication authentication,
+                             RedirectAttributes redirectAttributes) {
+        try {
+            userAdminService.createStaff(fullName, email, phone, password, roleName, authentication.getName());
+            redirectAttributes.addFlashAttribute("success", "Tạo tài khoản nhân viên thành công.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/admin/users";
+    }
+
     private ResponseEntity<byte[]> buildExcelResponse(ByteArrayOutputStream out, String filename) {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
