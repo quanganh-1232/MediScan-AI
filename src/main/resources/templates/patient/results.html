@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Ket qua chan doan - MediScan AI</title>  <meta name="description" content="Xem ket qua chan doan X-quang duoc bac si xac nhan tai MediScan AI.">
+    <title>Ket qua chan doan - MediScan AI</title>`r`n    <meta name="description" content="Xem ket qua chan doan X-quang duoc bac si xac nhan tai MediScan AI.">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,10 +36,10 @@
                     <div class="pt-card-title"><i class="bi bi-image"></i> Ảnh X-quang</div>
                     <span class="fw-bold text-primary" th:text="${latestRecord.recordCode}">XR-2026-0001</span>
                 </div>
-                <div class="text-center rounded-3 p-2" style="background:#0e1524;" th:if="${latestRecordImageUrl != null}">
-                    <img th:src="${latestRecordImageUrl}" class="img-fluid rounded" alt="Ảnh X-quang" style="max-height: 420px; width: auto;"/>
+                <div class="text-center rounded-3 p-2" style="background:#0e1524;" th:if="${latestRecord.fileName != null}">
+                    <img th:src="@{'/uploads/' + ${latestRecord.fileName}}" class="img-fluid rounded" alt="Ảnh X-quang" style="max-height: 420px; width: auto;"/>
                 </div>
-                <div class="text-center text-muted py-5" th:if="${latestRecordImageUrl == null}">
+                <div class="text-center text-muted py-5" th:if="${latestRecord.fileName == null}">
                     <i class="bi bi-image fs-1 d-block mb-2 opacity-50"></i>
                     Chưa có ảnh chụp.
                 </div>

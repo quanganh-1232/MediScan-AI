@@ -36,14 +36,14 @@ public class AdminDashboardController {
     }
 
     @GetMapping("/admin/dashboard")
-    public String dashboard(Model model) {
-        addSharedModel(model);
+    public String dashboard(@RequestParam(defaultValue = "0") Integer page, Model model) {
+        addSharedModel(model, page);
         return "admin/dashboard";
     }
 
     @GetMapping("/admin/overview")
-    public String overview(Model model) {
-        addSharedModel(model);
+    public String overview(@RequestParam(defaultValue = "0") Integer page, Model model) {
+        addSharedModel(model, page);
         return "admin/dashboard";
     }
 
@@ -177,7 +177,13 @@ public class AdminDashboardController {
     }
 
     private void addSharedModel(Model model) {
-        model.addAttribute("users", userAdminService.findLatestUsers(8));
+        addSharedModel(model, 0);
+    }
+
+    private void addSharedModel(Model model, Integer page) {
+        Page<User> userPage = userAdminService.filterUsers(null, null, null, page, 6);
+        model.addAttribute("userPage", userPage);
+        model.addAttribute("users", userPage.getContent());
         model.addAttribute("totalUserCount", userAdminService.count());
         model.addAttribute("activeUserCount", userAdminService.countByStatusUsingFilter("ACTIVE"));
         model.addAttribute("lockedUserCount", userAdminService.countByStatusUsingFilter("LOCKED"));

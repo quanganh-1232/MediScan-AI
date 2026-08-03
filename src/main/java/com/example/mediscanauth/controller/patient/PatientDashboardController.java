@@ -9,7 +9,6 @@ import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.NotificationRepository;
 import com.example.mediscanauth.repository.PatientRepository;
 import com.example.mediscanauth.repository.UserRepository;
-import com.example.mediscanauth.service.CloudinaryService;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.NotificationService;
 import com.example.mediscanauth.service.PatientWorkflowService;
@@ -46,7 +45,6 @@ public class PatientDashboardController {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SupportRequestService supportRequestService;
-    private final CloudinaryService cloudinaryService;
 
     public PatientDashboardController(UserAccountService userAccountService,
                                       ImagingRecordService imagingRecordService,
@@ -56,8 +54,7 @@ public class PatientDashboardController {
                                       AppointmentRepository appointmentRepository,
                                       NotificationRepository notificationRepository,
                                       UserRepository userRepository,
-                                      SupportRequestService supportRequestService,
-                                      CloudinaryService cloudinaryService) {
+                                      SupportRequestService supportRequestService) {
         this.userAccountService = userAccountService;
         this.imagingRecordService = imagingRecordService;
         this.notificationService = notificationService;
@@ -67,7 +64,6 @@ public class PatientDashboardController {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.supportRequestService = supportRequestService;
-        this.cloudinaryService = cloudinaryService;
     }
 
     /** Tự động đưa danh sách bác sĩ vào tất cả các trang patient (dùng cho chatbot đặt lịch) */
@@ -84,11 +80,8 @@ public class PatientDashboardController {
         List<ImagingRecord> records = imagingRecordService.findForPatient(patient);
 
         long total       = records.size();
-        long processing  = records.stream().filter(r -> {
-            String s = r.getStatus();
-            return s != null && (s.contains("PENDING") || s.contains("PROCESSING"));
-        }).count();
-        long completed   = records.stream().filter(r -> "COMPLETED".equals(r.getStatus())).count();
+        long processing  = records.stream().filter(r -> r.getStatus().contains("PENDING") || r.getStatus().contains("PROCESSING")).count();
+        long completed   = records.stream().filter(r -> "DOCTOR_CONFIRMED".equals(r.getStatus())).count();
         long needAttention = records.stream().filter(r -> "DOCTOR_REJECTED".equals(r.getStatus()) || "AI_FAILED".equals(r.getStatus())).count();
 
         model.addAttribute("currentUser", patient);
@@ -182,7 +175,6 @@ public class PatientDashboardController {
         model.addAttribute("currentUser", patient);
         model.addAttribute("unreadCount", notificationService.countUnread(patient));
         model.addAttribute("record", record);
-        model.addAttribute("recordImageUrl", resolveDisplayImageUrl(record));
         return "patient/record-detail";
     }
 
@@ -404,24 +396,11 @@ public class PatientDashboardController {
         return userAccountService.findByEmail(authentication.getName());
     }
 
-    /** Lấy URL ảnh hiển thị từ Cloudinary (thay vì đọc file local) cho một imaging record. */
-    private String resolveDisplayImageUrl(ImagingRecord record) {
-        if (record == null || record.getFileName() == null) {
-            return null;
-        }
-        String patientName = record.getPatient() != null ? record.getPatient().getFullName() : "Unknown_Patient";
-        String recordCode = record.getRecordCode() != null ? record.getRecordCode() : "Unknown_Record";
-        return cloudinaryService.getDisplayImageUrl(
-                record.getFileName(), record.getStatus(), patientName, recordCode);
-    }
-
     private void addBaseModel(Authentication authentication, Model model) {
         User patient = getUser(authentication);
-        ImagingRecord latestRecord = imagingRecordService.findLatestForPatient(patient);
         model.addAttribute("currentUser", patient);
         model.addAttribute("records", imagingRecordService.findForPatient(patient));
-        model.addAttribute("latestRecord", latestRecord);
-        model.addAttribute("latestRecordImageUrl", resolveDisplayImageUrl(latestRecord));
+        model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(patient));
         model.addAttribute("recordCount", imagingRecordService.countForPatient(patient));
         model.addAttribute("unreadCount", notificationService.countUnread(patient));
     }
