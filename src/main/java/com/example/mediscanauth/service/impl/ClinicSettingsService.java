@@ -53,6 +53,18 @@ public class ClinicSettingsService {
         return getSettings().getMaxFutureBookingDays();
     }
 
+    public java.util.List<String> generateTimeSlots() {
+        java.util.List<String> slots = new java.util.ArrayList<>();
+        LocalTime current = getOpenTime();
+        LocalTime end = getCloseTime();
+        int slotMinutes = getSlotMinutes();
+        while (current.isBefore(end)) {
+            slots.add(String.format("%02d:%02d", current.getHour(), current.getMinute()));
+            current = current.plusMinutes(slotMinutes);
+        }
+        return slots;
+    }
+
     @Transactional
     public ClinicSettings updateSettings(Integer openHour, Integer closeHour, Integer slotMinutes,
                                           Integer maxFutureBookingDays, String adminEmail) {

@@ -26,6 +26,9 @@
         <span class="pt-status pt-status-done" th:text="${'Hồ sơ ' + record.recordCode}">XR-0001</span>
     </div>
 
+    <div th:if="${success}" class="alert alert-success ms-auth-alert"><i class="bi bi-check-circle-fill"></i><span th:text="${success}"></span></div>
+    <div th:if="${error}" class="alert alert-danger ms-auth-alert"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
+
     <div class="row g-4">
         <!-- X-ray image -->
         <div class="col-12 col-lg-5">
@@ -103,9 +106,39 @@
                 <p class="mb-0" style="white-space: pre-line;" th:text="${record.doctorConclusion != null ? record.doctorConclusion : 'Chưa có kết luận.'}">Kết luận</p>
             </section>
 
-            <section class="pt-card p-4" th:if="${record.recommendation != null}">
+            <section class="pt-card p-4 mb-4" th:if="${record.recommendation != null}">
                 <div class="pt-card-title mb-3"><i class="bi bi-journal-check"></i> Khuyến nghị</div>
                 <p class="mb-0" style="white-space: pre-line;" th:text="${record.recommendation}">Khuyến nghị</p>
+            </section>
+
+            <!-- Quyền xem kết quả: chỉ cho sửa khi hồ sơ đã hoàn tất và bệnh nhân
+                 có tài khoản đăng nhập thật (khách vãng lai luôn ở Riêng tư). -->
+            <section class="pt-card p-4"
+                      th:if="${record.status == 'COMPLETED' and record.patient != null and !record.patient.guestAccount}">
+                <div class="pt-card-title mb-3"><i class="bi bi-eye"></i> Quyền xem kết quả</div>
+                <form th:action="@{'/doctor/record/' + ${record.recordId} + '/visibility'}" method="POST"
+                      class="d-flex flex-wrap align-items-center gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="visibility" id="editVisPrivate"
+                               value="PRIVATE" th:checked="${record.visibility == null or record.visibility == 'PRIVATE'}">
+                        <label class="form-check-label fw-medium" for="editVisPrivate">
+                            <i class="bi bi-lock-fill text-secondary"></i> Riêng tư (Private)
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="visibility" id="editVisPublic"
+                               value="PUBLIC" th:checked="${record.visibility == 'PUBLIC'}">
+                        <label class="form-check-label fw-medium" for="editVisPublic">
+                            <i class="bi bi-globe text-primary"></i> Công khai (Public)
+                        </label>
+                    </div>
+                    <button type="submit" class="btn ms-btn ms-btn-primary text-white btn-sm ms-auto">
+                        <i class="bi bi-check2 me-1"></i>Cập nhật
+                    </button>
+                </form>
+                <small class="text-muted d-block mt-2">
+                    Private: Chỉ bệnh nhân & bác sĩ xem | Public: Bệnh nhân xem được và nhận thông báo.
+                </small>
             </section>
         </div>
     </div>

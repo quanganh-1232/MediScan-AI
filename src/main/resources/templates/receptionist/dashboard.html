@@ -18,7 +18,7 @@
 
 <div th:replace="~{receptionist/fragments/receptionist-shell :: nav}"></div>
 
-<main class="container-fluid px-3 px-lg-4 py-4">
+<main class="container-fluid px-3 px-lg-4 py-3">
     <div class="row g-4">
 
         <!-- Sidebar -->
@@ -52,7 +52,7 @@
             </div>
 
             <!-- KPI Metric Cards Grid -->
-            <div class="row g-3 mb-4">
+            <div class="row g-3 mb-3">
                 <div class="col-6 col-md-4 col-xl-2">
                     <div class="rc-kpi-card kpi-blue">
                         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -121,7 +121,7 @@
             </div>
 
             <!-- Shift Information Section (Ca đặt thông tin) -->
-            <div class="row g-3 mb-4">
+            <div class="row g-3 mb-3">
                 <div class="col-12 col-md-4">
                     <div class="rc-shift-card">
                         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -193,7 +193,7 @@
             </div>
 
             <!-- Charts Section -->
-            <div class="row g-4 mb-4">
+            <div class="row g-4 mb-3">
                 <!-- Chart 1: Hourly Workload Curve -->
                 <div class="col-12 col-lg-7">
                     <div class="rc-chart-card">
@@ -313,7 +313,6 @@
                                         <span th:switch="${a.status}">
                                             <span th:case="'PENDING'" class="pt-status pt-status-pending"><i class="bi bi-clock me-1"></i>Chờ xác nhận</span>
                                             <span th:case="'CONFIRMED'" class="pt-status pt-status-confirmed"><i class="bi bi-check-circle me-1"></i>Đã xác nhận</span>
-                                            <span th:case="'SCHEDULED'" class="pt-status pt-status-confirmed"><i class="bi bi-calendar-check me-1"></i>Đã đặt</span>
                                             <span th:case="'CHECKED_IN'" class="pt-status pt-status-checkedin"><i class="bi bi-box-arrow-in-right me-1"></i>Đã check-in</span>
                                             <span th:case="'TRIAGED'" class="pt-status pt-status-checkedin"><i class="bi bi-stethoscope me-1"></i>Khám sơ bộ</span>
                                             <span th:case="'IN_PROGRESS'" class="pt-status pt-status-confirmed"><i class="bi bi-arrow-repeat me-1"></i>Đang khám</span>
@@ -337,7 +336,7 @@
 
                 <!-- Right Rail: Live Queue Monitor & Doctor Workload Radar -->
                 <div class="col-12 col-xl-4">
-                    <div class="d-flex flex-column gap-4">
+                    <div class="d-flex flex-column gap-3">
 
                         <!-- Live Waiting Queue -->
                         <div class="pt-card p-4">
@@ -348,7 +347,7 @@
                                 <span class="badge bg-teal text-white rounded-pill px-2.5 py-1" th:text="${waitingCount} + ' Bệnh nhân'">0 Bệnh nhân</span>
                             </div>
 
-                            <div th:if="${#lists.isEmpty(waitingAppointments)}" class="text-center text-muted py-4">
+                            <div th:if="${#lists.isEmpty(waitingAppointments)}" class="text-center text-muted py-2">
                                 <i class="bi bi-emoji-smile fs-2 d-block mb-1 opacity-50"></i>
                                 Không có bệnh nhân chờ check-in.
                             </div>
@@ -393,12 +392,13 @@
                                     <div class="flex-grow-1 min-w-0">
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="fw-bold text-dark text-truncate" th:text="'BS. ' + ${dw.doctor.fullName}">BS. Trần Văn Hùng</div>
-                                            <span class="pt-status flex-shrink-0"
-                                                  th:classappend="${dw.busy} ? ' pt-status-confirmed' : ' pt-status-done'"
-                                                  th:text="${dw.busy} ? 'Đang khám' : 'Rảnh'" style="font-size: 0.68rem;">Rảnh</span>
+                                            <span class="flex-shrink-0 fw-semibold text-nowrap"
+                                                  th:classappend="${dw.busy} ? ' text-primary' : ' text-success'"
+                                                  th:text="${dw.busy} ? 'Đang khám' : 'Rảnh'"
+                                                  style="font-size: 0.68rem; line-height: 1;">Rảnh</span>
                                         </div>
-                                        <div class="small text-muted" th:text="${dw.specialty}">Chuyên khoa Xương Khớp</div>
-                                        <div class="progress mt-1.5" style="height: 4px;">
+                                        <div class="small text-muted text-truncate" th:text="${dw.specialty}">Chuyên khoa Xương Khớp</div>
+                                        <div class="progress mt-1" style="height: 4px;">
                                             <div class="progress-bar bg-teal" role="progressbar"
                                                  th:style="'width: ' + (${dw.totalAppointments > 0} ? (${dw.completedAppointments} * 100 / ${dw.totalAppointments}) : 0) + '%'"></div>
                                         </div>
@@ -434,6 +434,12 @@
     }
     setInterval(updateClock, 1000);
     updateClock();
+
+    /* "VẬN HÀNH TRỰC TIẾP": KPI cards (Đang chờ khám, Chờ check-in, ...) are
+       rendered server-side on load and don't push updates on their own, so
+       without this the dashboard silently goes stale until someone manually
+       reloads. Re-fetch periodically to keep counts current. */
+    setInterval(() => window.location.reload(), 30000);
 
     /* Server Data Injection for Charts */
     const hourlyLabels = /*[[${hourlyLabels}]]*/ ["06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];

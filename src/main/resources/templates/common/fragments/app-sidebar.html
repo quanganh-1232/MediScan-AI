@@ -19,26 +19,12 @@
                 </span>
                 <span class="ms-badge ms-badge-soft">01</span>
             </a>
-            <a class="ms-nav-item" th:classappend="${activeSection == 'metrics'} ? ' active' : ''" th:href="@{/admin/metrics}">
-                <span>
-                    <span class="d-block fw-semibold">Metrics</span>
-                    <span class="d-block small text-muted">Người dùng, hàng đợi, hồ sơ</span>
-                </span>
-                <span class="ms-badge ms-badge-soft">02</span>
-            </a>
             <a class="ms-nav-item" th:classappend="${activeSection == 'users'} ? ' active' : ''" th:href="@{/admin/users}">
                 <span>
                     <span class="d-block fw-semibold">Người dùng</span>
                     <span class="d-block small text-muted">Danh sách tài khoản đang hoạt động</span>
                 </span>
                 <span class="ms-badge ms-badge-soft">03</span>
-            </a>
-            <a class="ms-nav-item" th:classappend="${activeSection == 'recent-records'} ? ' active' : ''" th:href="@{/admin/recent-records}">
-                <span>
-                    <span class="d-block fw-semibold">Hồ sơ gần đây</span>
-                    <span class="d-block small text-muted">Ca chụp mới nhất</span>
-                </span>
-                <span class="ms-badge ms-badge-soft">04</span>
             </a>
         </nav>
 

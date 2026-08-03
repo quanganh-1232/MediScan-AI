@@ -14,6 +14,11 @@ import java.util.List;
 @Service
 public class TechnicianWorkflowServiceImpl implements TechnicianWorkflowService {
 
+    // Da AI xu ly xong, khong con ket o buoc phan tich AI nua (thanh cong hoac AI that bai deu tinh la "da xu ly").
+    private static final List<String> AI_PROCESSED_STATUSES = List.of("PENDING_DOCTOR", "COMPLETED", "DOCTOR_REJECTED");
+    // Con dang nam trong hang cho, chua duoc bac si chot ket luan.
+    private static final List<String> PENDING_PROCESSING_STATUSES = List.of("PENDING_AI", "PENDING_DOCTOR");
+
     private final AppointmentRepository appointmentRepository;
     private final MedicalRecordRepository medicalRecordRepository;
     private final XrayImageRepository xrayImageRepository;
@@ -21,6 +26,7 @@ public class TechnicianWorkflowServiceImpl implements TechnicianWorkflowService 
     private final AiAnalysisResultRepository aiAnalysisResultRepository;
     private final DoctorReviewRepository doctorReviewRepository;
     private final UserAccountService userAccountService;
+    private final ImagingRecordRepository imagingRecordRepository;
 
     public TechnicianWorkflowServiceImpl(AppointmentRepository appointmentRepository,
                                          MedicalRecordRepository medicalRecordRepository,
@@ -28,7 +34,8 @@ public class TechnicianWorkflowServiceImpl implements TechnicianWorkflowService 
                                          PatientRepository patientRepository,
                                          AiAnalysisResultRepository aiAnalysisResultRepository,
                                          DoctorReviewRepository doctorReviewRepository,
-                                         UserAccountService userAccountService) {
+                                         UserAccountService userAccountService,
+                                         ImagingRecordRepository imagingRecordRepository) {
         this.appointmentRepository = appointmentRepository;
         this.medicalRecordRepository = medicalRecordRepository;
         this.xrayImageRepository = xrayImageRepository;
@@ -36,16 +43,12 @@ public class TechnicianWorkflowServiceImpl implements TechnicianWorkflowService 
         this.aiAnalysisResultRepository = aiAnalysisResultRepository;
         this.doctorReviewRepository = doctorReviewRepository;
         this.userAccountService = userAccountService;
+        this.imagingRecordRepository = imagingRecordRepository;
     }
 
     @Override
     public List<Appointment> findRecentAppointments() {
         return appointmentRepository.findTop10ByOrderByScheduledTimeDesc();
-    }
-
-    @Override
-    public List<Appointment> findScheduledAppointments() {
-        return appointmentRepository.findByStatusOrderByScheduledTimeAsc("SCHEDULED");
     }
 
     @Override
@@ -59,28 +62,32 @@ public class TechnicianWorkflowServiceImpl implements TechnicianWorkflowService 
     }
 
     @Override
-    public long countScheduledAppointments() {
-        return appointmentRepository.countByStatus("SCHEDULED");
+    public long countCapturedToday(String technicianEmail) {
+        return imagingRecordRepository.countByTechnicianEmailAndCapturedAt(technicianEmail, LocalDate.now());
     }
 
     @Override
-    public long countUploadedRecords() {
-        return medicalRecordRepository.countByStatus("UPLOADED");
+    public long countPendingAiToday(String technicianEmail) {
+        return imagingRecordRepository.countByTechnicianEmailAndStatusAndCapturedAt(
+                technicianEmail, "PENDING_AI", LocalDate.now());
     }
 
     @Override
-    public long countUploadedImages() {
-        return xrayImageRepository.countByStatus("UPLOADED");
+    public long countPendingProcessingToday(String technicianEmail) {
+        return imagingRecordRepository.countByTechnicianEmailAndStatusInAndCapturedAt(
+                technicianEmail, PENDING_PROCESSING_STATUSES, LocalDate.now());
     }
 
     @Override
-    public long countSuccessfulAiResults() {
-        return aiAnalysisResultRepository.countByStatus("SUCCESS");
+    public long countAiProcessedToday(String technicianEmail) {
+        return imagingRecordRepository.countByTechnicianEmailAndStatusInAndCapturedAt(
+                technicianEmail, AI_PROCESSED_STATUSES, LocalDate.now());
     }
 
     @Override
-    public long countApprovedReviews() {
-        return doctorReviewRepository.countByApprovalStatus("APPROVED");
+    public long countDoctorApprovedToday(String technicianEmail) {
+        return imagingRecordRepository.countByTechnicianEmailAndStatusAndCapturedAt(
+                technicianEmail, "COMPLETED", LocalDate.now());
     }
 
     @Override

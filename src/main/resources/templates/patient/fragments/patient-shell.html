@@ -21,11 +21,55 @@
             </ul>
 
             <div class="d-flex align-items-center gap-2">
-                <a th:href="@{/patient/notifications}" class="btn ms-icon-btn" title="Thông báo">
-                    <i class="bi bi-bell"></i>
-                    <span class="ms-notification-count" th:if="${unreadCount != null and unreadCount > 0}"
-                          th:text="${unreadCount}">0</span>
-                </a>
+                  <div class="dropdown">
+                      <button class="btn ms-icon-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo">
+                          <i class="bi bi-bell"></i>
+                          <span class="ms-notification-count" th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
+                                th:text="${headerUnreadCount}">0</span>
+                      </button>
+                      <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0 rounded-4" style="width: 380px; max-width: calc(100vw - 2rem); overflow: hidden;">
+                          <!-- Header -->
+                          <div class="d-flex align-items-center justify-content-between p-3 bg-white border-bottom">
+                              <div class="fw-bold text-dark d-flex align-items-center gap-2 fs-6">
+                                  <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                      <i class="bi bi-bell-fill"></i>
+                                  </div>
+                                  Thông báo
+                                  <span class="badge bg-danger rounded-pill px-2 py-1" style="font-size: 0.7rem;" th:if="${headerUnreadCount != null && headerUnreadCount > 0}" th:text="${headerUnreadCount} + ' mới'">0 mới</span>
+                              </div>
+                          </div>
+  
+                          <!-- Scrollable Content -->
+                          <div style="max-height: 380px; overflow-y: auto; background-color: #f8fafc;">
+                              <div th:if="${headerNotifications == null or #lists.isEmpty(headerNotifications)}" class="text-center text-muted p-5 bg-white h-100">
+                                  <i class="bi bi-bell-slash fs-2 text-secondary opacity-25 mb-2 d-block"></i>
+                                  <div class="small fw-medium">Bạn không có thông báo nào</div>
+                              </div>
+                              <div th:if="${headerNotifications != null and !#lists.isEmpty(headerNotifications)}">
+                                  <a th:each="n : ${headerNotifications}"
+                                     th:href="@{/notifications/click(id=${n.notificationId})}"
+                                     class="ms-notif-item"
+                                     th:classappend="${!n.read} ? ' unread' : ''">
+                                      <div class="d-flex align-items-center justify-content-between">
+                                          <div class="notif-title text-truncate me-2" th:text="${n.title}">Tiêu đề thông báo</div>
+                                          <span class="badge bg-primary bg-opacity-10 text-primary flex-shrink-0" style="font-size: 0.65rem;" th:if="${!n.read}">Mới</span>
+                                      </div>
+                                      <div class="notif-body" th:text="${n.message}">Nội dung thông báo</div>
+                                      <div class="notif-time">
+                                          <i class="bi bi-clock"></i> <span th:text="${#temporals.format(n.createdAt, 'HH:mm • dd/MM/yyyy')}">10:30 • 20/07/2026</span>
+                                      </div>
+                                  </a>
+                              </div>
+                          </div>
+  
+                          <!-- Footer -->
+                          <div class="p-0 text-center border-top bg-white">
+                              <a th:href="@{/patient/notifications}" class="btn btn-link text-decoration-none w-100 fw-semibold text-primary py-3">
+                                  Xem tất cả thông báo <i class="bi bi-arrow-right ms-1"></i>
+                              </a>
+                          </div>
+                      </div>
+                  </div>
                 <div class="dropdown">
                     <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="ms-avatar ms-avatar-primary"
@@ -63,6 +107,8 @@
     <!-- Doctor list for chatbot booking -->
     <span id="doctorListData" style="display:none"
           th:attr="data-doctors=${doctors != null ? #strings.listJoin(doctors.![userId + ':' + fullName], ',') : ''}"></span>
+    <span id="timeSlotsData" style="display:none"
+          th:attr="data-slots=${clinicTimeSlotsCsv != null ? clinicTimeSlotsCsv : '08:00,08:30,09:00,09:30,10:00,10:30,11:00,13:30,14:00,14:30,15:00,15:30'}"></span>
 
     <button class="chat-fab" id="chatFab" onclick="toggleChatPopup()" title="Chatbot hỗ trợ" aria-label="Mo chatbot">
         <i class="bi bi-chat-dots-fill" id="chatFabIcon"></i>
@@ -172,22 +218,28 @@
         });
 
         function toggleChatPopup(){
-            const p=document.getElementById('chatbotPanel'),i=document.getElementById('chatFabIcon');
+            const p=document.getElementById('chatbotPanel');
+            const i=document.getElementById('chatFabIcon');
+            const input=document.getElementById('chatInput');
+            if (!p || !i) return;
             const o=p.classList.toggle('open');
             i.className=o?'bi bi-x-lg':'bi bi-chat-dots-fill';
-            if(o)document.getElementById('chatInput').focus();
+            if(o && input) input.focus();
         }
         function chatFocus(){
             if(!document.getElementById('chatbotPanel').classList.contains('open'))toggleChatPopup();
             document.getElementById('chatInput').focus();
         }
         function clearChat(){
-            document.getElementById('chatBody').innerHTML='';
+            const body=document.getElementById('chatBody');
+            if (!body) return;
+            body.innerHTML='';
             appendBotHTML('Đã xóa lịch sử. Tôi có thể giúp gì thêm cho bạn?');
         }
         function nowTime(){return new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});}
         function appendMessage(text,who){
             const body=document.getElementById('chatBody');
+            if (!body) return null;
             const row=document.createElement('div'); row.className='chat-row '+who;
             if(who==='bot'){const av=document.createElement('span');av.className='chat-avatar';av.innerHTML='<i class="bi bi-robot"></i>';row.appendChild(av);}
             const bub=document.createElement('div'); bub.className='chat-bubble'; bub.textContent=text;
@@ -196,6 +248,7 @@
         }
         function appendBotHTML(html){
             const body=document.getElementById('chatBody');
+            if (!body) return null;
             const row=document.createElement('div'); row.className='chat-row bot';
             const av=document.createElement('span'); av.className='chat-avatar'; av.innerHTML='<i class="bi bi-robot"></i>'; row.appendChild(av);
             const bub=document.createElement('div'); bub.className='chat-bubble';
@@ -204,6 +257,7 @@
         }
         function showTyping(){
             const body=document.getElementById('chatBody');
+            if (!body) return;
             const row=document.createElement('div'); row.className='chat-row bot'; row.id='typingRow';
             const av=document.createElement('span'); av.className='chat-avatar'; av.innerHTML='<i class="bi bi-robot"></i>'; row.appendChild(av);
             const bub=document.createElement('div'); bub.className='chat-bubble';
@@ -216,7 +270,8 @@
         const bookingState = { active: false, step: null, doctorId: null, doctorName: null, date: null };
 
         function getDoctors() {
-            const raw = document.getElementById('doctorListData')?.dataset.doctors || '';
+            const listData = document.getElementById('doctorListData');
+            const raw = listData ? listData.dataset.doctors : '';
             if (!raw) return [];
             return raw.split(',').filter(Boolean).map(entry => {
                 const [id, ...nameParts] = entry.split(':');
@@ -262,8 +317,10 @@
             bookingState.active = false;
             bookingState.step = null;
             showTyping();
-            const token  = document.getElementById('csrfToken')?.dataset?.token || '';
-            const header = document.getElementById('csrfHeader')?.dataset?.header || 'X-CSRF-TOKEN';
+            const tokenEl = document.getElementById('csrfToken');
+            const token = (tokenEl && tokenEl.dataset.token) ? tokenEl.dataset.token : '';
+            const headerEl = document.getElementById('csrfHeader');
+            const header = (headerEl && headerEl.dataset.header) ? headerEl.dataset.header : 'X-CSRF-TOKEN';
             const form   = new URLSearchParams();
             if (bookingState.doctorId) form.append('doctorId', bookingState.doctorId);
             form.append('date', bookingState.date);
@@ -312,7 +369,9 @@
                 }
                 bookingState.date = text;
                 bookingState.step = 'time';
-                const slots = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','13:30','14:00','14:30','15:00','15:30'];
+                const slotsData = document.getElementById('timeSlotsData');
+                const rawSlots = slotsData ? slotsData.dataset.slots : '';
+                const slots = rawSlots ? rawSlots.split(',') : [];
                 const now = new Date();
                 const isToday = chosen.toDateString() === now.toDateString();
                 let html = `✅ Ngày: <strong>${text}</strong><br><br>⏰ Chọn <strong>giờ khám</strong>:<br><br>`;
@@ -337,8 +396,10 @@
             if (bookingState.active) { handleBookingInput(userText); return; }
             showTyping();
             try {
-                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
-                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content || '';
+                const csrfHeaderEl = document.querySelector('meta[name="_csrf_header"]');
+                const csrfHeader = csrfHeaderEl ? csrfHeaderEl.content : 'X-CSRF-TOKEN';
+                const csrfTokenEl = document.querySelector('meta[name="_csrf"]');
+                const csrfToken = csrfTokenEl ? csrfTokenEl.content : '';
                 
                 const response = await fetch('/api/chatbot/ask', {
                     method: 'POST',

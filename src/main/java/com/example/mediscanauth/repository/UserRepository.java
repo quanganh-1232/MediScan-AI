@@ -23,9 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     List<User> findByRoleRoleNameInOrderByFullNameAsc(List<String> roleNames);
 
     /**
-     * Locks the doctor's row for the rest of the caller's transaction, so a
-     * concurrent request checking/booking the same doctor's schedule has to
-     * wait rather than both reading a clean state and both double-booking.
+     Block Double-booking 
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.userId = :id")

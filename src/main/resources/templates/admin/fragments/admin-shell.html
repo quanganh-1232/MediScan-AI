@@ -15,11 +15,6 @@
             </a>
 
             <div class="d-flex align-items-center gap-2">
-                <a th:href="@{/notifications}" class="btn ms-icon-btn" title="Thông báo">
-                    <i class="bi bi-bell"></i>
-                    <span class="ms-notification-count" th:if="${headerUnreadCount != null && headerUnreadCount > 0}"
-                          th:text="${headerUnreadCount}">0</span>
-                </a>
                 <div class="dropdown">
                     <button class="btn ms-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="ms-avatar ms-avatar-primary"
@@ -51,18 +46,11 @@
     <div class="d-grid gap-1">
         <a class="rc-nav-item" th:classappend="${active == 'overview'} ? ' active'" th:href="@{/admin/dashboard}"><i class="bi bi-house"></i> Tổng quan</a>
         <a class="rc-nav-item" th:classappend="${active == 'users'} ? ' active'" th:href="@{/admin/users}"><i class="bi bi-people"></i> Quản lý người dùng</a>
-        <a class="rc-nav-item" th:classappend="${active == 'doctors'} ? ' active'" th:href="@{/admin/doctors}"><i class="bi bi-person-badge"></i> Quản lý bác sĩ</a>
-        <a class="rc-nav-item" th:classappend="${active == 'technicians'} ? ' active'" th:href="@{/admin/technicians}"><i class="bi bi-person-gear"></i> Quản lý kỹ thuật viên</a>
-        <a class="rc-nav-item" th:classappend="${active == 'patients'} ? ' active'" th:href="@{/admin/patients}"><i class="bi bi-person-vcard"></i> Quản lý bệnh nhân</a>
-        <a class="rc-nav-item" th:classappend="${active == 'appointments'} ? ' active'" th:href="@{/admin/appointments}"><i class="bi bi-calendar-check"></i> Quản lý lịch hẹn</a>
-        <a class="rc-nav-item" th:classappend="${active == 'metrics'} ? ' active'" th:href="@{/admin/metrics}"><i class="bi bi-bar-chart"></i> Chỉ số hệ thống</a>
-        <a class="rc-nav-item" th:classappend="${active == 'recent-records'} ? ' active'" th:href="@{/admin/recent-records}"><i class="bi bi-images"></i> Hồ sơ chụp gần đây</a>
         <hr class="my-2">
         <a class="rc-nav-item" th:classappend="${active == 'audit-log'} ? ' active'" th:href="@{/admin/audit-log}"><i class="bi bi-journal-text"></i> Nhật ký hoạt động</a>
         <a class="rc-nav-item" th:classappend="${active == 'ai-monitoring'} ? ' active'" th:href="@{/admin/ai-monitoring}"><i class="bi bi-cpu"></i> Giám sát AI</a>
         <a class="rc-nav-item" th:classappend="${active == 'support'} ? ' active'" th:href="@{/admin/support}"><i class="bi bi-life-preserver"></i> Quản lý hỗ trợ</a>
         <a class="rc-nav-item" th:classappend="${active == 'system-config'} ? ' active'" th:href="@{/admin/system-config}"><i class="bi bi-sliders"></i> Cấu hình hệ thống</a>
-        <a class="rc-nav-item" th:href="@{/notifications}"><i class="bi bi-bell"></i> Thông báo</a>
     </div>
 </div>
 

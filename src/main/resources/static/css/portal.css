@@ -645,23 +645,55 @@ body {
     border-color: #1a6ef4 !important;
 }
 
-/* Clean Notification Item (No Inner Icon, Blue Accent) */
+/* Custom Notification Dropdown Item */
 .ms-notif-item {
-    padding: 0.85rem 1rem;
-    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
     background: #ffffff;
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
     text-decoration: none;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.ms-notif-item:last-child {
+    border-bottom: none;
 }
 
 .ms-notif-item.unread {
-    background: #f0f7ff;
-    border-left: 4px solid #1a6ef4;
+    background: #f4f8ff; /* Soft blue background */
+    border-left: 4px solid #2563eb; /* Prominent left border */
 }
 
 .ms-notif-item:hover {
     background: #f8fafc;
+}
+
+.ms-notif-item .notif-title {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 0.9rem;
+    margin-bottom: 0.15rem;
+}
+
+.ms-notif-item .notif-body {
+    color: #475569;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ms-notif-item .notif-time {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 /* ==========================================================================

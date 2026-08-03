@@ -24,6 +24,14 @@ public interface ImagingRecordService {
 
     List<Patient> getAllPatients();
 
+    // Patients this doctor actually has a case assigned to — scopes the
+    // doctor's patient list instead of exposing every patient system-wide.
+    List<Patient> getPatientsForDoctor(Long doctorId);
+
+    // This doctor's own record history with one patient (excludes other
+    // doctors' cases for the same patient).
+    List<ImagingRecord> findForPatientAndDoctor(User patient, Long doctorId);
+
     Patient getPatientById(Long patientId);
 
     // ==================== Dashboard & Doctor specific ====================
@@ -43,6 +51,12 @@ public interface ImagingRecordService {
     long countToday();
 
     long countAll();
+
+    // Same as countToday()/countAll() but scoped to one doctor's own assigned
+    // cases — used on the doctor's pending-queue page instead of system-wide totals.
+    long countTodayForDoctor(Long doctorId);
+
+    long countAllForDoctor(Long doctorId);
 
     List<ImagingRecord> findQueue();
 
@@ -65,7 +79,12 @@ public interface ImagingRecordService {
     List<Appointment> findAppointmentsEligibleForCapture();
 
     ImagingRecord getRecordById(Long recordId);
-    
+
+    // Like getRecordById, but throws if the record is already assigned to a
+    // different doctor than doctorEmail — enforces "a doctor may only
+    // view/act on cases assigned to them" at the service layer.
+    ImagingRecord getRecordForDoctor(Long recordId, String doctorEmail);
+
     ImagingRecord getRecordDetail(Long recordId);
 
     ImagingRecord confirmDoctorReview(Long recordId, String doctorEmail, String conclusion, String recommendation,
@@ -76,8 +95,12 @@ public interface ImagingRecordService {
     ImagingRecord updateRecordCoordinates(Long recordId, Integer bboxX, Integer bboxY, Integer bboxWidth,
             Integer bboxHeight);
 
+    // Lets the assigned doctor flip an already-COMPLETED record between
+    // Private/Public from the diagnosis library, after the fact.
+    ImagingRecord updateRecordVisibility(Long recordId, String doctorEmail, String visibility);
+
     // ==================== Search & AI ====================
-    Page<ImagingRecord> searchConfirmedLibrary(String keyword, String bodyPart, Pageable pageable);
+    Page<ImagingRecord> searchConfirmedLibrary(String keyword, String bodyPart, Long doctorId, Pageable pageable);
 
     Page<ImagingRecord> searchForPatient(User patient, String keyword, String doctorName, String status, java.time.LocalDate fromDate, java.time.LocalDate toDate, Pageable pageable);
 

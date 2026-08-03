@@ -35,6 +35,13 @@ public final class OperationalConfig {
     public static final int MAX_SYMPTOM_LENGTH = 100;
     public static final int MAX_NOTE_LENGTH = 500;
 
+    /**
+     * Grace period after a PENDING/CONFIRMED appointment's scheduled time
+     * before it's auto-cancelled for never being checked in. See
+     * NoShowAutoCancelJob.
+     */
+    public static final int NO_SHOW_GRACE_MINUTES = 10;
+
     // ==================== Admin listing ====================
     public static final int ADMIN_USER_PAGE_SIZE = 20;
 }

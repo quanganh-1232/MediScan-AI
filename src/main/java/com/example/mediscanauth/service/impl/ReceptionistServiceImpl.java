@@ -31,9 +31,9 @@ import com.example.mediscanauth.service.NotificationService;
 @Service
 public class ReceptionistServiceImpl implements ReceptionistService {
 
-    private static final Set<String> CONFIRMABLE_STATUSES = Set.of("PENDING", "SCHEDULED");
+    private static final Set<String> CONFIRMABLE_STATUSES = Set.of("PENDING");
     private static final Set<String> TERMINAL_STATUSES = Set.of("COMPLETED", "CANCELLED", "MISSED");
-    private static final Set<String> MISSABLE_STATUSES = Set.of("PENDING", "SCHEDULED", "CONFIRMED");
+    private static final Set<String> MISSABLE_STATUSES = Set.of("CONFIRMED");
     // Appointments in these statuses no longer occupy the doctor's schedule,
     // so they're excluded from the double-booking check.
     private static final Set<String> CONFLICT_IGNORED_STATUSES = Set.of("CANCELLED", "MISSED");
@@ -205,6 +205,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     @Transactional
     public Appointment createWalkInAppointment(String fullName,
                                                String phone,
+                                               String gender,
+                                               LocalDate dateOfBirth,
                                                String symptom,
                                                Long doctorId,
                                                LocalDate scheduledDate,
@@ -212,6 +214,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                                                String receptionistEmail) {
         String cleanFullName = validateFullName(fullName);
         String cleanPhone = validatePhone(phone);
+        String cleanGender = validateGender(gender);
+        validateDateOfBirth(dateOfBirth);
         String cleanSymptom = validateSymptom(symptom);
         LocalDate date = validateScheduledDate(scheduledDate);
         LocalTime time = validateScheduledTime(scheduledTime);
@@ -231,11 +235,21 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                 existing.setFullName(cleanFullName);
                 existing.setUser(createDummyUser(cleanFullName, cleanPhone));
             }
+            // Chỉ điền thêm khi hồ sơ cũ đang thiếu thông tin, không ghi đè
+            // dữ liệu đã có (tránh lễ tân vô tình sửa nhầm hồ sơ cũ).
+            if (existing.getGender() == null || existing.getGender().isBlank()) {
+                existing.setGender(cleanGender);
+            }
+            if (existing.getDateOfBirth() == null && dateOfBirth != null) {
+                existing.setDateOfBirth(dateOfBirth);
+            }
             patient = existing;
         } else {
             patient = new Patient();
             patient.setFullName(cleanFullName);
             patient.setPhone(cleanPhone);
+            patient.setGender(cleanGender);
+            patient.setDateOfBirth(dateOfBirth);
             patient.setUser(createDummyUser(cleanFullName, cleanPhone));
         }
         patient = patientRepository.save(patient);
@@ -396,6 +410,31 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         return trimmed;
     }
 
+    private static final Set<String> VALID_GENDERS = Set.of("MALE", "FEMALE", "OTHER");
+
+    private String validateGender(String gender) {
+        if (gender == null || gender.isBlank()) {
+            return "OTHER";
+        }
+        String normalized = gender.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!VALID_GENDERS.contains(normalized)) {
+            throw new InvalidFieldException("Giới tính không hợp lệ.");
+        }
+        return normalized;
+    }
+
+    private void validateDateOfBirth(LocalDate dateOfBirth) {
+        if (dateOfBirth == null) {
+            return;
+        }
+        if (dateOfBirth.isAfter(LocalDate.now())) {
+            throw new InvalidFieldException("Ngày sinh không được ở trong tương lai.");
+        }
+        if (dateOfBirth.isBefore(LocalDate.now().minusYears(130))) {
+            throw new InvalidFieldException("Ngày sinh không hợp lệ.");
+        }
+    }
+
     private String validateSymptom(String symptom) {
         if (symptom == null || symptom.isBlank()) {
             return null;
@@ -469,16 +508,18 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     }
 
     /**
-     * Blocks scheduling a doctor within {@link #slotMinutes()} minutes of
-     * another active appointment they already have, so the receptionist
-     * Ktra lich hen
+     * Blocks scheduling a doctor onto a slot that overlaps another active
+     * appointment they already have. Window is [-(slot-1), +(slot-1)] rather
+     * than a full ±slotMinutes so two back-to-back slots (e.g. 07:30 and
+     * 08:00 with a 30-minute slot) don't falsely conflict — only an actual
+     * overlap (same slot, or a non-grid time landing inside it) does.
      */
     private void ensureDoctorAvailable(User doctor, LocalDateTime scheduledTime, Long excludeAppointmentId) {
         if (doctor == null || scheduledTime == null) {
             return;
         }
-        LocalDateTime from = scheduledTime.minusMinutes(slotMinutes());
-        LocalDateTime to = scheduledTime.plusMinutes(slotMinutes());
+        LocalDateTime from = scheduledTime.minusMinutes(slotMinutes() - 1);
+        LocalDateTime to = scheduledTime.plusMinutes(slotMinutes() - 1);
         List<Appointment> nearby = appointmentRepository.findByDoctorAndScheduledTimeBetween(doctor, from, to);
         for (Appointment candidate : nearby) {
             if (excludeAppointmentId != null && candidate.getAppointmentId().equals(excludeAppointmentId)) {

@@ -100,7 +100,7 @@ public class ReceptionistDashboardController {
         // Stat counts
         long todayCount = todayAppointments.size();
         long pendingCount = todayAppointments.stream().filter(a -> "PENDING".equals(a.getStatus())).count();
-        long confirmedCount = todayAppointments.stream().filter(a -> "CONFIRMED".equals(a.getStatus()) || "SCHEDULED".equals(a.getStatus())).count();
+        long confirmedCount = todayAppointments.stream().filter(a -> "CONFIRMED".equals(a.getStatus())).count();
         long checkedInCount = todayAppointments.stream().filter(a -> "CHECKED_IN".equals(a.getStatus())).count();
         long inProgressCount = todayAppointments.stream().filter(a -> "IN_PROGRESS".equals(a.getStatus()) || "TRIAGED".equals(a.getStatus())).count();
         long completedCount = todayAppointments.stream().filter(a -> "COMPLETED".equals(a.getStatus())).count();
@@ -431,6 +431,8 @@ public class ReceptionistDashboardController {
     @PostMapping("/receptionist/appointments/walk-in")
     public String createWalkInAppointment(@RequestParam String fullName,
                                           @RequestParam String phone,
+                                          @RequestParam(required = false) String gender,
+                                          @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dateOfBirth,
                                           @RequestParam(required = false) String symptom,
                                           @RequestParam(required = false) Long doctorId,
                                           @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate scheduledDate,
@@ -439,15 +441,15 @@ public class ReceptionistDashboardController {
                                           RedirectAttributes redirectAttributes) {
         try {
             Appointment appointment = receptionistService.createWalkInAppointment(
-                    fullName, phone, symptom, doctorId, scheduledDate, scheduledTime, authentication.getName());
+                    fullName, phone, gender, dateOfBirth, symptom, doctorId, scheduledDate, scheduledTime, authentication.getName());
             redirectAttributes.addFlashAttribute("success",
                     "Đã đăng ký lịch hẹn " + appointment.getAppointmentCode() + " cho khách vãng lai.");
         } catch (DoctorScheduleConflictException ex) {
             redirectAttributes.addFlashAttribute("conflictError", ex.getMessage());
-            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledDate, scheduledTime);
+            addWalkInFormBackFill(redirectAttributes, fullName, phone, gender, dateOfBirth, symptom, doctorId, scheduledDate, scheduledTime);
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
-            addWalkInFormBackFill(redirectAttributes, fullName, phone, symptom, doctorId, scheduledDate, scheduledTime);
+            addWalkInFormBackFill(redirectAttributes, fullName, phone, gender, dateOfBirth, symptom, doctorId, scheduledDate, scheduledTime);
         }
         return "redirect:/receptionist/appointments/new";
     }
@@ -457,10 +459,12 @@ public class ReceptionistDashboardController {
      * mistake in one field doesn't force re-entering the whole walk-in form.
      */
     private void addWalkInFormBackFill(RedirectAttributes redirectAttributes,
-                                       String fullName, String phone, String symptom,
-                                       Long doctorId, LocalDate scheduledDate, LocalTime scheduledTime) {
+                                       String fullName, String phone, String gender, LocalDate dateOfBirth,
+                                       String symptom, Long doctorId, LocalDate scheduledDate, LocalTime scheduledTime) {
         redirectAttributes.addFlashAttribute("formFullName", fullName);
         redirectAttributes.addFlashAttribute("formPhone", phone);
+        redirectAttributes.addFlashAttribute("formGender", gender);
+        redirectAttributes.addFlashAttribute("formDateOfBirth", dateOfBirth);
         redirectAttributes.addFlashAttribute("formSymptom", symptom);
         redirectAttributes.addFlashAttribute("formDoctorId", doctorId);
         redirectAttributes.addFlashAttribute("formScheduledDate", scheduledDate);

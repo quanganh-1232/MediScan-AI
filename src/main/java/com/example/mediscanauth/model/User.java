@@ -81,6 +81,21 @@ public class User {
         this.email = email;
     }
 
+    private static final String GUEST_EMAIL_DOMAIN = "@mediscan.local";
+
+    /**
+     * True for the placeholder login account reception auto-creates for a
+     * walk-in patient who has no real account (see
+     * ReceptionistServiceImpl#createDummyUser) — identifiable by its
+     * generated @mediscan.local email, since there's no dedicated "guest"
+     * column. Such a user can never actually log in, so features that only
+     * make sense for someone who can view their own portal (e.g. publishing
+     * a diagnosis result to them) should stay disabled for this account.
+     */
+    public boolean isGuestAccount() {
+        return email != null && email.endsWith(GUEST_EMAIL_DOMAIN);
+    }
+
     public String getPhone() {
         return phone;
     }

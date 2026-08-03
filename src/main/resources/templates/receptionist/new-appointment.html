@@ -107,6 +107,25 @@
                                                    title="Số điện thoại Việt Nam hợp lệ (10 chữ số)" required>
                                         </div>
                                     </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="ms-label">Giới tính</label>
+                                        <select name="gender" class="form-select ms-input">
+                                            <option value="MALE" th:selected="${formGender == 'MALE'}">Nam</option>
+                                            <option value="FEMALE" th:selected="${formGender == 'FEMALE'}">Nữ</option>
+                                            <option value="OTHER" th:selected="${formGender == null or formGender == '' or formGender == 'OTHER'}">Khác</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="ms-label">Ngày sinh</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light text-secondary border-end-0"><i class="bi bi-calendar-heart"></i></span>
+                                            <input type="date" name="dateOfBirth" class="form-control ms-input border-start-0 ps-0"
+                                                   th:value="${formDateOfBirth}"
+                                                   th:max="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

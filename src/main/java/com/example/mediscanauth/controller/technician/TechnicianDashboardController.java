@@ -34,9 +34,6 @@ public class TechnicianDashboardController {
     public String overview(Model model,
                            Authentication authentication) {
         addDashboardData(model, authentication);
-        model.addAttribute(
-                "scheduledAppointments",
-                technicianWorkflowService.findScheduledAppointments());
         return "/technician/overview";
     }
 
@@ -91,16 +88,24 @@ public class TechnicianDashboardController {
     }
 
     private void addDashboardData(Model model, Authentication authentication) {
+        String technicianEmail = authentication.getName();
+        // "San sang de chup": lich hen da duoc le tan goi vao phong (IN_PROGRESS) -
+        // day la trang thai thuc te dung trong luong nghiep vu hien tai, khac voi
+        // "SCHEDULED" (khong con noi nao gan trang thai nay cho appointment nua).
+        var eligibleAppointments = imagingRecordService.findAppointmentsEligibleForCapture();
+
         model.addAttribute("recentAppointments", technicianWorkflowService.findRecentAppointments());
-        model.addAttribute("scheduledAppointments", technicianWorkflowService.findScheduledAppointments());
+        model.addAttribute("scheduledAppointments", eligibleAppointments);
         model.addAttribute("recentRecords", technicianWorkflowService.findRecentRecords());
         model.addAttribute("recentImages", technicianWorkflowService.findRecentImages());
-        model.addAttribute("scheduledCount", technicianWorkflowService.countScheduledAppointments());
-        model.addAttribute("uploadedRecordCount", technicianWorkflowService.countUploadedRecords());
-        model.addAttribute("uploadedImageCount", technicianWorkflowService.countUploadedImages());
-        model.addAttribute("aiSuccessCount", technicianWorkflowService.countSuccessfulAiResults());
-        model.addAttribute("approvedReviewCount", technicianWorkflowService.countApprovedReviews());
-        model.addAttribute("eligibleAppointments", imagingRecordService.findAppointmentsEligibleForCapture());
-        model.addAttribute("historyRecords", imagingRecordService.findRecordsUploadedByTechnician(authentication.getName()));
+        model.addAttribute("scheduledCount", (long) eligibleAppointments.size());
+        model.addAttribute("uploadedRecordCount", technicianWorkflowService.countCapturedToday(technicianEmail));
+        model.addAttribute("uploadedImageCount", technicianWorkflowService.countCapturedToday(technicianEmail));
+        model.addAttribute("pendingAiCount", technicianWorkflowService.countPendingAiToday(technicianEmail));
+        model.addAttribute("pendingProcessingCount", technicianWorkflowService.countPendingProcessingToday(technicianEmail));
+        model.addAttribute("aiSuccessCount", technicianWorkflowService.countAiProcessedToday(technicianEmail));
+        model.addAttribute("approvedReviewCount", technicianWorkflowService.countDoctorApprovedToday(technicianEmail));
+        model.addAttribute("eligibleAppointments", eligibleAppointments);
+        model.addAttribute("historyRecords", imagingRecordService.findRecordsUploadedByTechnician(technicianEmail));
     }
 }

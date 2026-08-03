@@ -49,6 +49,7 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
+    private final ClinicSettingsService clinicSettingsService;
 
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/";
     private static final int LEGACY_TEXT_COLUMN_LIMIT = OperationalConfig.LEGACY_TEXT_COLUMN_LIMIT;
@@ -66,13 +67,15 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
                                       AppointmentRepository appointmentRepository,
                                       PatientRepository patientRepository,
                                       UserRepository userRepository,
-                                      NotificationService notificationService) {
+                                      NotificationService notificationService,
+                                      ClinicSettingsService clinicSettingsService) {
         this.imagingRecordRepository = imagingRecordRepository;
         this.userAccountService = userAccountService;
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.clinicSettingsService = clinicSettingsService;
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(AI_CONNECT_TIMEOUT_MS);
         requestFactory.setReadTimeout(AI_READ_TIMEOUT_MS);
@@ -265,27 +268,44 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
             throw new RuntimeException("Không thể đặt lịch vào thời điểm trong quá khứ. Vui lòng chọn từ hôm nay trở đi.");
         }
 
-        // Backend: chỉ cho đặt trong giờ hành chính (07:00 - 17:00)
-        int hour = scheduledTime.getHour();
-        if (hour < 7 || hour >= 17) {
-            throw new RuntimeException("Chỉ có thể đặt lịch trong giờ hành chính (07:00 - 17:00).");
+        // Lấy cấu hình từ admin
+        int openHour = clinicSettingsService.getOpenTime().getHour();
+        int closeHour = clinicSettingsService.getCloseTime().getHour();
+        int slotMinutes = clinicSettingsService.getSlotMinutes();
+        int maxDays = clinicSettingsService.getMaxFutureBookingDays();
+
+        // Kiểm tra quá số ngày tương lai
+        if (scheduledTime.toLocalDate().isAfter(java.time.LocalDate.now().plusDays(maxDays))) {
+            throw new RuntimeException("Chỉ có thể đặt lịch trước tối đa " + maxDays + " ngày.");
         }
 
-        // Kiểm tra bệnh nhân đã có lịch hẹn trong cùng khung giờ chưa (±30 phút)
-        java.time.LocalDateTime conflictFrom = scheduledTime.minusMinutes(29);
-        java.time.LocalDateTime conflictTo   = scheduledTime.plusMinutes(30);
+        // Backend: chỉ cho đặt trong giờ hành chính theo cấu hình
+        int hour = scheduledTime.getHour();
+        if (hour < openHour || hour >= closeHour) {
+            throw new RuntimeException(String.format("Chỉ có thể đặt lịch trong giờ hành chính (%02d:00 - %02d:00).", openHour, closeHour));
+        }
+
+        // Kiểm tra chênh lệch phút phải khớp ca khám
+        long minutesFromOpen = java.time.Duration.between(clinicSettingsService.getOpenTime(), scheduledTime.toLocalTime()).toMinutes();
+        if (minutesFromOpen % slotMinutes != 0) {
+            throw new RuntimeException("Giờ khám phải chọn theo ca " + slotMinutes + " phút.");
+        }
+
+        // Kiểm tra bệnh nhân đã có lịch hẹn trong cùng khung giờ chưa
+        java.time.LocalDateTime conflictFrom = scheduledTime.minusMinutes(slotMinutes - 1);
+        java.time.LocalDateTime conflictTo   = scheduledTime.plusMinutes(slotMinutes);
         long patientConflicts = appointmentRepository.countPatientConflicts(user, conflictFrom, conflictTo);
         if (patientConflicts > 0) {
-            throw new RuntimeException("Bạn đã có lịch hẹn trong khung giờ này. Vui lòng chọn giờ khác (cách ít nhất 30 phút).");
+            throw new RuntimeException("Bạn đã có lịch hẹn trong khoảng thời gian này. Vui lòng chọn giờ khác (cách ít nhất " + slotMinutes + " phút).");
         }
 
-        // Kiểm tra trùng lịch bác sĩ (±30 phút)
+        // Kiểm tra trùng lịch bác sĩ
         if (doctor != null) {
             long conflicts = appointmentRepository.countDoctorConflicts(doctor, conflictFrom, conflictTo);
             if (conflicts > 0) {
                 throw new RuntimeException(
-                    "Bác sĩ " + doctor.getFullName() + " đã có lịch hẹn vào khung giờ này. " +
-                    "Vui lòng chọn giờ khác (cách ít nhất 30 phút)."
+                    "Bác sĩ " + doctor.getFullName() + " đã có lịch hẹn vào khoảng thời gian này. " +
+                    "Vui lòng chọn giờ khác (cách ít nhất " + slotMinutes + " phút)."
                 );
             }
         }
@@ -295,13 +315,14 @@ public class PatientWorkflowServiceImpl implements PatientWorkflowService {
         appointment.setPatient(patient);
         appointment.setDoctor(doctor);
         appointment.setScheduledTime(scheduledTime);
-        // Nếu đã chọn bác sĩ → SCHEDULED, nếu chưa → PENDING để lễ tân phân công
-        appointment.setStatus(doctor != null ? "SCHEDULED" : "PENDING");
         appointment.setAppointmentType("DOCTOR_CONSULTATION");
         if (note != null && !note.isBlank()) {
             appointment.setNote(note);
             appointment.setBodyPart(note); // hiển thị ở cột "Lý do khám"
         }
+        
+        // KAN-32: Save appointment initially as PENDING
+        appointment.setStatus("PENDING");
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
 

@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const statusMap = {
         'PENDING': 'Chờ xác nhận',
-        'SCHEDULED': 'Đã đặt lịch',
         'CONFIRMED': 'Đã xác nhận',
         'CHECKED_IN': 'Đã điểm danh',
         'IN_PROGRESS': 'Đang khám',

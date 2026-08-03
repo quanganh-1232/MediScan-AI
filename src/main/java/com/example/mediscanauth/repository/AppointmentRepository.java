@@ -105,6 +105,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByDoctorAndScheduledTimeBetween(User doctor, LocalDateTime from, LocalDateTime to);
 
     /**
+     * Appointments reception never acted on in time — still PENDING/CONFIRMED
+     * (never checked in) with a scheduled time already past the no-show grace
+     * cutoff. Used by NoShowAutoCancelJob.
+     */
+    List<Appointment> findByStatusInAndScheduledTimeBefore(List<String> statuses, LocalDateTime cutoff);
+
+    /**
      * Atomically claims an appointment only if it's still in the expected
      * status, so two receptionists racing to "call next patient" can't both
      * succeed on the same row — the loser gets 0 rows affected instead of

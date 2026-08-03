@@ -47,12 +47,6 @@ public class AdminDashboardController {
         return "admin/dashboard";
     }
 
-    @GetMapping("/admin/metrics")
-    public String metrics(Model model) {
-        addSharedModel(model);
-        return "admin/metrics";
-    }
-
     @GetMapping("/admin/users")
     public String users(@RequestParam(required = false) String keyword,
                         @RequestParam(required = false) String role,
@@ -168,12 +162,6 @@ public class AdminDashboardController {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
         return redirectToUserDetail(userId);
-    }
-
-    @GetMapping("/admin/recent-records")
-    public String recentRecords(Model model) {
-        addSharedModel(model);
-        return "admin/recent-records";
     }
 
     private void addSharedModel(Model model) {

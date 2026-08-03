@@ -73,8 +73,8 @@
                 <span class="badge"
                       th:classappend="${appointment.status == 'COMPLETED'} ? 'bg-success' :
                                        (${appointment.status == 'CANCELLED'} ? 'bg-danger' :
-                                       (${appointment.status == 'CONFIRMED' or appointment.status == 'SCHEDULED' or appointment.status == 'CHECKED_IN' or appointment.status == 'IN_PROGRESS'} ? 'bg-primary' : 'bg-warning text-dark'))"
-                      th:text="${appointment.status}">PENDING</span>
+                                       (${appointment.status == 'CONFIRMED' or appointment.status == 'CHECKED_IN' or appointment.status == 'IN_PROGRESS'} ? 'bg-primary' : 'bg-warning text-dark'))"
+                      style="font-size:0.8rem;" th:text="${appointment.status}">CHỜ XÁC NHẬN</span>
             </div>
         </div>
     </div>
@@ -161,9 +161,9 @@
         <a href="/patient/notifications" class="btn ms-btn ms-btn-ghost border">
             <i class="bi bi-bell me-1"></i>Thông báo của tôi
         </a>
-        <form th:if="${appointment.status == 'PENDING' or appointment.status == 'SCHEDULED'}"
-              th:action="@{/patient/appointments/{id}/cancel(id=${appointment.appointmentId})}"
-              method="post" onsubmit="return confirm('Bạn có chắc muốn hủy lịch hẹn này?')">
+        <form th:if="${appointment.status == 'PENDING'}"
+              th:action="@{/patient/appointments/{id}/cancel(id=${appointment.appointmentId})}" method="post"
+              onsubmit="return confirm('Bạn có chắc muốn hủy lịch hẹn này?')">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <button type="submit" class="btn btn-outline-danger">
                 <i class="bi bi-x-circle me-1"></i>Hủy lịch hẹn
