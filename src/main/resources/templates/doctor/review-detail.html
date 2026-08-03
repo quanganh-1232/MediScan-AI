@@ -463,26 +463,42 @@
                         <!-- Quyền xem kết quả (Visibility) -->
                         <div class="ms-card-solid rounded-5 p-4">
                             <h2 class="h5 mb-3">Quyền xem kết quả</h2>
-                            <div class="d-flex gap-4">
+                            <!-- Khách vãng lai (do lễ tân tạo hồ sơ) không có tài khoản đăng nhập thật,
+                                 nên không thể xem cổng bệnh nhân dù có đặt Công khai — chỉ khoá ở Riêng tư. -->
+                            <div th:if="${record.patient != null and record.patient.guestAccount}">
+                                <input type="hidden" name="visibility" value="PRIVATE">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="visibility" id="visPrivate"
-                                        value="PRIVATE"
-                                        th:checked="${record.visibility == null or record.visibility == 'PRIVATE'}">
+                                    <input class="form-check-input" type="radio" id="visPrivate" checked disabled>
                                     <label class="form-check-label fw-medium" for="visPrivate">
                                         <i class="bi bi-lock-fill text-secondary"></i> Riêng tư (Private)
                                     </label>
                                 </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="visibility" id="visPublic"
-                                        value="PUBLIC" th:checked="${record.visibility == 'PUBLIC'}">
-                                    <label class="form-check-label fw-medium" for="visPublic">
-                                        <i class="bi bi-globe text-primary"></i> Công khai (Public)
-                                    </label>
-                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    Khách vãng lai chưa có tài khoản đăng nhập nên không thể công khai kết quả.
+                                </small>
                             </div>
-                            <small class="text-muted d-block mt-2">
-                                Private: Chỉ bệnh nhân & bác sĩ xem | Public: Bệnh nhân nhận thông báo
-                            </small>
+                            <div th:if="${record.patient == null or !record.patient.guestAccount}">
+                                <div class="d-flex gap-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="visibility" id="visPrivate"
+                                            value="PRIVATE"
+                                            th:checked="${record.visibility == null or record.visibility == 'PRIVATE'}">
+                                        <label class="form-check-label fw-medium" for="visPrivate">
+                                            <i class="bi bi-lock-fill text-secondary"></i> Riêng tư (Private)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="visibility" id="visPublic"
+                                            value="PUBLIC" th:checked="${record.visibility == 'PUBLIC'}">
+                                        <label class="form-check-label fw-medium" for="visPublic">
+                                            <i class="bi bi-globe text-primary"></i> Công khai (Public)
+                                        </label>
+                                    </div>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    Private: Chỉ bệnh nhân & bác sĩ xem | Public: Bệnh nhân nhận thông báo
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>

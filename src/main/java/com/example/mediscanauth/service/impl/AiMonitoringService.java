@@ -1,8 +1,6 @@
 package com.example.mediscanauth.service.impl;
 
-import com.example.mediscanauth.model.AiModel;
 import com.example.mediscanauth.model.ImagingRecord;
-import com.example.mediscanauth.repository.AiModelRepository;
 import com.example.mediscanauth.repository.ImagingRecordRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -22,8 +19,7 @@ import java.util.Map;
 
 /**
  * Backs the Admin "AI Diagnosis Monitoring" screen: risk-level distribution,
- * AI confidence trend, doctor override/rejection rate, AI_FAILED case list,
- * and a simple model-version registry (ai_models).
+ * AI confidence trend, doctor override/rejection rate, and AI_FAILED case list.
  */
 @Service
 public class AiMonitoringService {
@@ -39,11 +35,9 @@ public class AiMonitoringService {
     );
 
     private final ImagingRecordRepository imagingRecordRepository;
-    private final AiModelRepository aiModelRepository;
 
-    public AiMonitoringService(ImagingRecordRepository imagingRecordRepository, AiModelRepository aiModelRepository) {
+    public AiMonitoringService(ImagingRecordRepository imagingRecordRepository) {
         this.imagingRecordRepository = imagingRecordRepository;
-        this.aiModelRepository = aiModelRepository;
     }
 
     @Transactional(readOnly = true)
@@ -124,36 +118,9 @@ public class AiMonitoringService {
         return imagingRecordRepository.countByStatus("AI_FAILED");
     }
 
-    @Transactional(readOnly = true)
-    public List<AiModel> listModelVersions() {
-        return aiModelRepository.findAllByOrderByCreatedAtDesc();
-    }
-
-    @Transactional
-    public AiModel registerModelVersion(String modelName, String version, String apiEndpoint,
-                                         BigDecimal accuracy, String description) {
-        if (isBlank(modelName) || isBlank(version)) {
-            throw new IllegalArgumentException("Tên model và phiên bản không được để trống.");
-        }
-        AiModel model = AiModel.builder()
-                .modelName(modelName.trim())
-                .version(version.trim())
-                .apiEndpoint(isBlank(apiEndpoint) ? null : apiEndpoint.trim())
-                .accuracy(accuracy)
-                .description(isBlank(description) ? null : description.trim())
-                .status("ACTIVE")
-                .createdAt(Instant.now())
-                .build();
-        return aiModelRepository.save(model);
-    }
-
     private BigDecimal percent(long part, long total) {
         if (total <= 0) return null;
         return BigDecimal.valueOf(part).multiply(BigDecimal.valueOf(100))
                 .divide(BigDecimal.valueOf(total), 1, RoundingMode.HALF_UP);
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
     }
 }

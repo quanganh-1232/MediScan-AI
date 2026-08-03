@@ -92,7 +92,6 @@
                         </div>
                         <a sec:authorize="hasRole('DOCTOR')" th:href="@{/doctor/records/pending}" class="btn ms-btn ms-btn-primary text-white">Duyệt ca</a>
                         <a sec:authorize="hasRole('TECHNICIAN')" th:href="@{/technician/xray-upload}" class="btn ms-btn ms-btn-primary text-white">Tạo hồ sơ</a>
-                        <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/recent-records}" class="btn ms-btn ms-btn-primary text-white">Xem chi tiết</a>
                         <a sec:authorize="hasRole('PATIENT')" th:href="@{/patient/records}" class="btn ms-btn ms-btn-primary text-white">Hồ sơ của tôi</a>
                     </div>
                     <div class="table-responsive" sec:authorize="hasAnyRole('ADMIN','DOCTOR','TECHNICIAN')">

@@ -4,11 +4,6 @@ import com.example.mediscanauth.service.impl.AiMonitoringService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import java.math.BigDecimal;
 
 @Controller
 public class AdminAiMonitoringController {
@@ -30,23 +25,6 @@ public class AdminAiMonitoringController {
         model.addAttribute("overrideStats", aiMonitoringService.overrideStats());
         model.addAttribute("aiFailedCases", aiMonitoringService.recentAiFailedCases(AI_FAILED_LIMIT));
         model.addAttribute("aiFailedCount", aiMonitoringService.countAiFailed());
-        model.addAttribute("modelVersions", aiMonitoringService.listModelVersions());
         return "admin/ai-monitoring";
-    }
-
-    @PostMapping("/admin/ai-monitoring/models")
-    public String registerModel(@RequestParam String modelName,
-                                @RequestParam String version,
-                                @RequestParam(required = false) String apiEndpoint,
-                                @RequestParam(required = false) BigDecimal accuracy,
-                                @RequestParam(required = false) String description,
-                                RedirectAttributes redirect) {
-        try {
-            aiMonitoringService.registerModelVersion(modelName, version, apiEndpoint, accuracy, description);
-            redirect.addFlashAttribute("success", "Đã ghi nhận phiên bản model mới.");
-        } catch (IllegalArgumentException ex) {
-            redirect.addFlashAttribute("error", ex.getMessage());
-        }
-        return "redirect:/admin/ai-monitoring";
     }
 }

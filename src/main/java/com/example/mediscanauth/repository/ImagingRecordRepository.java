@@ -22,15 +22,27 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
     long countByStatus(String status);
     long countByStatusIn(List<String> statuses);
     long countByCapturedAt(LocalDate capturedAt);
+    long countByDoctorUserId(Long doctorId);
+    long countByDoctorUserIdAndCapturedAt(Long doctorId, LocalDate capturedAt);
     List<ImagingRecord> findByStatusInOrderByCreatedAtDesc(List<String> statuses);
     List<ImagingRecord> findTop10ByOrderByCreatedAtDesc();
     List<ImagingRecord> findByTechnicianEmailOrderByCreatedAtDesc(String technicianEmail);
     void deleteByStatusIn(List<String> statuses);
 
+    // ==================== Technician dashboard stats (scoped to this technician + today) ====================
+    long countByTechnicianEmailAndCapturedAt(String technicianEmail, LocalDate capturedAt);
+    long countByTechnicianEmailAndStatusAndCapturedAt(String technicianEmail, String status, LocalDate capturedAt);
+    long countByTechnicianEmailAndStatusInAndCapturedAt(String technicianEmail, List<String> statuses, LocalDate capturedAt);
+
     // ==================== Doctor specific ====================
     List<ImagingRecord> findByStatusInAndDoctorUserIdOrderByCreatedAtDesc(List<String> statuses, Long userId);
     long countByStatusInAndDoctorUserId(List<String> statuses, Long userId);
     List<ImagingRecord> findByDoctorUserIdAndStatusInOrderByCreatedAtDesc(Long userId, List<String> statuses);
+
+    // This doctor's own case history with one patient — used to scope the
+    // doctor's patient-detail view so they only see cases assigned to them,
+    // not every doctor's history with that patient.
+    List<ImagingRecord> findByPatientAndDoctorUserIdOrderByCapturedAtDescCreatedAtDesc(User patient, Long doctorId);
 
     /**
      * Pending queue for one doctor: cases routed to them by reception's
@@ -59,6 +71,7 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
     @Query(value = """
             select r from ImagingRecord r
             where r.status = 'COMPLETED'
+              and (:doctorId is null or r.doctor.userId = :doctorId)
               and (:bodyPart is null or :bodyPart = '' or lower(r.bodyPart) like lower(concat('%', :bodyPart, '%')))
               and (:keyword is null or :keyword = ''
                 or lower(r.recordCode) like lower(concat('%', :keyword, '%'))
@@ -71,6 +84,7 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
             countQuery = """
             select count(r) from ImagingRecord r
             where r.status = 'DOCTOR_CONFIRMED'
+              and (:doctorId is null or r.doctor.userId = :doctorId)
               and (:bodyPart is null or :bodyPart = '' or lower(r.bodyPart) like lower(concat('%', :bodyPart, '%')))
               and (:keyword is null or :keyword = ''
                 or lower(r.recordCode) like lower(concat('%', :keyword, '%'))
@@ -82,6 +96,7 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
             """)
     Page<ImagingRecord> searchConfirmedLibrary(@Param("keyword") String keyword,
                                                @Param("bodyPart") String bodyPart,
+                                               @Param("doctorId") Long doctorId,
                                                Pageable pageable);
 
     @Query(value = """

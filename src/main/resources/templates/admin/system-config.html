@@ -26,12 +26,15 @@
         <div class="col-12 col-xl-10">
             <div class="mb-4">
                 <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-sliders text-primary me-2"></i>Cấu hình hệ thống</h1>
-                <p class="text-secondary mb-0">Các thông số vận hành hiện đang áp dụng (chỉ xem). Để thay đổi, cần sửa trong mã nguồn và triển khai lại.</p>
+                <p class="text-secondary mb-0">Các thông số vận hành hiện đang áp dụng cho toàn hệ thống.</p>
             </div>
+
+            <div th:if="${success}" class="alert alert-success ms-auth-alert"><i class="bi bi-check-circle-fill"></i><span th:text="${success}"></span></div>
+            <div th:if="${error}" class="alert alert-danger ms-auth-alert"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
 
             <div class="alert alert-info ms-auth-alert">
                 <i class="bi bi-info-circle-fill"></i>
-                <span>Đây là màn hình chỉ xem — các giá trị bên dưới được đọc trực tiếp từ cấu hình đang chạy của hệ thống, không phải dữ liệu tĩnh.</span>
+                <span>Các thông số AI bên dưới là cấu hình cố định của hệ thống (chỉ xem). Riêng phần lịch hẹn &amp; vận hành phòng khám, admin có thể chỉnh sửa và sẽ áp dụng ngay cho toàn hệ thống.</span>
             </div>
 
             <div class="row g-4">
@@ -70,19 +73,45 @@
                 <div class="col-12 col-lg-6">
                     <section class="pt-card p-4 h-100">
                         <div class="pt-card-title fs-5 mb-3"><i class="bi bi-calendar-week"></i> Lịch hẹn &amp; vận hành phòng khám</div>
+
+                        <form th:action="@{/admin/system-config/clinic}" method="post" class="mb-4">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-6 col-md-3">
+                                    <label class="ms-label">Giờ mở cửa</label>
+                                    <select name="clinicOpenHour" class="form-select ms-input">
+                                        <option th:each="h : ${#numbers.sequence(0, 23)}" th:value="${h}"
+                                                th:text="${#numbers.formatInteger(h, 2)} + ':00'"
+                                                th:selected="${h == clinicOpenHour}">06:00</option>
+                                    </select>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label class="ms-label">Giờ đóng cửa</label>
+                                    <select name="clinicCloseHour" class="form-select ms-input">
+                                        <option th:each="h : ${#numbers.sequence(1, 24)}" th:value="${h}"
+                                                th:text="${#numbers.formatInteger(h, 2)} + ':00'"
+                                                th:selected="${h == clinicCloseHour}">21:00</option>
+                                    </select>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label class="ms-label">Độ dài mỗi ca (phút)</label>
+                                    <input type="number" name="slotMinutes" min="5" max="240" step="5"
+                                           class="form-control ms-input" th:value="${slotMinutes}">
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label class="ms-label">Đặt trước tối đa (ngày)</label>
+                                    <input type="number" name="maxFutureBookingDays" min="1" max="3650"
+                                           class="form-control ms-input" th:value="${maxFutureBookingDays}">
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn ms-btn ms-btn-primary text-white">
+                                        <i class="bi bi-check-lg me-1"></i>Lưu thay đổi
+                                    </button>
+                                    <span class="small text-muted ms-2">Áp dụng ngay cho toàn hệ thống (đặt lịch, timeline lễ tân, danh sách ca khám).</span>
+                                </div>
+                            </div>
+                        </form>
+
                         <div class="d-grid gap-3">
-                            <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background:#f8fafd;">
-                                <span class="small text-muted">Giờ hoạt động</span>
-                                <span class="fw-semibold" th:text="${#numbers.formatInteger(clinicOpenHour, 2) + ':00 - ' + #numbers.formatInteger(clinicCloseHour, 2) + ':00'}">06:00 - 21:00</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background:#f8fafd;">
-                                <span class="small text-muted">Độ dài mỗi ca khám</span>
-                                <span class="fw-semibold" th:text="${slotMinutes} + ' phút'">30 phút</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background:#f8fafd;">
-                                <span class="small text-muted">Đặt lịch trước tối đa</span>
-                                <span class="fw-semibold" th:text="${maxFutureBookingDays} + ' ngày'">90 ngày</span>
-                            </div>
                             <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background:#f8fafd;">
                                 <span class="small text-muted">Độ dài tối đa mô tả triệu chứng</span>
                                 <span class="fw-semibold" th:text="${maxSymptomLength} + ' ký tự'">100 ký tự</span>

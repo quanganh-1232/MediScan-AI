@@ -94,7 +94,17 @@
         </div>
     </section>
 
-    <div class="row g-4">
+    <!-- Access denied: bác sĩ chưa công khai kết quả cho bệnh nhân -->
+    <section th:if="${accessDenied}" class="pt-card p-5 text-center">
+        <i class="bi bi-lock-fill fs-1 d-block mb-3 text-secondary"></i>
+        <h4 class="fw-bold mb-2">Bạn không được cấp quyền để xem kết quả</h4>
+        <p class="text-secondary mb-0">
+            Bác sĩ phụ trách đang giữ kết quả chẩn đoán ở chế độ riêng tư. Vui lòng liên hệ phòng khám
+            hoặc chờ bác sĩ công khai kết quả để xem chi tiết.
+        </p>
+    </section>
+
+    <div class="row g-4" th:if="${!accessDenied}">
         <!-- Left: X-ray image with canvas bbox overlay -->
         <div class="col-12 col-lg-5">
             <section class="pt-card p-4">
@@ -204,7 +214,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- Canvas: draw bbox on X-ray image -->
-<script th:if="${record.fileName != null}" th:inline="javascript">
+<script th:if="${!accessDenied and record.fileName != null}" th:inline="javascript">
     const fileName  = /*[[${record.fileName}]]*/ '';
     const bboxX     = /*[[${record.bboxX}]]*/ null;
     const bboxY     = /*[[${record.bboxY}]]*/ null;

@@ -70,24 +70,33 @@ public class DoctorDashboardController {
     public String pendingList(Model model, Principal principal) {
         Long doctorId = imagingRecordService.getDoctorIdByEmail(principal.getName());
         model.addAttribute("pendingRecords", imagingRecordService.findQueueForDoctor(doctorId));
-        model.addAttribute("todayRecordCount", imagingRecordService.countToday());
-        model.addAttribute("totalRecordCount", imagingRecordService.countAll());
-        model.addAttribute("libraryPreview", imagingRecordService.searchConfirmedLibrary(null, null,
+        model.addAttribute("todayRecordCount", imagingRecordService.countTodayForDoctor(doctorId));
+        model.addAttribute("totalRecordCount", imagingRecordService.countAllForDoctor(doctorId));
+        model.addAttribute("libraryPreview", imagingRecordService.searchConfirmedLibrary(null, null, doctorId,
                 PageRequest.of(0, 3, Sort.by(Sort.Order.desc("confirmedAt")))).getContent());
         return "doctor/pending-list";
     }
 
     @GetMapping("/doctor/records/{recordId}/review")
-    public String reviewDetail(@PathVariable Long recordId, Model model) {
-        ImagingRecord record = imagingRecordService.getRecordById(recordId);
+    public String reviewDetail(@PathVariable Long recordId, Model model,
+                               Authentication authentication, RedirectAttributes redirectAttributes) {
+        ImagingRecord record;
+        try {
+            record = imagingRecordService.getRecordForDoctor(recordId, authentication.getName());
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/doctor/records/pending";
+        }
 
         String patientName = record.getPatient() != null ? record.getPatient().getFullName() : "Unknown_Patient";
         String recordCode = record.getRecordCode() != null ? record.getRecordCode() : "Unknown_Record";
 
         // URL hiển thị
-        String displayUrl = "/uploads/" + record.getFileName();
+        String displayUrl = cloudinaryService.getDisplayImageUrl(
+                record.getFileName(), record.getStatus(), patientName, recordCode);
 
-        String originalUrl = "/uploads/" + record.getFileName();
+        String originalUrl = cloudinaryService.getOriginalImageUrl(
+                record.getFileName(), patientName, recordCode);
 
         model.addAttribute("record", record);
         model.addAttribute("displayImageUrl", displayUrl);
@@ -123,14 +132,18 @@ public class DoctorDashboardController {
             @RequestParam(required = false) Integer bboxHeight,
             RedirectAttributes redirectAttributes) {
 
-        // Nếu bác sĩ có vẽ hoặc cập nhật tọa độ box
-        if (bboxX != null || bboxY != null || bboxWidth != null || bboxHeight != null) {
-            imagingRecordService.updateRecordCoordinates(recordId, bboxX, bboxY, bboxWidth, bboxHeight);
-        }
+        try {
+            // Nếu bác sĩ có vẽ hoặc cập nhật tọa độ box
+            if (bboxX != null || bboxY != null || bboxWidth != null || bboxHeight != null) {
+                imagingRecordService.updateRecordCoordinates(recordId, bboxX, bboxY, bboxWidth, bboxHeight);
+            }
 
-        // Truyền screenshotData vào hàm confirmDoctorReview
-        imagingRecordService.confirmDoctorReview(recordId, authentication.getName(), conclusion, null, screenshotData, visibility);
-        redirectAttributes.addFlashAttribute("diagnosisSuccess", true);
+            // Truyền screenshotData vào hàm confirmDoctorReview
+            imagingRecordService.confirmDoctorReview(recordId, authentication.getName(), conclusion, null, screenshotData, visibility);
+            redirectAttributes.addFlashAttribute("diagnosisSuccess", true);
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
         return "redirect:/doctor/records/pending";
     }
 
@@ -138,38 +151,44 @@ public class DoctorDashboardController {
     public String reject(Authentication authentication,
             @RequestParam Long recordId,
             @RequestParam(required = false) String conclusion,
-            @RequestParam(required = false) String recommendation) {
-        imagingRecordService.rejectDoctorReview(recordId, authentication.getName(), conclusion, recommendation);
+            @RequestParam(required = false) String recommendation,
+            RedirectAttributes redirectAttributes) {
+        try {
+            imagingRecordService.rejectDoctorReview(recordId, authentication.getName(), conclusion, recommendation);
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
         return "redirect:/doctor/records/pending";
     }
 
     @GetMapping("/doctor/patients")
-    public String listPatients(Model model) {
-        List<Patient> patients = imagingRecordService.getAllPatients();
+    public String listPatients(Model model, Principal principal) {
+        Long doctorId = imagingRecordService.getDoctorIdByEmail(principal.getName());
+        List<Patient> patients = imagingRecordService.getPatientsForDoctor(doctorId);
         model.addAttribute("patients", patients);
         return "doctor/patient-list";
     }
 
     @GetMapping("/doctor/patients/{id}")
-    public String patientDetail(@PathVariable Long id, Model model) {
+    public String patientDetail(@PathVariable Long id, Model model, Principal principal) {
+        Long doctorId = imagingRecordService.getDoctorIdByEmail(principal.getName());
         Patient patient = imagingRecordService.getPatientById(id);
-        List<ImagingRecord> records = imagingRecordService.findForPatient(patient.getUser());
+        List<ImagingRecord> records = imagingRecordService.findForPatientAndDoctor(patient.getUser(), doctorId);
         model.addAttribute("profile", patient);
         model.addAttribute("records", records);
         return "doctor/patient-profile-detail";
     }
 
     // ==================== LIBRARY ====================
+    // Thư viện chẩn đoán là kho dùng chung: mọi bác sĩ đều xem được toàn bộ hồ
+    // sơ đã hoàn thành (COMPLETED), khác với hàng chờ đọc ảnh/danh sách bệnh
+    // nhân vốn chỉ giới hạn theo bác sĩ được phân công.
     @GetMapping("/doctor/library")
     public String library(@RequestParam(required = false) String q,
             @RequestParam(required = false) String bodyPart,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size,
-            Model model,
-            Principal principal) {
-
-        String email = principal.getName();
-        Long doctorId = imagingRecordService.getDoctorIdByEmail(email);
+            Model model) {
 
         List<DashboardDTO.QueueItemDTO> completedList = imagingRecordService.getAllCompletedDTOs();
 
@@ -206,9 +225,31 @@ public class DoctorDashboardController {
     }
 
     @GetMapping("/doctor/record/{recordId}")
-    public String recordDetail(@PathVariable Long recordId, Model model) {
-        model.addAttribute("record", imagingRecordService.getRecordById(recordId));
+    public String recordDetail(@PathVariable Long recordId, Model model,
+                               Authentication authentication, RedirectAttributes redirectAttributes) {
+        try {
+            model.addAttribute("record", imagingRecordService.getRecordForDoctor(recordId, authentication.getName()));
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/doctor/records/pending";
+        }
         return "doctor/record-detail";
+    }
+
+    @PostMapping("/doctor/record/{recordId}/visibility")
+    public String updateRecordVisibility(@PathVariable Long recordId,
+                                         @RequestParam String visibility,
+                                         Authentication authentication,
+                                         RedirectAttributes redirectAttributes) {
+        try {
+            imagingRecordService.updateRecordVisibility(recordId, authentication.getName(), visibility);
+            redirectAttributes.addFlashAttribute("success", "PUBLIC".equals(visibility)
+                    ? "Đã công khai kết quả với bệnh nhân."
+                    : "Đã chuyển kết quả về chế độ riêng tư.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/doctor/record/" + recordId;
     }
 
     // ==================== NOTIFICATIONS ====================

@@ -18,8 +18,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +32,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PatientWorkflowServiceUnitTest {
 
     @Mock
@@ -48,6 +52,9 @@ class PatientWorkflowServiceUnitTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private com.example.mediscanauth.service.impl.ClinicSettingsService clinicSettingsService;
 
     @InjectMocks
     private PatientWorkflowServiceImpl patientWorkflowService;
@@ -72,6 +79,11 @@ class PatientWorkflowServiceUnitTest {
         doctorUser.setUserId(200L);
         doctorUser.setEmail("doctor@mediscan.com");
         doctorUser.setFullName("Dr. Nguyen Van B");
+
+        when(clinicSettingsService.getOpenTime()).thenReturn(LocalTime.of(7, 0));
+        when(clinicSettingsService.getCloseTime()).thenReturn(LocalTime.of(17, 0));
+        when(clinicSettingsService.getSlotMinutes()).thenReturn(30);
+        when(clinicSettingsService.getMaxFutureBookingDays()).thenReturn(30);
 
         chatbotNLPService = new ChatbotNLPService();
     }
@@ -135,7 +147,7 @@ class PatientWorkflowServiceUnitTest {
         Appointment result = patientWorkflowService.bookAppointment("patientA@mediscan.com", 200L, date, time, "Đau khớp");
 
         assertNotNull(result);
-        assertEquals("SCHEDULED", result.getStatus());
+        assertEquals("PENDING", result.getStatus());
         assertEquals(doctorUser, result.getDoctor());
         assertEquals("Đau khớp", result.getNote());
         verify(notificationService).notifyRoleUsers(any(), anyString(), anyString(), any(), anyString());
@@ -208,7 +220,7 @@ class PatientWorkflowServiceUnitTest {
     @DisplayName("PAT_TC09: Chặn trùng lịch Bệnh nhân trong vòng 30 phút")
     void test_PAT_TC09_BookAppointment_PatientConflict_ShouldThrowException() {
         String futureDate = LocalDate.now().plusDays(2).toString();
-        String time = "09:15";
+        String time = "09:00";
 
         when(userAccountService.findByEmail("patientA@mediscan.com")).thenReturn(patientUser);
         when(patientRepository.findByUser(patientUser)).thenReturn(Optional.of(patient));
@@ -217,7 +229,7 @@ class PatientWorkflowServiceUnitTest {
         RuntimeException ex = assertThrows(RuntimeException.class, () ->
                 patientWorkflowService.bookAppointment("patientA@mediscan.com", 200L, futureDate, time, "Note")
         );
-        assertTrue(ex.getMessage().contains("Bạn đã có lịch hẹn trong khung giờ này"));
+        assertTrue(ex.getMessage().contains("Bạn đã có lịch hẹn trong khoảng thời gian này"));
     }
 
     @Test
@@ -235,7 +247,7 @@ class PatientWorkflowServiceUnitTest {
         RuntimeException ex = assertThrows(RuntimeException.class, () ->
                 patientWorkflowService.bookAppointment("patientA@mediscan.com", 200L, futureDate, time, "Note")
         );
-        assertTrue(ex.getMessage().contains("đã có lịch hẹn vào khung giờ này"));
+        assertTrue(ex.getMessage().contains("đã có lịch hẹn vào khoảng thời gian này"));
     }
 
     @Test

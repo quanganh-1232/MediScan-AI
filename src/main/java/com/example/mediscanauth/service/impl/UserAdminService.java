@@ -33,6 +33,12 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{10}$");
 
+    // Phòng khám chỉ vận hành với đúng 2 bác sĩ chuyên khoa cố định — ràng buộc
+    // này nằm ở tầng nghiệp vụ nên áp dụng cho mọi đường tạo/kích hoạt tài
+    // khoản DOCTOR (tạo mới, đổi vai trò, mở khóa), không chỉ giới hạn ở UI.
+    private static final int MAX_ACTIVE_DOCTORS = 2;
+    private static final String ROLE_DOCTOR = "DOCTOR";
+
     private final RoleRepository roleRepository;
     private final UserRepository userRepository = (UserRepository) this.repository;
     private final PasswordEncoder passwordEncoder;
@@ -93,6 +99,9 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
     @Transactional
     public User unlockAccount(Long userId, String currentAdminEmail) {
         User user = getUserDetail(userId);
+        if (user.getRole() != null && ROLE_DOCTOR.equals(user.getRole().getRoleName())) {
+            enforceDoctorCap(userId);
+        }
         user.setStatus(STATUS_ACTIVE);
         User saved = update(user);
         auditLogService.log(currentAdminEmail, "ACCOUNT_UNLOCKED", "User", String.valueOf(userId),
@@ -105,6 +114,9 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
         User user = getUserDetail(userId);
         String normalizedRoleName = normalizeRoleName(roleName);
         preventSelfDemotion(user, normalizedRoleName, currentAdminEmail);
+        if (ROLE_DOCTOR.equals(normalizedRoleName)) {
+            enforceDoctorCap(userId);
+        }
         String previousRole = user.getRole() == null ? "?" : user.getRole().getRoleName();
 
         Role role = roleRepository.findByRoleName(normalizedRoleName)
@@ -129,6 +141,9 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
             throw new IllegalArgumentException("Email không đúng định dạng.");
         }
         String normalizedRole = requireStaffRole(roleName);
+        if (ROLE_DOCTOR.equals(normalizedRole)) {
+            enforceDoctorCap(null);
+        }
         Role role = roleRepository.findByRoleName(normalizedRole)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy vai trò " + normalizedRole));
         User user = new User();
@@ -180,6 +195,9 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
         if (!List.of(STATUS_ACTIVE, STATUS_LOCKED).contains(normalizedStatus)) {
             throw new IllegalArgumentException("Trạng thái không hợp lệ.");
         }
+        if (ROLE_DOCTOR.equals(normalizeRoleName(expectedRole)) && STATUS_ACTIVE.equals(normalizedStatus)) {
+            enforceDoctorCap(userId);
+        }
         user.setStatus(normalizedStatus);
         User saved = userRepository.save(user);
         auditLogService.log(currentAdminEmail,
@@ -192,6 +210,31 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
     @Transactional(readOnly = true)
     public List<User> findStaffByRole(String roleName, String keyword) {
         return filterUsers(keyword, roleName, null, 0, 100).getContent();
+    }
+
+    /**
+     * Same as {@link #findStaffByRole} but scoped to ACTIVE accounts only —
+     * use this for doctor/technician assignment dropdowns so a locked
+     * account (e.g. a doctor over the {@link #MAX_ACTIVE_DOCTORS} cap)
+     * can never be picked, even though it's still visible on the staff
+     * management list for administration.
+     */
+    @Transactional(readOnly = true)
+    public List<User> findActiveStaffByRole(String roleName) {
+        return filterUsers(null, roleName, STATUS_ACTIVE, 0, 100).getContent();
+    }
+
+    private void enforceDoctorCap(Long excludingUserId) {
+        long otherActiveDoctors = userRepository
+                .findByRoleRoleNameInAndStatusOrderByFullNameAsc(List.of(ROLE_DOCTOR), STATUS_ACTIVE)
+                .stream()
+                .filter(u -> excludingUserId == null || !u.getUserId().equals(excludingUserId))
+                .count();
+        if (otherActiveDoctors >= MAX_ACTIVE_DOCTORS) {
+            throw new IllegalArgumentException(
+                    "Phòng khám chỉ vận hành với đúng " + MAX_ACTIVE_DOCTORS
+                            + " bác sĩ chính thức. Hãy khóa một bác sĩ khác trước khi thêm/kích hoạt bác sĩ mới.");
+        }
     }
 
     @Transactional

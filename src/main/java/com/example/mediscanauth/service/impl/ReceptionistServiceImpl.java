@@ -31,9 +31,9 @@ import com.example.mediscanauth.service.NotificationService;
 @Service
 public class ReceptionistServiceImpl implements ReceptionistService {
 
-    private static final Set<String> CONFIRMABLE_STATUSES = Set.of("PENDING", "SCHEDULED");
+    private static final Set<String> CONFIRMABLE_STATUSES = Set.of("PENDING");
     private static final Set<String> TERMINAL_STATUSES = Set.of("COMPLETED", "CANCELLED", "MISSED");
-    private static final Set<String> MISSABLE_STATUSES = Set.of("PENDING", "SCHEDULED", "CONFIRMED");
+    private static final Set<String> MISSABLE_STATUSES = Set.of("CONFIRMED");
     // Appointments in these statuses no longer occupy the doctor's schedule,
     // so they're excluded from the double-booking check.
     private static final Set<String> CONFLICT_IGNORED_STATUSES = Set.of("CANCELLED", "MISSED");
@@ -45,12 +45,6 @@ public class ReceptionistServiceImpl implements ReceptionistService {
             Pattern.compile("^(0\\d{9}|\\+84\\d{9})$");
     private static final int MAX_SYMPTOM_LENGTH = OperationalConfig.MAX_SYMPTOM_LENGTH; // matches appointments.body_part column width
     private static final int MAX_NOTE_LENGTH = OperationalConfig.MAX_NOTE_LENGTH;
-    private static final int MAX_FUTURE_BOOKING_DAYS = OperationalConfig.MAX_FUTURE_BOOKING_DAYS;
-    private static final LocalTime CLINIC_OPEN = LocalTime.of(OperationalConfig.CLINIC_OPEN_HOUR, 0);
-    private static final LocalTime CLINIC_CLOSE = LocalTime.of(OperationalConfig.CLINIC_CLOSE_HOUR, 0);
-    // Two appointments for the same doctor within this many minutes of each
-    // other are treated as a scheduling conflict.
-    private static final long SLOT_MINUTES = OperationalConfig.SLOT_MINUTES;
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
 
     private final AppointmentRepository appointmentRepository;
@@ -60,6 +54,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     private final NotificationService notificationService;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ClinicSettingsService clinicSettingsService;
 
     public ReceptionistServiceImpl(AppointmentRepository appointmentRepository,
                                    AppointmentStatusHistoryRepository historyRepository,
@@ -67,7 +62,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                                    PatientRepository patientRepository,
                                    NotificationService notificationService,
                                    RoleRepository roleRepository,
-                                   PasswordEncoder passwordEncoder) {
+                                   PasswordEncoder passwordEncoder,
+                                   ClinicSettingsService clinicSettingsService) {
         this.appointmentRepository = appointmentRepository;
         this.historyRepository = historyRepository;
         this.userRepository = userRepository;
@@ -75,6 +71,26 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         this.notificationService = notificationService;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.clinicSettingsService = clinicSettingsService;
+    }
+
+    // Two appointments for the same doctor within this many minutes of each
+    // other are treated as a scheduling conflict. Read dynamically so an
+    // admin's edit to clinic hours/slot length takes effect immediately.
+    private LocalTime clinicOpen() {
+        return clinicSettingsService.getOpenTime();
+    }
+
+    private LocalTime clinicClose() {
+        return clinicSettingsService.getCloseTime();
+    }
+
+    private long slotMinutes() {
+        return clinicSettingsService.getSlotMinutes();
+    }
+
+    private int maxFutureBookingDays() {
+        return clinicSettingsService.getMaxFutureBookingDays();
     }
 
     @Override
@@ -189,6 +205,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     @Transactional
     public Appointment createWalkInAppointment(String fullName,
                                                String phone,
+                                               String gender,
+                                               LocalDate dateOfBirth,
                                                String symptom,
                                                Long doctorId,
                                                LocalDate scheduledDate,
@@ -196,6 +214,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                                                String receptionistEmail) {
         String cleanFullName = validateFullName(fullName);
         String cleanPhone = validatePhone(phone);
+        String cleanGender = validateGender(gender);
+        validateDateOfBirth(dateOfBirth);
         String cleanSymptom = validateSymptom(symptom);
         LocalDate date = validateScheduledDate(scheduledDate);
         LocalTime time = validateScheduledTime(scheduledTime);
@@ -215,18 +235,28 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                 existing.setFullName(cleanFullName);
                 existing.setUser(createDummyUser(cleanFullName, cleanPhone));
             }
+            // Chỉ điền thêm khi hồ sơ cũ đang thiếu thông tin, không ghi đè
+            // dữ liệu đã có (tránh lễ tân vô tình sửa nhầm hồ sơ cũ).
+            if (existing.getGender() == null || existing.getGender().isBlank()) {
+                existing.setGender(cleanGender);
+            }
+            if (existing.getDateOfBirth() == null && dateOfBirth != null) {
+                existing.setDateOfBirth(dateOfBirth);
+            }
             patient = existing;
         } else {
             patient = new Patient();
             patient.setFullName(cleanFullName);
             patient.setPhone(cleanPhone);
+            patient.setGender(cleanGender);
+            patient.setDateOfBirth(dateOfBirth);
             patient.setUser(createDummyUser(cleanFullName, cleanPhone));
         }
         patient = patientRepository.save(patient);
 
         // Kiểm tra trùng lịch của bệnh nhân (±30 phút)
-        LocalDateTime conflictFrom = scheduledAt.minusMinutes(SLOT_MINUTES - 1);
-        LocalDateTime conflictTo = scheduledAt.plusMinutes(SLOT_MINUTES);
+        LocalDateTime conflictFrom = scheduledAt.minusMinutes(slotMinutes() - 1);
+        LocalDateTime conflictTo = scheduledAt.plusMinutes(slotMinutes());
         long patientConflicts = appointmentRepository.countPatientConflictsByPatient(patient, conflictFrom, conflictTo);
         if (patientConflicts > 0) {
             throw new RuntimeException("Bệnh nhân có số điện thoại " + cleanPhone + " đã có lịch hẹn vào khoảng thời gian này.");
@@ -380,6 +410,31 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         return trimmed;
     }
 
+    private static final Set<String> VALID_GENDERS = Set.of("MALE", "FEMALE", "OTHER");
+
+    private String validateGender(String gender) {
+        if (gender == null || gender.isBlank()) {
+            return "OTHER";
+        }
+        String normalized = gender.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!VALID_GENDERS.contains(normalized)) {
+            throw new InvalidFieldException("Giới tính không hợp lệ.");
+        }
+        return normalized;
+    }
+
+    private void validateDateOfBirth(LocalDate dateOfBirth) {
+        if (dateOfBirth == null) {
+            return;
+        }
+        if (dateOfBirth.isAfter(LocalDate.now())) {
+            throw new InvalidFieldException("Ngày sinh không được ở trong tương lai.");
+        }
+        if (dateOfBirth.isBefore(LocalDate.now().minusYears(130))) {
+            throw new InvalidFieldException("Ngày sinh không hợp lệ.");
+        }
+    }
+
     private String validateSymptom(String symptom) {
         if (symptom == null || symptom.isBlank()) {
             return null;
@@ -407,36 +462,36 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         if (date.isBefore(LocalDate.now())) {
             throw new InvalidFieldException("Ngày khám không được ở trong quá khứ.");
         }
-        if (date.isAfter(LocalDate.now().plusDays(MAX_FUTURE_BOOKING_DAYS))) {
+        if (date.isAfter(LocalDate.now().plusDays(maxFutureBookingDays()))) {
             throw new InvalidFieldException(
-                    "Chỉ có thể đặt lịch trong vòng " + MAX_FUTURE_BOOKING_DAYS + " ngày tới.");
+                    "Chỉ có thể đặt lịch trong vòng " + maxFutureBookingDays() + " ngày tới.");
         }
         return date;
     }
 
     private LocalTime validateScheduledTime(LocalTime scheduledTime) {
         LocalTime time = scheduledTime != null ? scheduledTime : roundUpToSlot(LocalTime.now());
-        if (time.isBefore(CLINIC_OPEN) || time.isAfter(CLINIC_CLOSE)) {
+        if (time.isBefore(clinicOpen()) || time.isAfter(clinicClose())) {
             throw new InvalidFieldException(
-                    "Giờ khám phải trong khung giờ hoạt động của phòng khám (" + CLINIC_OPEN + " - " + CLINIC_CLOSE + ").");
+                    "Giờ khám phải trong khung giờ hoạt động của phòng khám (" + clinicOpen() + " - " + clinicClose() + ").");
         }
-        long minutesFromOpen = java.time.Duration.between(CLINIC_OPEN, time).toMinutes();
-        if (minutesFromOpen % SLOT_MINUTES != 0) {
+        long minutesFromOpen = java.time.Duration.between(clinicOpen(), time).toMinutes();
+        if (minutesFromOpen % slotMinutes() != 0) {
             throw new InvalidFieldException(
-                    "Giờ khám phải chọn theo ca " + SLOT_MINUTES + " phút (VD: 08:00, 08:30), không nhập giờ lẻ.");
+                    "Giờ khám phải chọn theo ca " + slotMinutes() + " phút (VD: 08:00, 08:30), không nhập giờ lẻ.");
         }
         return time;
     }
 
     /** Rounds a raw clock time up to the next bookable slot boundary. */
     private LocalTime roundUpToSlot(LocalTime time) {
-        if (time.isBefore(CLINIC_OPEN)) {
-            return CLINIC_OPEN;
+        if (time.isBefore(clinicOpen())) {
+            return clinicOpen();
         }
-        long minutesFromOpen = java.time.Duration.between(CLINIC_OPEN, time).toMinutes();
-        long roundedUp = ((minutesFromOpen + SLOT_MINUTES - 1) / SLOT_MINUTES) * SLOT_MINUTES;
-        LocalTime slot = CLINIC_OPEN.plusMinutes(roundedUp);
-        return slot.isAfter(CLINIC_CLOSE) ? CLINIC_CLOSE : slot;
+        long minutesFromOpen = java.time.Duration.between(clinicOpen(), time).toMinutes();
+        long roundedUp = ((minutesFromOpen + slotMinutes() - 1) / slotMinutes()) * slotMinutes();
+        LocalTime slot = clinicOpen().plusMinutes(roundedUp);
+        return slot.isAfter(clinicClose()) ? clinicClose() : slot;
     }
 
     private User findDoctorOrThrow(Long doctorId) {
@@ -453,16 +508,18 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     }
 
     /**
-     * Blocks scheduling a doctor within {@link #SLOT_MINUTES} minutes of
-     * another active appointment they already have, so the receptionist
-     * gets a clear conflict warning instead of silently double-booking.
+     * Blocks scheduling a doctor onto a slot that overlaps another active
+     * appointment they already have. Window is [-(slot-1), +(slot-1)] rather
+     * than a full ±slotMinutes so two back-to-back slots (e.g. 07:30 and
+     * 08:00 with a 30-minute slot) don't falsely conflict — only an actual
+     * overlap (same slot, or a non-grid time landing inside it) does.
      */
     private void ensureDoctorAvailable(User doctor, LocalDateTime scheduledTime, Long excludeAppointmentId) {
         if (doctor == null || scheduledTime == null) {
             return;
         }
-        LocalDateTime from = scheduledTime.minusMinutes(SLOT_MINUTES);
-        LocalDateTime to = scheduledTime.plusMinutes(SLOT_MINUTES);
+        LocalDateTime from = scheduledTime.minusMinutes(slotMinutes() - 1);
+        LocalDateTime to = scheduledTime.plusMinutes(slotMinutes() - 1);
         List<Appointment> nearby = appointmentRepository.findByDoctorAndScheduledTimeBetween(doctor, from, to);
         for (Appointment candidate : nearby) {
             if (excludeAppointmentId != null && candidate.getAppointmentId().equals(excludeAppointmentId)) {
@@ -508,7 +565,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidFieldException("Không tìm thấy tài khoản lễ tân."));
     }
-
+//thay doi
     private void logStatusChange(Appointment appointment, String status, User actor, String note) {
         AppointmentStatusHistory history = new AppointmentStatusHistory();
         history.setAppointment(appointment);

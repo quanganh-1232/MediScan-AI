@@ -13,6 +13,7 @@ import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.NotificationService;
 import com.example.mediscanauth.service.PatientWorkflowService;
 import com.example.mediscanauth.service.UserAccountService;
+import com.example.mediscanauth.service.impl.ClinicSettingsService;
 import com.example.mediscanauth.service.impl.SupportRequestService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -45,6 +46,7 @@ public class PatientDashboardController {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SupportRequestService supportRequestService;
+    private final ClinicSettingsService clinicSettingsService;
 
     public PatientDashboardController(UserAccountService userAccountService,
                                       ImagingRecordService imagingRecordService,
@@ -54,7 +56,8 @@ public class PatientDashboardController {
                                       AppointmentRepository appointmentRepository,
                                       NotificationRepository notificationRepository,
                                       UserRepository userRepository,
-                                      SupportRequestService supportRequestService) {
+                                      SupportRequestService supportRequestService,
+                                      ClinicSettingsService clinicSettingsService) {
         this.userAccountService = userAccountService;
         this.imagingRecordService = imagingRecordService;
         this.notificationService = notificationService;
@@ -64,6 +67,7 @@ public class PatientDashboardController {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.supportRequestService = supportRequestService;
+        this.clinicSettingsService = clinicSettingsService;
     }
 
     /** Tự động đưa danh sách bác sĩ vào tất cả các trang patient (dùng cho chatbot đặt lịch) */
@@ -71,6 +75,25 @@ public class PatientDashboardController {
     public List<User> populateDoctors() {
         return userRepository.findByRoleRoleNameInAndStatusOrderByFullNameAsc(
                 List.of("DOCTOR", "ROLE_DOCTOR"), "ACTIVE");
+    }
+
+    @org.springframework.web.bind.annotation.ModelAttribute("clinicTimeSlots")
+    public List<String> populateClinicTimeSlots() {
+        try {
+            return clinicSettingsService.generateTimeSlots();
+        } catch (Exception ex) {
+            return List.of("08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "13:30", "14:00", "14:30", "15:00", "15:30");
+        }
+    }
+
+    @org.springframework.web.bind.annotation.ModelAttribute("clinicTimeSlotsCsv")
+    public String populateClinicTimeSlotsCsv() {
+        try {
+            List<String> slots = clinicSettingsService.generateTimeSlots();
+            return String.join(",", slots);
+        } catch (Exception ex) {
+            return "08:00,08:30,09:00,09:30,10:00,10:30,11:00,13:30,14:00,14:30,15:00,15:30";
+        }
     }
 
     // ── KAN-28: Patient Dashboard ──────────────────────────────────────────
@@ -175,6 +198,10 @@ public class PatientDashboardController {
         model.addAttribute("currentUser", patient);
         model.addAttribute("unreadCount", notificationService.countUnread(patient));
         model.addAttribute("record", record);
+        // Bác sĩ có thể để kết quả ở chế độ Riêng tư (mặc định) cho tới khi
+        // chủ động công khai từ thư viện chẩn đoán — trước đó bệnh nhân
+        // không được xem nội dung kết luận, dù hồ sơ đã COMPLETED.
+        model.addAttribute("accessDenied", !"PUBLIC".equalsIgnoreCase(record.getVisibility()));
         return "patient/record-detail";
     }
 

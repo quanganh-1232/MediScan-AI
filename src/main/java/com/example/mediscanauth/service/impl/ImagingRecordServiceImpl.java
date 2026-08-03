@@ -201,6 +201,16 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     }
 
     @Override
+    public long countTodayForDoctor(Long doctorId) {
+        return imagingRecordRepository.countByDoctorUserIdAndCapturedAt(doctorId, LocalDate.now());
+    }
+
+    @Override
+    public long countAllForDoctor(Long doctorId) {
+        return imagingRecordRepository.countByDoctorUserId(doctorId);
+    }
+
+    @Override
     public List<ImagingRecord> findQueue() {
         return imagingRecordRepository.findByStatusInOrderByCreatedAtDesc(ACTIVE_QUEUE_STATUSES);
     }
@@ -368,6 +378,37 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     }
 
     @Override
+    public ImagingRecord getRecordForDoctor(Long recordId, String doctorEmail) {
+        ImagingRecord record = getRecordById(recordId);
+        assertDoctorOwnsRecord(record, doctorEmail);
+        return record;
+    }
+
+    /**
+     * A doctor may only view/act on a case once it's assigned to them by
+     * reception (via the appointment's doctor). Records with no doctor yet
+     * (legacy/unassigned) are left open so nothing gets stuck unreachable.
+     * Once a case reaches COMPLETED it has moved into the shared diagnosis
+     * library, which every doctor may browse/reference — this check only
+     * gates active (not-yet-finalized) cases, and confirm/reject always run
+     * on records that are still PENDING_DOCTOR, so this exemption never
+     * weakens those write paths.
+     */
+    private void assertDoctorOwnsRecord(ImagingRecord record, String doctorEmail) {
+        if ("COMPLETED".equals(record.getStatus())) {
+            return;
+        }
+        User doctor = record.getDoctor();
+        if (doctor == null) {
+            return;
+        }
+        if (doctor.getEmail() == null || !doctor.getEmail().equalsIgnoreCase(doctorEmail)) {
+            throw new IllegalArgumentException(
+                    "Hồ sơ này đã được gán cho bác sĩ khác, bạn không có quyền xem/xử lý.");
+        }
+    }
+
+    @Override
     public Patient getPatientProfile(User user) {
         return patientRepository.findByUser(user).orElse(null);
     }
@@ -375,6 +416,16 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     @Override
     public List<Patient> getAllPatients() {
         return patientRepository.findAll();
+    }
+
+    @Override
+    public List<Patient> getPatientsForDoctor(Long doctorId) {
+        return patientRepository.findByAssignedDoctor(doctorId);
+    }
+
+    @Override
+    public List<ImagingRecord> findForPatientAndDoctor(User patient, Long doctorId) {
+        return imagingRecordRepository.findByPatientAndDoctorUserIdOrderByCapturedAtDescCreatedAtDesc(patient, doctorId);
     }
 
     @Override
@@ -400,12 +451,61 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
         return imagingRecordRepository.findByTechnicianEmailOrderByCreatedAtDesc(technicianEmail);
     }
 
+    /**
+     * Editing visibility from the library stays owner-only regardless of
+     * status — unlike {@link #assertDoctorOwnsRecord}, which opens up
+     * read access to every doctor once a case is COMPLETED, changing who
+     * can see a patient's result is still the responsible doctor's call.
+     */
+    @Override
+    @Transactional
+    public ImagingRecord updateRecordVisibility(Long recordId, String doctorEmail, String visibility) {
+        ImagingRecord record = getRecordById(recordId);
+
+        User owningDoctor = record.getDoctor();
+        if (owningDoctor == null || owningDoctor.getEmail() == null
+                || !owningDoctor.getEmail().equalsIgnoreCase(doctorEmail)) {
+            throw new IllegalArgumentException("Chỉ bác sĩ phụ trách ca này mới có thể đổi quyền xem kết quả.");
+        }
+        if (!"COMPLETED".equals(record.getStatus())) {
+            throw new IllegalArgumentException("Chỉ có thể đổi quyền xem cho hồ sơ đã hoàn tất.");
+        }
+        if (record.getPatient() != null && record.getPatient().isGuestAccount()) {
+            throw new IllegalArgumentException(
+                    "Bệnh nhân vãng lai không có tài khoản đăng nhập, không thể đặt Công khai.");
+        }
+        if (!"PRIVATE".equals(visibility) && !"PUBLIC".equals(visibility)) {
+            throw new IllegalArgumentException("Giá trị quyền xem không hợp lệ.");
+        }
+
+        String previousVisibility = record.getVisibility();
+        record.setVisibility(visibility);
+        ImagingRecord saved = imagingRecordRepository.save(record);
+
+        if ("PUBLIC".equals(visibility) && !"PUBLIC".equals(previousVisibility) && saved.getPatient() != null) {
+            Notification notification = new Notification();
+            notification.setUser(saved.getPatient());
+            notification.setTargetUrl("/patient/records/" + saved.getRecordId());
+            notification.setTitle("Có kết quả chẩn đoán X-quang mới");
+            notification.setMessage("Bác sĩ đã công khai kết quả X-quang cho ca chụp " + saved.getRecordCode()
+                    + ". Vui lòng xem chi tiết tại hồ sơ của bạn.");
+            notification.setRead(false);
+            notificationRepository.save(notification);
+        }
+
+        auditLogService.log(doctorEmail, "RECORD_VISIBILITY_CHANGED", "ImagingRecord", String.valueOf(recordId),
+                "Đổi quyền xem hồ sơ " + saved.getRecordCode() + " từ " + previousVisibility + " sang " + visibility + ".");
+
+        return saved;
+    }
+
     @Override
     @Transactional
     public ImagingRecord confirmDoctorReview(Long recordId, String doctorEmail, String conclusion,
             String recommendation, String base64ImageData, String visibility) {
 
         ImagingRecord record = getRecordById(recordId);
+        assertDoctorOwnsRecord(record, doctorEmail);
         User doctor = userAccountService.findByEmail(doctorEmail);
         boolean overrodeAi = !isBlank(conclusion);
         record.setDoctor(doctor);
@@ -416,8 +516,12 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
 
         record.setStatus("COMPLETED");
         record.setConfirmedAt(LocalDateTime.now());
-        record.setVisibility(visibility); // <-- Lưu visibility từ bác sĩ chọn
-        
+        // Bệnh nhân vãng lai (tài khoản khách do lễ tân tạo) không bao giờ đăng
+        // nhập được để xem cổng bệnh nhân, nên không có ý nghĩa gì khi đặt Công
+        // khai — luôn khoá về Riêng tư bất kể bác sĩ chọn gì trên form.
+        boolean isGuestPatient = record.getPatient() != null && record.getPatient().isGuestAccount();
+        record.setVisibility(isGuestPatient ? "PRIVATE" : visibility);
+
         // Cập nhật trạng thái Appointment thành COMPLETED
         if (record.getPatient() != null) {
             List<Appointment> apps = appointmentRepository.findByPatientUserOrderByScheduledTimeDesc(record.getPatient());
@@ -429,9 +533,6 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
                 }
             }
         }
-
-        // === XỬ LÝ UPLOAD ẢNH CHỤP MÀN HÌNH ===
-        record.setVisibility(visibility);
 
         // === UPLOAD ẢNH BÁC SĨ ANNOTATE ===
         String dbFileName = record.getFileName();
@@ -475,6 +576,7 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     public ImagingRecord rejectDoctorReview(Long recordId, String doctorEmail, String conclusion,
             String recommendation) {
         ImagingRecord record = getRecordById(recordId);
+        assertDoctorOwnsRecord(record, doctorEmail);
         User doctor = userAccountService.findByEmail(doctorEmail);
         record.setDoctor(doctor);
         record.setDoctorConclusion(
@@ -491,8 +593,8 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     }
 
     @Override
-    public Page<ImagingRecord> searchConfirmedLibrary(String keyword, String bodyPart, Pageable pageable) {
-        return imagingRecordRepository.searchConfirmedLibrary(trimToEmpty(keyword), trimToEmpty(bodyPart), pageable);
+    public Page<ImagingRecord> searchConfirmedLibrary(String keyword, String bodyPart, Long doctorId, Pageable pageable) {
+        return imagingRecordRepository.searchConfirmedLibrary(trimToEmpty(keyword), trimToEmpty(bodyPart), doctorId, pageable);
     }
 
     @Override

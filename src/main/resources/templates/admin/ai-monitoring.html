@@ -138,64 +138,6 @@
                     </table>
                 </div>
             </section>
-
-            <!-- Model version registry -->
-            <section class="pt-card p-4">
-                <div class="pt-card-title fs-5 mb-3"><i class="bi bi-box-seam"></i> Phiên bản model đang sử dụng</div>
-                <div class="table-responsive mb-3">
-                    <table class="pt-table">
-                        <thead>
-                        <tr>
-                            <th>Model</th>
-                            <th>Phiên bản</th>
-                            <th>Độ chính xác</th>
-                            <th>Trạng thái</th>
-                            <th>Ngày ghi nhận</th>
-                            <th>Ghi chú</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="m : ${modelVersions}">
-                            <td th:text="${m.modelName}">YOLOv11</td>
-                            <td th:text="${m.version}">v1.0</td>
-                            <td th:text="${m.accuracy != null ? m.accuracy + '%' : '—'}">—</td>
-                            <td><span class="pt-status pt-status-done" th:text="${m.status}">ACTIVE</span></td>
-                            <td th:text="${m.createdAt != null ? #temporals.format(m.createdAt, 'dd/MM/yyyy') : '—'}">—</td>
-                            <td class="small" th:text="${m.description}">—</td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(modelVersions)}">
-                            <td colspan="6" class="text-center text-muted py-4">Chưa có phiên bản model nào được ghi nhận. Hãy thêm bên dưới khi retrain model mới.</td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <form th:action="@{/admin/ai-monitoring/models}" method="post" class="row g-2 align-items-end">
-                    <div class="col-6 col-lg-2">
-                        <label class="ms-label">Tên model</label>
-                        <input name="modelName" class="form-control ms-input" placeholder="YOLOv11 + ANFIS" required>
-                    </div>
-                    <div class="col-6 col-lg-2">
-                        <label class="ms-label">Phiên bản</label>
-                        <input name="version" class="form-control ms-input" placeholder="v1.2.0" required>
-                    </div>
-                    <div class="col-6 col-lg-2">
-                        <label class="ms-label">Độ chính xác (%)</label>
-                        <input name="accuracy" type="number" step="0.01" min="0" max="100" class="form-control ms-input" placeholder="92.5">
-                    </div>
-                    <div class="col-6 col-lg-3">
-                        <label class="ms-label">Endpoint / weights file</label>
-                        <input name="apiEndpoint" class="form-control ms-input" placeholder="fracture_anfis.pt">
-                    </div>
-                    <div class="col-12 col-lg-2">
-                        <label class="ms-label">Ghi chú</label>
-                        <input name="description" class="form-control ms-input" placeholder="Retrain trên tập dữ liệu mới">
-                    </div>
-                    <div class="col-12 col-lg-1">
-                        <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100"><i class="bi bi-plus-lg"></i></button>
-                    </div>
-                </form>
-            </section>
         </div>
     </div>
 </main>

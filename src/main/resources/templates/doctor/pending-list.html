@@ -93,7 +93,9 @@
 
         <!-- ============ Main Content ============ -->
         <div class="col-12 col-xl-10">
-            
+
+            <div th:if="${error}" class="alert alert-danger ms-auth-alert"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
+
             <!-- Stat cards -->
             <div class="row g-3 mb-4">
                 <div class="col-6 col-lg-3">

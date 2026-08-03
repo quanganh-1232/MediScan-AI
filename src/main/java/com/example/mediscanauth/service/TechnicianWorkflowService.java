@@ -11,21 +11,24 @@ public interface TechnicianWorkflowService {
 
     List<Appointment> findRecentAppointments();
 
-    List<Appointment> findScheduledAppointments();
-
     List<MedicalRecord> findRecentRecords();
 
     List<XrayImage> findRecentImages();
 
-    long countScheduledAppointments();
+    /** Số phim (ImagingRecord) kỹ thuật viên này đã chụp trong hôm nay, bất kể trạng thái. */
+    long countCapturedToday(String technicianEmail);
 
-    long countUploadedRecords();
+    /** Số phim kỹ thuật viên này chụp hôm nay đang chờ AI phân tích (status PENDING_AI). */
+    long countPendingAiToday(String technicianEmail);
 
-    long countUploadedImages();
+    /** Số phim kỹ thuật viên này chụp hôm nay chưa được bác sĩ chốt kết luận (đang chờ AI hoặc chờ bác sĩ). */
+    long countPendingProcessingToday(String technicianEmail);
 
-    long countSuccessfulAiResults();
+    /** Số phim kỹ thuật viên này chụp hôm nay đã được AI xử lý xong (thành công hoặc bị bác sĩ từ chối), không còn kẹt ở bước AI. */
+    long countAiProcessedToday(String technicianEmail);
 
-    long countApprovedReviews();
+    /** Số phim kỹ thuật viên này chụp hôm nay đã được bác sĩ xác nhận kết luận (COMPLETED). */
+    long countDoctorApprovedToday(String technicianEmail);
 
     Appointment createAppointment(String technicianEmail, String patientEmail, String doctorEmail, LocalDateTime scheduledTime, String bodyPart, String location, String note);
 

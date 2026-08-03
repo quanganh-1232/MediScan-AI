@@ -6,8 +6,7 @@ import torch
 from .fracture_model import INPUT_ORDER, build_fracture_anfis
 
 _WEIGHTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weights", "fracture_anfis.pt")
-
-
+#Các giá trị đầu vào được chuẩn hóa để đảm bảo không bị vượt biên độ
 def _clamp(value: float, minimum: float = 0.0, maximum: float = 1.0) -> float:
     try:
         value = float(value)
@@ -209,7 +208,7 @@ class AnfisDiagnosisService:
             print(f"[AnfisDiagnosisService] Failed to load trained ANFIS weights ({exc}); "
                   "falling back to the rule-based fuzzy system.")
             return None
-
+#tinhtoan
     def _score_with_anfis(self, inputs: Dict[str, float]) -> float:
         x = torch.tensor([[inputs[name] for name in INPUT_ORDER]], dtype=torch.float)
         with torch.no_grad():

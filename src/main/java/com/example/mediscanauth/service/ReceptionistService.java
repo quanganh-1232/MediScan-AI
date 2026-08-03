@@ -17,6 +17,8 @@ public interface ReceptionistService {
 
     Appointment createWalkInAppointment(String fullName,
                                         String phone,
+                                        String gender,
+                                        LocalDate dateOfBirth,
                                         String symptom,
                                         Long doctorId,
                                         LocalDate scheduledDate,

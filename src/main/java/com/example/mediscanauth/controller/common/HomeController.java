@@ -7,6 +7,7 @@ import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.ImagingRecordService;
 import com.example.mediscanauth.service.NotificationService;
 import com.example.mediscanauth.service.UserAccountService;
+import com.example.mediscanauth.service.impl.ClinicSettingsService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,17 +24,20 @@ public class HomeController {
     private final ImagingRecordService imagingRecordService;
     private final NotificationService notificationService;
     private final AppointmentRepository appointmentRepository;
+    private final ClinicSettingsService clinicSettingsService;
 
     public HomeController(UserRepository userRepository,
                           UserAccountService userAccountService,
                           ImagingRecordService imagingRecordService,
                           NotificationService notificationService,
-                          AppointmentRepository appointmentRepository) {
+                          AppointmentRepository appointmentRepository,
+                          ClinicSettingsService clinicSettingsService) {
         this.userRepository = userRepository;
         this.userAccountService = userAccountService;
         this.imagingRecordService = imagingRecordService;
         this.notificationService = notificationService;
         this.appointmentRepository = appointmentRepository;
+        this.clinicSettingsService = clinicSettingsService;
     }
 
     @GetMapping("/")
@@ -114,6 +118,13 @@ public class HomeController {
         model.addAttribute("patientRecordCount", imagingRecordService.countForPatient(user));
         model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(user));
         model.addAttribute("unreadCount", notificationService.countUnread(user));
+        try {
+            model.addAttribute("clinicTimeSlots", clinicSettingsService.generateTimeSlots());
+            model.addAttribute("clinicTimeSlotsCsv", String.join(",", clinicSettingsService.generateTimeSlots()));
+        } catch (Exception ex) {
+            model.addAttribute("clinicTimeSlots", List.of("08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "13:30", "14:00", "14:30", "15:00", "15:30"));
+            model.addAttribute("clinicTimeSlotsCsv", "08:00,08:30,09:00,09:30,10:00,10:30,11:00,13:30,14:00,14:30,15:00,15:30");
+        }
         // KAN-39: Health summary stats
         model.addAttribute("totalAppointments", allAppointments.size());
         model.addAttribute("completedAppointments",
