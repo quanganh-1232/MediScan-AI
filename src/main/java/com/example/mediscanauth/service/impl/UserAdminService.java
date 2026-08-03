@@ -31,6 +31,7 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_LOCKED = "LOCKED";
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{10}$");
 
     private final RoleRepository roleRepository;
     private final UserRepository userRepository = (UserRepository) this.repository;
@@ -120,6 +121,7 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
             String currentAdminEmail) {
         String normalizedEmail = normalizeText(email).toLowerCase(Locale.ROOT);
         validateStaffInput(fullName, normalizedEmail, rawPassword);
+        validatePhoneNumber(phone);
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new IllegalArgumentException("Email đã tồn tại trong hệ thống.");
         }
@@ -149,6 +151,7 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
         User user = getUserDetail(userId);
         requireUserRole(user, expectedRole);
         String normalizedEmail = normalizeText(email).toLowerCase(Locale.ROOT);
+        validatePhoneNumber(phone);
         if (normalizeText(fullName).isBlank() || normalizedEmail.isBlank()) {
             throw new IllegalArgumentException("Họ tên và email không được để trống.");
         }
@@ -333,8 +336,16 @@ public class UserAdminService extends BaseServiceImpl<User, Long> {
         return user.getEmail() != null && user.getEmail().equalsIgnoreCase(normalizeText(email));
     }
 
+    private void validatePhoneNumber(String phone) {
+        String normalizedPhone = normalizeText(phone);
+        if (!normalizedPhone.isBlank() && !PHONE_PATTERN.matcher(normalizedPhone).matches()) {
+            throw new IllegalArgumentException("Số điện thoại không hợp lệ, phải gồm đúng 10 chữ số.");
+        }
+    }
+
     public User createUserFromImport(String fullName, String email, String phone,
             String rawPassword, String roleName, String status) {
+        validatePhoneNumber(phone);
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists: " + email);
         }
