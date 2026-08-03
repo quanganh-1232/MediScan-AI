@@ -97,49 +97,26 @@
                 </form>
 
                 <div class="d-grid gap-3">
-                    <div class="p-3 rounded-3 border" th:each="req : ${requests}">
-                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-                            <div>
+                    <div class="p-3 rounded-3 border d-flex flex-wrap justify-content-between align-items-start gap-3" th:each="req : ${requests}">
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                                 <div class="fw-semibold" th:text="${req.subject}">Tiêu đề</div>
-                                <div class="small text-muted">
-                                    <span th:text="${req.patient != null ? req.patient.fullName : 'Không xác định'}">Bệnh nhân</span>
-                                    ·
-                                    <span th:text="${req.patient != null ? req.patient.email : ''}">email</span>
-                                    ·
-                                    <span th:text="${#temporals.format(req.createdAt, 'dd/MM/yyyy HH:mm')}">Ngày gửi</span>
-                                </div>
+                                <span class="pt-status"
+                                      th:classappend="${req.status == 'RESOLVED'} ? ' pt-status-done' : (${req.status == 'IN_PROGRESS'} ? ' pt-status-confirmed' : ' pt-status-cancelled')"
+                                      th:text="${req.status == 'OPEN' ? 'Chờ xử lý' : (req.status == 'IN_PROGRESS' ? 'Đang xử lý' : 'Đã giải quyết')}">Trạng thái</span>
                             </div>
-                            <span class="pt-status"
-                                  th:classappend="${req.status == 'RESOLVED'} ? ' pt-status-done' : (${req.status == 'IN_PROGRESS'} ? ' pt-status-confirmed' : ' pt-status-cancelled')"
-                                  th:text="${req.status == 'OPEN' ? 'Chờ xử lý' : (req.status == 'IN_PROGRESS' ? 'Đang xử lý' : 'Đã giải quyết')}">Trạng thái</span>
+                            <div class="small text-muted mb-1">
+                                <span th:text="${req.patient != null ? req.patient.fullName : 'Không xác định'}">Bệnh nhân</span>
+                                ·
+                                <span th:text="${req.patient != null ? req.patient.email : ''}">email</span>
+                                ·
+                                <span th:text="${#temporals.format(req.createdAt, 'dd/MM/yyyy HH:mm')}">Ngày gửi</span>
+                            </div>
+                            <div class="small text-truncate" th:text="${req.message}">Nội dung</div>
                         </div>
-                        <div class="small mb-3" th:text="${req.message}">Nội dung</div>
-
-                        <div class="p-2 rounded-3 small mb-3" style="background:#f8fafd;" th:if="${req.adminResponse != null}">
-                            <div class="fw-semibold text-primary mb-1">
-                                <i class="bi bi-reply-fill me-1"></i>Đã phản hồi
-                                <span th:if="${req.respondedBy != null}" th:text="'bởi ' + ${req.respondedBy.fullName}"></span>
-                                <span th:if="${req.respondedAt != null}" th:text="' · ' + ${#temporals.format(req.respondedAt, 'dd/MM/yyyy HH:mm')}"></span>
-                            </div>
-                            <div th:text="${req.adminResponse}">Phản hồi</div>
-                        </div>
-
-                        <form th:action="@{/admin/support/{id}/respond(id=${req.requestId})}" method="post" class="row g-2 align-items-end">
-                            <div class="col-12 col-lg-7">
-                                <textarea name="adminResponse" class="form-control ms-input" rows="2"
-                                          placeholder="Nhập phản hồi cho bệnh nhân..." th:text="${req.adminResponse}"></textarea>
-                            </div>
-                            <div class="col-6 col-lg-3">
-                                <select name="status" class="form-select ms-input">
-                                    <option value="OPEN" th:selected="${req.status == 'OPEN'}">Chờ xử lý</option>
-                                    <option value="IN_PROGRESS" th:selected="${req.status == 'IN_PROGRESS'}">Đang xử lý</option>
-                                    <option value="RESOLVED" th:selected="${req.status == 'RESOLVED'}">Đã giải quyết</option>
-                                </select>
-                            </div>
-                            <div class="col-6 col-lg-2">
-                                <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100"><i class="bi bi-send me-1"></i>Gửi</button>
-                            </div>
-                        </form>
+                        <a th:href="@{/admin/support/{id}(id=${req.requestId})}" class="btn btn-sm ms-btn ms-btn-primary text-white flex-shrink-0">
+                            <i class="bi bi-eye me-1"></i>Chi tiết
+                        </a>
                     </div>
                     <div class="text-center text-muted py-4" th:if="${#lists.isEmpty(requests)}">
                         Không có yêu cầu hỗ trợ nào.

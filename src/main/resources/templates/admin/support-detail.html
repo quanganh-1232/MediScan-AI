@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Chi tiết yêu cầu hỗ trợ - MediScan AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link th:href="@{/css/mediscan-ui.css}" rel="stylesheet">
+    <link th:href="@{/css/portal.css}" rel="stylesheet">
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/admin-shell :: nav}"></div>
+
+<main class="container-fluid px-3 px-lg-4 py-4">
+    <div class="row g-4">
+
+        <div class="col-12 col-xl-2">
+            <div th:replace="~{admin/fragments/admin-shell :: sidebar('support')}"></div>
+        </div>
+
+        <div class="col-12 col-xl-10">
+            <div class="mb-4">
+                <a th:href="@{/admin/support}" class="btn btn-sm ms-btn ms-btn-ghost border text-primary mb-3">
+                    <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách
+                </a>
+                <h1 class="fw-bold mb-1 fs-3"><i class="bi bi-life-preserver text-primary me-2"></i>Chi tiết yêu cầu hỗ trợ</h1>
+            </div>
+
+            <div th:if="${success}" class="alert alert-success ms-auth-alert"><i class="bi bi-check-circle-fill"></i><span th:text="${success}"></span></div>
+            <div th:if="${error}" class="alert alert-danger ms-auth-alert"><i class="bi bi-x-circle-fill"></i><span th:text="${error}"></span></div>
+
+            <section class="pt-card p-4 mb-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <h2 class="fs-5 fw-bold mb-1" th:text="${request.subject}">Tiêu đề</h2>
+                        <div class="small text-muted">
+                            <span th:text="${request.patient != null ? request.patient.fullName : 'Không xác định'}">Bệnh nhân</span>
+                            ·
+                            <span th:text="${request.patient != null ? request.patient.email : ''}">email</span>
+                            ·
+                            <span th:text="${#temporals.format(request.createdAt, 'dd/MM/yyyy HH:mm')}">Ngày gửi</span>
+                        </div>
+                    </div>
+                    <span class="pt-status"
+                          th:classappend="${request.status == 'RESOLVED'} ? ' pt-status-done' : (${request.status == 'IN_PROGRESS'} ? ' pt-status-confirmed' : ' pt-status-cancelled')"
+                          th:text="${request.status == 'OPEN' ? 'Chờ xử lý' : (request.status == 'IN_PROGRESS' ? 'Đang xử lý' : 'Đã giải quyết')}">Trạng thái</span>
+                </div>
+
+                <div class="p-3 rounded-3 mb-4" style="background:#f8fafd;">
+                    <div class="small text-muted mb-1">Nội dung yêu cầu</div>
+                    <div th:text="${request.message}">Nội dung</div>
+                </div>
+
+                <div class="p-3 rounded-3 mb-4" style="background:#eef6ff;" th:if="${request.adminResponse != null}">
+                    <div class="fw-semibold text-primary mb-1">
+                        <i class="bi bi-reply-fill me-1"></i>Phản hồi hiện tại
+                        <span th:if="${request.respondedBy != null}" th:text="'bởi ' + ${request.respondedBy.fullName}"></span>
+                        <span th:if="${request.respondedAt != null}" th:text="' · ' + ${#temporals.format(request.respondedAt, 'dd/MM/yyyy HH:mm')}"></span>
+                    </div>
+                    <div th:text="${request.adminResponse}">Phản hồi</div>
+                </div>
+
+                <div class="pt-card-title fs-6 mb-3"><i class="bi bi-pencil-square"></i> Xử lý yêu cầu</div>
+                <form th:action="@{/admin/support/{id}/respond(id=${request.requestId})}" method="post">
+                    <div class="mb-3">
+                        <label class="ms-label">Phản hồi cho bệnh nhân</label>
+                        <textarea name="adminResponse" class="form-control ms-input" rows="4"
+                                  placeholder="Nhập phản hồi cho bệnh nhân..." th:text="${request.adminResponse}"></textarea>
+                    </div>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-4">
+                            <label class="ms-label">Trạng thái</label>
+                            <select name="status" class="form-select ms-input">
+                                <option value="OPEN" th:selected="${request.status == 'OPEN'}">Chờ xử lý</option>
+                                <option value="IN_PROGRESS" th:selected="${request.status == 'IN_PROGRESS'}">Đang xử lý</option>
+                                <option value="RESOLVED" th:selected="${request.status == 'RESOLVED'}">Đã giải quyết</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100"><i class="bi bi-send me-1"></i>Gửi phản hồi</button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

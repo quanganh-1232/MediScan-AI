@@ -155,19 +155,22 @@
                                         <label class="ms-label">Ngày hẹn khám</label>
                                         <input type="date" name="scheduledDate" class="form-control ms-input"
                                                th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}"
-                                               th:max="${#temporals.format(#temporals.createNow().plusDays(90), 'yyyy-MM-dd')}"
+                                               th:max="${#temporals.format(#temporals.createNow().plusDays(maxFutureBookingDays), 'yyyy-MM-dd')}"
                                                th:value="${formScheduledDate != null ? formScheduledDate : #temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
-                                        <div class="form-text">Mặc định hôm nay. Có thể chọn đến 90 ngày tới.</div>
+                                        <div class="form-text" th:text="'Mặc định hôm nay. Có thể chọn đến ' + ${maxFutureBookingDays} + ' ngày tới.'">Mặc định hôm nay.</div>
                                     </div>
 
                                     <div class="col-12">
-                                        <label class="ms-label">Giờ hẹn (Khung giờ 30 phút)</label>
+                                        <label class="ms-label" th:text="'Giờ hẹn (Khung giờ ' + ${slotMinutes} + ' phút)'">Giờ hẹn</label>
                                         <select name="scheduledTime" class="form-select ms-input fw-semibold text-primary" required>
                                             <option th:each="slot : ${timeSlots}" th:value="${#temporals.format(slot, 'HH:mm')}"
                                                     th:selected="${(formScheduledTime != null ? formScheduledTime : defaultTimeSlot) == slot}"
                                                     th:text="${#temporals.format(slot, 'HH:mm')}">08:00</option>
                                         </select>
-                                        <div class="form-text">Phòng khám mở cửa từ 06:00 đến 21:00 hàng ngày.</div>
+                                        <div class="form-text"
+                                             th:text="'Phòng khám mở cửa từ ' + ${#numbers.formatInteger(clinicOpenHour, 2)} + ':00 đến ' + ${#numbers.formatInteger(clinicCloseHour, 2)} + ':00 hàng ngày.'">
+                                            Phòng khám mở cửa.
+                                        </div>
                                     </div>
                                 </div>
                             </div>

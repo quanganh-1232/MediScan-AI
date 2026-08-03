@@ -6,6 +6,14 @@
     Acknowledgement: twmeggs' implementation of ANFIS in Python was very
     useful in understanding how the ANFIS structures could be interpreted:
         https://github.com/twmeggs/anfis
+        
+    # [MEDISCAN COMMENTS]: 
+    # File này là Lõi Thuật Toán (Core Engine) của mạng Neural-Fuzzy.
+    # Nó dùng PyTorch để định nghĩa các lớp (Layers) của mạng nơ-ron ANFIS:
+    # - FuzzifyLayer: Biến đổi giá trị đầu vào thành dạng mờ.
+    # - AntecedentLayer: Tính toán vế IF (Mệnh đề điều kiện).
+    # - ConsequentLayer: Tính toán vế THEN (Hệ quả).
+    # Không chứa logic khám bệnh cụ thể nào ở file này.
 '''
 
 import itertools
@@ -116,6 +124,7 @@ class FuzzifyLayer(torch.nn.Module):
         return '\n'.join(r)
 
     def forward(self, x):
+        # [MEDISCAN] Chuyen so lieu dau vao thanh dang mo (thap/trung/cao)
         ''' Fuzzyify each variable's value using each of its corresponding mfs.
             x.shape = n_cases * n_in
             y.shape = n_cases * n_in * n_mfs
@@ -159,6 +168,7 @@ class AntecedentLayer(torch.nn.Module):
         return '\n'.join(row_ants)
 
     def forward(self, x):
+        # [MEDISCAN] Ket hop cac bien tao thanh cac luat IF (menh de dieu kien)
         ''' Calculate the fire-strength for (the antecedent of) each rule
             x.shape = n_cases * n_in * n_mfs
             y.shape = n_cases * n_rules
@@ -239,6 +249,7 @@ class ConsequentLayer(torch.nn.Module):
         # coeff dim is thus: n_rules * n_out * (n_in+1)
 
     def forward(self, x):
+        # [MEDISCAN] Tinh diem he qua (ve THEN) dua tren trong so da hoc
         '''
             Calculate: y = coeff * x + const   [NB: no weights yet]
                   x.shape: n_cases * n_in
@@ -368,6 +379,7 @@ class AnfisNet(torch.nn.Module):
         return '\n'.join(rstr)
 
     def forward(self, x):
+        # [MEDISCAN] Noi bat dau chay model ANFIS, chay du lieu qua tung lop
         '''
             Forward pass: run x thru the five layers and return the y values.
             I save the outputs from each layer to an instance variable,

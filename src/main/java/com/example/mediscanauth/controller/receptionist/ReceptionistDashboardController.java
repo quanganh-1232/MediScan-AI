@@ -7,6 +7,7 @@ import com.example.mediscanauth.repository.AppointmentRepository;
 import com.example.mediscanauth.repository.AppointmentStatusHistoryRepository;
 import com.example.mediscanauth.repository.UserRepository;
 import com.example.mediscanauth.service.ReceptionistService;
+import com.example.mediscanauth.service.impl.ClinicSettingsService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -27,30 +28,61 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 @Controller
 public class ReceptionistDashboardController {
 
     private static final List<String> DOCTOR_ROLE_NAMES = List.of("DOCTOR", "ROLE_DOCTOR");
-    private static final LocalTime SCHEDULE_OPEN = LocalTime.of(6, 0);
-    private static final LocalTime SCHEDULE_CLOSE = LocalTime.of(21, 0);
-    private static final int SCHEDULE_TOTAL_MINUTES = (int) Duration.between(SCHEDULE_OPEN, SCHEDULE_CLOSE).toMinutes();
-    private static final int SCHEDULE_SLOT_MINUTES = 30;
+
+    // Phòng khám chỉ vận hành với đúng 2 bác sĩ chuyên khoa cố định (ràng buộc
+    // nghiệp vụ enforced ở UserAdminService). Tên chuyên khoa gắn với từng
+    // bác sĩ cụ thể theo user_id, dùng chung cho mọi nơi hiển thị bác sĩ.
+    private static final Map<Long, String> DOCTOR_SPECIALTIES = Map.of(
+            2L, "Chấn thương chỉnh hình",
+            7L, "Cột sống - Cơ xương khớp"
+    );
+    private static final String DEFAULT_SPECIALTY = "Chuyên khoa Xương Khớp";
+    private static final Set<String> BUSY_STATUSES = Set.of("IN_PROGRESS", "TRIAGED");
+
+    private static String specialtyOf(User doctor) {
+        return DOCTOR_SPECIALTIES.getOrDefault(doctor.getUserId(), DEFAULT_SPECIALTY);
+    }
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentStatusHistoryRepository appointmentStatusHistoryRepository;
     private final UserRepository userRepository;
     private final ReceptionistService receptionistService;
+    private final ClinicSettingsService clinicSettingsService;
 
     public ReceptionistDashboardController(AppointmentRepository appointmentRepository,
                                            AppointmentStatusHistoryRepository appointmentStatusHistoryRepository,
                                            UserRepository userRepository,
-                                           ReceptionistService receptionistService) {
+                                           ReceptionistService receptionistService,
+                                           ClinicSettingsService clinicSettingsService) {
         this.appointmentRepository = appointmentRepository;
         this.appointmentStatusHistoryRepository = appointmentStatusHistoryRepository;
         this.userRepository = userRepository;
         this.receptionistService = receptionistService;
+        this.clinicSettingsService = clinicSettingsService;
+    }
+
+    private LocalTime scheduleOpen() {
+        return clinicSettingsService.getOpenTime();
+    }
+
+    private LocalTime scheduleClose() {
+        return clinicSettingsService.getCloseTime();
+    }
+
+    private int scheduleSlotMinutes() {
+        return clinicSettingsService.getSlotMinutes();
+    }
+
+    private int scheduleTotalMinutes() {
+        return (int) Duration.between(scheduleOpen(), scheduleClose()).toMinutes();
     }
 
     /**
@@ -86,12 +118,17 @@ public class ReceptionistDashboardController {
                 .filter(a -> a.getScheduledTime().getHour() >= 17 && a.getScheduledTime().getHour() < 21)
                 .count();
 
-        // Hourly breakdown (06:00 to 20:00)
-        List<String> hourlyLabels = List.of("06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00");
+        // Hourly breakdown across the clinic's operating hours
+        int openHour = scheduleOpen().getHour();
+        int lastFullHour = scheduleClose().getHour() - 1;
+        List<String> hourlyLabels = new ArrayList<>();
+        for (int h = openHour; h <= lastFullHour; h++) {
+            hourlyLabels.add(String.format("%02d:00", h));
+        }
         List<Integer> hourlyData = new ArrayList<>();
         int maxHourlyCount = 0;
         String peakHourRange = "N/A";
-        for (int h = 6; h <= 20; h++) {
+        for (int h = openHour; h <= lastFullHour; h++) {
             final int hour = h;
             int count = (int) todayAppointments.stream()
                     .filter(a -> a.getScheduledTime().getHour() == hour)
@@ -112,8 +149,12 @@ public class ReceptionistDashboardController {
             long docCompleted = todayAppointments.stream()
                     .filter(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId()) && "COMPLETED".equals(a.getStatus()))
                     .count();
-            doctorWorkloads.add(new DoctorWorkloadDto(doctor, docCount, docCompleted));
+            boolean busy = todayAppointments.stream()
+                    .anyMatch(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId())
+                            && BUSY_STATUSES.contains(a.getStatus()));
+            doctorWorkloads.add(new DoctorWorkloadDto(doctor, specialtyOf(doctor), busy, docCount, docCompleted));
         }
+        long doctorsWorkingCount = doctorWorkloads.stream().filter(DoctorWorkloadDto::isBusy).count();
 
         // Waiting appointments (CHECKED_IN queue)
         List<Appointment> waitingAppointments = todayAppointments.stream()
@@ -144,6 +185,10 @@ public class ReceptionistDashboardController {
         model.addAttribute("peakHourRange", peakHourRange);
         model.addAttribute("maxHourlyCount", maxHourlyCount);
         model.addAttribute("doctorWorkloads", doctorWorkloads);
+        model.addAttribute("doctorsWorkingCount", doctorsWorkingCount);
+        model.addAttribute("maxActiveDoctors", DOCTOR_SPECIALTIES.size());
+        model.addAttribute("clinicOpenHour", openHour);
+        model.addAttribute("clinicCloseHour", scheduleClose().getHour());
 
         return "receptionist/dashboard";
     }
@@ -333,7 +378,10 @@ public class ReceptionistDashboardController {
             long docCompleted = todayAppointments.stream()
                     .filter(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId()) && "COMPLETED".equals(a.getStatus()))
                     .count();
-            doctorWorkloads.add(new DoctorWorkloadDto(doctor, docCount, docCompleted));
+            boolean busy = todayAppointments.stream()
+                    .anyMatch(a -> a.getDoctor() != null && a.getDoctor().getUserId().equals(doctor.getUserId())
+                            && BUSY_STATUSES.contains(a.getStatus()));
+            doctorWorkloads.add(new DoctorWorkloadDto(doctor, specialtyOf(doctor), busy, docCount, docCompleted));
         }
 
         List<Appointment> recentTodayAppointments = todayAppointments.stream()
@@ -348,6 +396,10 @@ public class ReceptionistDashboardController {
         model.addAttribute("todayCount", todayAppointments.size());
         model.addAttribute("recentAppointments", recentTodayAppointments);
         model.addAttribute("today", LocalDate.now());
+        model.addAttribute("clinicOpenHour", scheduleOpen().getHour());
+        model.addAttribute("clinicCloseHour", scheduleClose().getHour());
+        model.addAttribute("slotMinutes", scheduleSlotMinutes());
+        model.addAttribute("maxFutureBookingDays", clinicSettingsService.getMaxFutureBookingDays());
         return "receptionist/new-appointment";
     }
 
@@ -358,24 +410,24 @@ public class ReceptionistDashboardController {
      */
     private List<LocalTime> buildTimeSlots() {
         List<LocalTime> slots = new ArrayList<>();
-        for (LocalTime t = SCHEDULE_OPEN; t.isBefore(SCHEDULE_CLOSE); t = t.plusMinutes(SCHEDULE_SLOT_MINUTES)) {
+        for (LocalTime t = scheduleOpen(); t.isBefore(scheduleClose()); t = t.plusMinutes(scheduleSlotMinutes())) {
             slots.add(t);
         }
         return slots;
     }
 
     private LocalTime roundUpToSlot(LocalTime time) {
-        if (time.isBefore(SCHEDULE_OPEN)) {
-            return SCHEDULE_OPEN;
+        if (time.isBefore(scheduleOpen())) {
+            return scheduleOpen();
         }
-        long minutesFromOpen = Duration.between(SCHEDULE_OPEN, time).toMinutes();
-        long roundedUp = ((minutesFromOpen + SCHEDULE_SLOT_MINUTES - 1) / SCHEDULE_SLOT_MINUTES) * SCHEDULE_SLOT_MINUTES;
-        LocalTime slot = SCHEDULE_OPEN.plusMinutes(roundedUp);
-        return slot.isAfter(SCHEDULE_CLOSE.minusMinutes(SCHEDULE_SLOT_MINUTES))
-                ? SCHEDULE_CLOSE.minusMinutes(SCHEDULE_SLOT_MINUTES)
+        long minutesFromOpen = Duration.between(scheduleOpen(), time).toMinutes();
+        long roundedUp = ((minutesFromOpen + scheduleSlotMinutes() - 1) / scheduleSlotMinutes()) * scheduleSlotMinutes();
+        LocalTime slot = scheduleOpen().plusMinutes(roundedUp);
+        return slot.isAfter(scheduleClose().minusMinutes(scheduleSlotMinutes()))
+                ? scheduleClose().minusMinutes(scheduleSlotMinutes())
                 : slot;
     }
-
+//Xu ly POST
     @PostMapping("/receptionist/appointments/walk-in")
     public String createWalkInAppointment(@RequestParam String fullName,
                                           @RequestParam String phone,
@@ -458,15 +510,15 @@ public class ReceptionistDashboardController {
         model.addAttribute("scheduleRows", scheduleRows);
         model.addAttribute("unassignedSlots", unassignedSlots);
         model.addAttribute("selectedDate", selectedDate);
-        model.addAttribute("hourMarks", IntStream.rangeClosed(SCHEDULE_OPEN.getHour(), SCHEDULE_CLOSE.getHour()).boxed().toList());
+        model.addAttribute("hourMarks", IntStream.rangeClosed(scheduleOpen().getHour(), scheduleClose().getHour()).boxed().toList());
         return "receptionist/schedule";
     }
 
     private ScheduleSlot toScheduleSlot(Appointment appointment) {
         LocalTime time = appointment.getScheduledTime().toLocalTime();
-        int minutesFromOpen = (int) Duration.between(SCHEDULE_OPEN, time).toMinutes();
-        double leftPercent = Math.max(0, Math.min(100, minutesFromOpen * 100.0 / SCHEDULE_TOTAL_MINUTES));
-        double widthPercent = Math.min(100 - leftPercent, SCHEDULE_SLOT_MINUTES * 100.0 / SCHEDULE_TOTAL_MINUTES);
+        int minutesFromOpen = (int) Duration.between(scheduleOpen(), time).toMinutes();
+        double leftPercent = Math.max(0, Math.min(100, minutesFromOpen * 100.0 / scheduleTotalMinutes()));
+        double widthPercent = Math.min(100 - leftPercent, scheduleSlotMinutes() * 100.0 / scheduleTotalMinutes());
         return new ScheduleSlot(appointment, leftPercent, widthPercent);
     }
 
@@ -518,17 +570,30 @@ public class ReceptionistDashboardController {
 
     public static class DoctorWorkloadDto {
         private final User doctor;
+        private final String specialty;
+        private final boolean busy;
         private final long totalAppointments;
         private final long completedAppointments;
 
-        public DoctorWorkloadDto(User doctor, long totalAppointments, long completedAppointments) {
+        public DoctorWorkloadDto(User doctor, String specialty, boolean busy,
+                                  long totalAppointments, long completedAppointments) {
             this.doctor = doctor;
+            this.specialty = specialty;
+            this.busy = busy;
             this.totalAppointments = totalAppointments;
             this.completedAppointments = completedAppointments;
         }
 
         public User getDoctor() {
             return doctor;
+        }
+
+        public String getSpecialty() {
+            return specialty;
+        }
+
+        public boolean isBusy() {
+            return busy;
         }
 
         public long getTotalAppointments() {

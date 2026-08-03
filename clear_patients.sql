@@ -1,0 +1,18 @@
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE ai_detected_regions;
+TRUNCATE TABLE ai_analysis_results;
+TRUNCATE TABLE doctor_annotations;
+TRUNCATE TABLE imaging_records;
+TRUNCATE TABLE xray_images;
+TRUNCATE TABLE medical_records;
+TRUNCATE TABLE appointment_status_history;
+TRUNCATE TABLE appointments;
+TRUNCATE TABLE notifications;
+TRUNCATE TABLE reports;
+TRUNCATE TABLE chat_messages;
+TRUNCATE TABLE chat_conversations;
+TRUNCATE TABLE support_requests;
+TRUNCATE TABLE doctor_reviews;
+TRUNCATE TABLE patients;
+DELETE FROM users WHERE role_id = 4;
+SET FOREIGN_KEY_CHECKS = 1;

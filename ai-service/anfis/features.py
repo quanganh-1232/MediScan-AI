@@ -3,6 +3,11 @@ from typing import List, Dict
 
 import yolo_core
 
+# [MEDISCAN COMMENTS]: 
+# File này là Cầu Nối đóng vai trò tính toán ra các chỉ số (Features).
+# Nó nhận vào ảnh gốc và thông tin từ YOLO (các vùng nghi gãy xương),
+# sau đó trích xuất ra 9 thông số chuẩn hóa (từ 0.0 đến 1.0) như độ tương phản xương, 
+# độ bất thường bờ xương, v.v. Các thông số này sẽ là đầu vào cho mô hình ANFIS.
 
 def _normalize_fractal_dim(fd: float, min_fd: float = 1.0, max_fd: float = 2.0) -> float:
     return float(np.clip((fd - min_fd) / (max_fd - min_fd), 0.0, 1.0))

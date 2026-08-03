@@ -16,7 +16,7 @@ from .membership import make_gauss_mfs
 
 # Order matters: this must match the order features are fed into the
 # model's input tensor, both when generating training data and at
-# inference time in AnfisDiagnosisService.
+#  đưa vào mạng nơ ron để tính điểm thô
 INPUT_ORDER: List[str] = [
     "edge_irregularity",
     "bone_contrast",

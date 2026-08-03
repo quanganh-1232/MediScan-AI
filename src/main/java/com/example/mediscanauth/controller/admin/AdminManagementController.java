@@ -144,7 +144,7 @@ public class AdminManagementController {
                                @RequestParam(required = false) String status, Model model) {
         model.addAttribute("appointments", adminManagementService.findAppointments(keyword, status));
         model.addAttribute("technicians", userAdminService.findStaffByRole("TECHNICIAN", null));
-        model.addAttribute("doctors", userAdminService.findStaffByRole("DOCTOR", null));
+        model.addAttribute("doctors", userAdminService.findActiveStaffByRole("DOCTOR"));
         model.addAttribute("statuses", adminManagementService.appointmentStatuses());
         model.addAttribute("keyword", text(keyword));
         model.addAttribute("selectedStatus", text(status));

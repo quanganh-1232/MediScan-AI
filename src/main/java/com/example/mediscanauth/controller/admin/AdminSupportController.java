@@ -41,6 +41,15 @@ public class AdminSupportController {
         return "admin/support";
     }
 
+    @GetMapping("/admin/support/{id}")
+    public String detail(@PathVariable Long id, Model model) {
+        SupportRequest request = supportRequestService.getOne(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu hỗ trợ."));
+        model.addAttribute("request", request);
+        model.addAttribute("statuses", SupportRequestService.STATUSES);
+        return "admin/support-detail";
+    }
+
     @PostMapping("/admin/support/{id}/respond")
     public String respond(@PathVariable Long id,
                           @RequestParam String adminResponse,
@@ -53,6 +62,6 @@ public class AdminSupportController {
         } catch (IllegalArgumentException ex) {
             redirect.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/admin/support";
+        return "redirect:/admin/support/" + id;
     }
 }

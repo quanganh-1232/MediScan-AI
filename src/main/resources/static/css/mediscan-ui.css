@@ -449,10 +449,17 @@ body {
 }
 
 .ms-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-height: 3rem;
     border-radius: 14px;
     border: none;
     font-weight: 700;
+}
+
+.ms-btn.btn-sm {
+    min-height: 2rem;
 }
 
 .ms-btn-primary {

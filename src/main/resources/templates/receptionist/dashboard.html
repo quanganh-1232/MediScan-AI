@@ -32,7 +32,7 @@
             <!-- Header Banner -->
             <div class="rc-dash-header mb-4">
                 <div class="row align-items-center g-3">
-                    <div class="col-12 col-lg-7">
+                    <div class="col-12">
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <span class="rc-live-pulse">
                                 <span class="rc-live-dot"></span> VẬN HÀNH TRỰC TIẾP
@@ -47,19 +47,6 @@
                         <p class="text-white text-opacity-75 mb-0 small">
                             Giám sát toàn diện thông tin ca đặt, tiến độ tiếp nhận bệnh nhân và tải khám của bác sĩ theo thời gian thực.
                         </p>
-                    </div>
-                    <div class="col-12 col-lg-5 text-lg-end">
-                        <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
-                            <a th:href="@{/receptionist/appointments/new}" class="btn btn-light fw-bold px-3 text-teal shadow-sm">
-                                <i class="bi bi-person-plus-fill me-1"></i>Đăng ký Walk-in
-                            </a>
-                            <a th:href="@{/receptionist/waiting}" class="btn btn-outline-light fw-semibold px-3">
-                                <i class="bi bi-card-checklist me-1"></i>Danh sách chờ (<span th:text="${waitingCount}">0</span>)
-                            </a>
-                            <a th:href="@{/receptionist/schedule}" class="btn btn-outline-light fw-semibold px-3">
-                                <i class="bi bi-calendar-week me-1"></i>Lịch bác sĩ
-                            </a>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -124,11 +111,11 @@
                 <div class="col-6 col-md-4 col-xl-2">
                     <div class="rc-kpi-card kpi-rose">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="rc-kpi-lbl">Bác sĩ trực</span>
+                            <span class="rc-kpi-lbl">Bác sĩ đang làm việc</span>
                             <div class="rc-kpi-icon rose"><i class="bi bi-person-badge"></i></div>
                         </div>
-                        <div class="rc-kpi-val text-danger" th:text="${doctorsOnDutyCount}">0</div>
-                        <div class="small text-muted mt-1">Bác sĩ sẵn sàng</div>
+                        <div class="rc-kpi-val text-danger" th:text="${doctorsWorkingCount} + '/' + ${maxActiveDoctors}">0/2</div>
+                        <div class="small text-muted mt-1">Đang trong ca khám</div>
                     </div>
                 </div>
             </div>
@@ -214,7 +201,8 @@
                             <div class="rc-chart-title">
                                 <i class="bi bi-graph-up-arrow"></i> Phân Bổ Ca Đặt Theo Giờ Trong Ngày
                             </div>
-                            <span class="badge bg-light text-secondary border">06:00 - 21:00</span>
+                            <span class="badge bg-light text-secondary border"
+                                  th:text="${#numbers.formatInteger(clinicOpenHour, 2)} + ':00 - ' + ${#numbers.formatInteger(clinicCloseHour, 2)} + ':00'">06:00 - 21:00</span>
                         </div>
                         <div style="height: 280px; position: relative;">
                             <canvas id="hourlyChart"></canvas>
@@ -374,8 +362,8 @@
                                             <span th:text="' • Giờ: ' + ${#temporals.format(w.scheduledTime, 'HH:mm')}"> • 09:30</span>
                                         </div>
                                     </div>
-                                    <a th:href="@{/receptionist/waiting}" class="btn btn-sm btn-teal text-white fw-bold">
-                                        <i class="bi bi-megaphone me-1"></i>Gọi
+                                    <a th:href="@{/receptionist/waiting}" class="btn btn-sm btn-teal text-white fw-bold" title="Xem trong Danh sách chờ để gọi khám">
+                                        <i class="bi bi-eye me-1"></i>Xem
                                     </a>
                                 </div>
 
@@ -403,8 +391,13 @@
                                     <div class="ms-avatar ms-avatar-primary flex-shrink-0"
                                          th:text="${#strings.substring(dw.doctor.fullName, 0, 1).toUpperCase()}">B</div>
                                     <div class="flex-grow-1 min-w-0">
-                                        <div class="fw-bold text-dark text-truncate" th:text="'BS. ' + ${dw.doctor.fullName}">BS. Trần Văn Hùng</div>
-                                        <div class="small text-muted">Bác sĩ Chuyên khoa Xương Khớp</div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="fw-bold text-dark text-truncate" th:text="'BS. ' + ${dw.doctor.fullName}">BS. Trần Văn Hùng</div>
+                                            <span class="pt-status flex-shrink-0"
+                                                  th:classappend="${dw.busy} ? ' pt-status-confirmed' : ' pt-status-done'"
+                                                  th:text="${dw.busy} ? 'Đang khám' : 'Rảnh'" style="font-size: 0.68rem;">Rảnh</span>
+                                        </div>
+                                        <div class="small text-muted" th:text="${dw.specialty}">Chuyên khoa Xương Khớp</div>
                                         <div class="progress mt-1.5" style="height: 4px;">
                                             <div class="progress-bar bg-teal" role="progressbar"
                                                  th:style="'width: ' + (${dw.totalAppointments > 0} ? (${dw.completedAppointments} * 100 / ${dw.totalAppointments}) : 0) + '%'"></div>

@@ -36,6 +36,17 @@ public class CloudinaryService {
         return pattern.matcher(temp).replaceAll("").replace('đ', 'd').replace('Đ', 'D');
     }
 
+    /**
+     * Loại bỏ tiền tố "annotated_" nếu dbFileName lấy từ database đã chứa sẵn,
+     * tránh bị lặp tiền tố khi ghép lại (vd: annotated_annotated_xxx).
+     */
+    private String stripAnnotatedPrefix(String dbFileName) {
+        if (dbFileName != null && dbFileName.startsWith("annotated_")) {
+            return dbFileName.substring("annotated_".length());
+        }
+        return dbFileName;
+    }
+
     private String buildSafeCloudinaryPublicId(String dbFileName, String prefix) {
         if (dbFileName == null || dbFileName.trim().isEmpty()) {
             return prefix + System.currentTimeMillis();
@@ -184,6 +195,8 @@ public class CloudinaryService {
             return "";
         }
 
+        dbFileName = dbFileName.trim();
+
         if ("COMPLETED".equalsIgnoreCase(status)) {
             String doctorName = buildSafeCloudinaryPublicId(dbFileName, "doctor_");
             String safePatient = removeAccent(patientName.trim());
@@ -193,7 +206,7 @@ public class CloudinaryService {
                     "https://res.cloudinary.com/%s/image/upload/f_auto,q_auto/MedicalAI/%s/%s/Doctor/%s?t=%d",
                     cloudName, safePatient, safeRecord, doctorName, System.currentTimeMillis());
         } else {
-            String aiName = buildSafeCloudinaryPublicId(dbFileName, "annotated_");
+            String aiName = buildSafeCloudinaryPublicId(stripAnnotatedPrefix(dbFileName), "annotated_");
             String safePatient = removeAccent(patientName.trim());
             String safeRecord = recordCode.trim();
 
@@ -210,6 +223,8 @@ public class CloudinaryService {
         if (dbFileName == null || dbFileName.trim().isEmpty()) {
             return "https://via.placeholder.com/600x400?text=ORIGINAL+NOT+FOUND";
         }
+
+        dbFileName = stripAnnotatedPrefix(dbFileName.trim());
 
         String cleanName = dbFileName.contains(".")
                 ? dbFileName.substring(0, dbFileName.lastIndexOf('.'))

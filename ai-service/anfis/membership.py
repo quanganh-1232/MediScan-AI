@@ -3,6 +3,11 @@
 """
     ANFIS in torch: some fuzzy membership functions.
     @author: James Power <james.power@mu.ie> Apr 12 18:13:10 2019
+
+    # [MEDISCAN COMMENTS]: 
+    # File này định nghĩa các Hàm thành viên (Membership Functions).
+    # Chứa các phương trình toán học (đường cong Gauss, hình chuông, tam giác, hình thang)
+    # dùng để quyết định mức độ mờ của dữ liệu (VD: độ tin cậy bao nhiêu % là Thấp/Trung Bình/Cao).
 """
 
 import torch
@@ -29,6 +34,7 @@ class GaussMembFunc(torch.nn.Module):
         self.register_parameter('sigma', _mk_param(sigma))
 
     def forward(self, x):
+        # [MEDISCAN] Tinh toan do thi hinh chuong (Gauss) cho tung bien mo
         val = torch.exp(-torch.pow(x - self.mu, 2) / (2 * self.sigma**2))
         return val
 
@@ -37,6 +43,7 @@ class GaussMembFunc(torch.nn.Module):
 
 
 def make_gauss_mfs(sigma, mu_list):
+    # [MEDISCAN] Tao ra cac duong cong Gauss (thap, trung, cao) cho mo hinh
     '''Return a list of gaussian mfs, same sigma, list of means'''
     return [GaussMembFunc(mu, sigma) for mu in mu_list]
 

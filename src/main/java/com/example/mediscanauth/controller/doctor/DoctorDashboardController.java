@@ -85,9 +85,11 @@ public class DoctorDashboardController {
         String recordCode = record.getRecordCode() != null ? record.getRecordCode() : "Unknown_Record";
 
         // URL hiển thị
-        String displayUrl = "/uploads/" + record.getFileName();
+        String displayUrl = cloudinaryService.getDisplayImageUrl(
+                record.getFileName(), record.getStatus(), patientName, recordCode);
 
-        String originalUrl = "/uploads/" + record.getFileName();
+        String originalUrl = cloudinaryService.getOriginalImageUrl(
+                record.getFileName(), patientName, recordCode);
 
         model.addAttribute("record", record);
         model.addAttribute("displayImageUrl", displayUrl);

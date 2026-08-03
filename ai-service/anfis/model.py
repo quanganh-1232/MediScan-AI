@@ -2,6 +2,11 @@ import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 
+# [MEDISCAN COMMENTS]:
+# File này là Hệ thống dự phòng (Fallback) viết bằng luật IF-ELSE thủ công (scikit-fuzzy).
+# Nếu vì lí do nào đó mà file trọng số AI (anfis.pt) không load được, hệ thống 
+# sẽ dùng các luật do con người định nghĩa sẵn trong này để tính điểm gãy xương,
+# giúp server không bị sập.
 
 def build_diagnosis_control_system() -> ctrl.ControlSystemSimulation:
     """Build a fuzzy inference system for fracture risk support."""
