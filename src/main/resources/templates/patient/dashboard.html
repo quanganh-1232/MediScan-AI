@@ -154,9 +154,18 @@
                         <span class="risk-badge"
                               th:classappend="${latestRecord.riskLevel}"
                               th:text="${latestRecord.riskLevel != null ? latestRecord.riskLevel : 'NONE'}">LOW</span>
-                        <a th:href="@{/patient/records/{id}(id=${latestRecord.recordId})}"
-                           class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-3">
+                        <a th:if="${latestRecord.status == 'DOCTOR_CONFIRMED'}"
+                           th:href="@{/patient/records/{id}(id=${latestRecord.recordId})}"
+                           class="btn btn-sm ms-btn ms-btn-primary text-white px-3"
+                           style="border-radius: 6px;">
                             Xem chi tiết <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                        <a th:unless="${latestRecord.status == 'DOCTOR_CONFIRMED'}"
+                           th:href="@{/patient/records}"
+                           class="btn btn-sm ms-btn ms-btn-ghost border text-muted px-3"
+                           style="border-radius: 6px;"
+                           title="Đang xử lý, chưa hoàn thành">
+                            Xem danh sách <i class="bi bi-arrow-right ms-1"></i>
                         </a>
                     </div>
                 </div>

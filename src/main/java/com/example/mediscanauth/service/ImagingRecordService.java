@@ -79,7 +79,7 @@ public interface ImagingRecordService {
     // ==================== Search & AI ====================
     Page<ImagingRecord> searchConfirmedLibrary(String keyword, String bodyPart, Pageable pageable);
 
-    Page<ImagingRecord> searchForPatient(User patient, String keyword, String bodyPart, Pageable pageable);
+    Page<ImagingRecord> searchForPatient(User patient, String keyword, String doctorName, String status, java.time.LocalDate fromDate, java.time.LocalDate toDate, Pageable pageable);
 
     List<com.example.mediscanauth.model.dto.AiRegionProjection> getAiRegionsByRecordId(Long recordId);
 
