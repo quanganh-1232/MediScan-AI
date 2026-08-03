@@ -73,28 +73,29 @@
     <!-- KAN-30: Filter bar -->
     <form th:action="@{/patient/records}" method="get" class="filter-bar mb-4">
         <div class="row g-2 align-items-end">
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-3">
                 <label class="form-label small fw-semibold mb-1">Tìm kiếm</label>
                 <div class="input-group">
                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" name="keyword" class="form-control border-start-0" placeholder="Mã hồ sơ, bác sĩ..."
+                    <input type="text" name="keyword" class="form-control border-start-0" placeholder="Mã hồ sơ, kết luận..."
                            th:value="${keyword}">
                 </div>
             </div>
             <div class="col-6 col-md-2">
-                <label class="form-label small fw-semibold mb-1">Vùng chụp</label>
-                <select name="bodyPart" class="form-select">
+                <label class="form-label small fw-semibold mb-1">Bác sĩ phụ trách</label>
+                <input type="text" name="doctorName" class="form-control" placeholder="Tên bác sĩ..."
+                       th:value="${doctorName}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Trạng thái</label>
+                <select name="status" class="form-select">
                     <option value="">Tất cả</option>
-                    <option value="Cẳng tay"  th:selected="${bodyPart == 'Cẳng tay'}">Cẳng tay</option>
-                    <option value="Bàn tay"   th:selected="${bodyPart == 'Bàn tay'}">Bàn tay</option>
-                    <option value="Cẳng chân" th:selected="${bodyPart == 'Cẳng chân'}">Cẳng chân</option>
-                    <option value="Bàn chân"  th:selected="${bodyPart == 'Bàn chân'}">Bàn chân</option>
-                    <option value="Cột sống"  th:selected="${bodyPart == 'Cột sống'}">Cột sống</option>
-                    <option value="Xương đùi" th:selected="${bodyPart == 'Xương đùi'}">Xương đùi</option>
-                    <option value="Vai"        th:selected="${bodyPart == 'Vai'}">Vai</option>
-                    <option value="Ngực"       th:selected="${bodyPart == 'Ngực'}">Ngực</option>
-                    <option value="Khớp gối"  th:selected="${bodyPart == 'Khớp gối'}">Khớp gối</option>
-                    <option value="Xương chậu" th:selected="${bodyPart == 'Xương chậu'}">Xương chậu</option>
+                    <option value="COMPLETED"       th:selected="${status == 'COMPLETED' or status == 'DOCTOR_CONFIRMED'}">Hoàn thành / Đã có kết luận</option>
+                    <option value="PENDING_DOCTOR"  th:selected="${status == 'PENDING_DOCTOR'}">Chờ bác sĩ duyệt</option>
+                    <option value="AI_ANALYZED"     th:selected="${status == 'AI_ANALYZED'}">AI đã phân tích</option>
+                    <option value="PENDING_AI"      th:selected="${status == 'PENDING_AI'}">Chờ AI phân tích</option>
+                    <option value="DOCTOR_REJECTED" th:selected="${status == 'DOCTOR_REJECTED'}">Cần chụp lại</option>
+                    <option value="AI_FAILED"       th:selected="${status == 'AI_FAILED'}">AI phân tích lỗi</option>
                 </select>
             </div>
             <div class="col-6 col-md-2">
@@ -105,9 +106,9 @@
                 <label class="form-label small fw-semibold mb-1">Đến ngày</label>
                 <input type="date" name="toDate" class="form-control" th:value="${toDate}">
             </div>
-            <div class="col-6 col-md-2 d-flex gap-2">
-                <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100">
-                    <i class="bi bi-funnel"></i> Lọc
+            <div class="col-12 col-md-1 d-flex gap-2">
+                <button type="submit" class="btn ms-btn ms-btn-primary text-white w-100" title="Lọc dữ liệu">
+                    <i class="bi bi-funnel"></i>
                 </button>
                 <a th:href="@{/patient/records}" class="btn ms-btn ms-btn-ghost border" title="Xóa bộ lọc">
                     <i class="bi bi-x-lg"></i>
@@ -119,19 +120,23 @@
         <div th:if="${hasFilter}" class="mt-2 d-flex flex-wrap gap-2">
             <span th:if="${!#strings.isEmpty(keyword)}" class="filter-tag">
                 <i class="bi bi-search"></i> <span th:text="${keyword}">-</span>
-                <a th:href="@{/patient/records(bodyPart=${bodyPart},fromDate=${fromDate},toDate=${toDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
+                <a th:href="@{/patient/records(doctorName=${doctorName},status=${status},fromDate=${fromDate},toDate=${toDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
             </span>
-            <span th:if="${!#strings.isEmpty(bodyPart)}" class="filter-tag">
-                <i class="bi bi-body-text"></i> <span th:text="${bodyPart}">-</span>
-                <a th:href="@{/patient/records(keyword=${keyword},fromDate=${fromDate},toDate=${toDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
+            <span th:if="${!#strings.isEmpty(doctorName)}" class="filter-tag">
+                <i class="bi bi-person-badge"></i> BS. <span th:text="${doctorName}">-</span>
+                <a th:href="@{/patient/records(keyword=${keyword},status=${status},fromDate=${fromDate},toDate=${toDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
+            </span>
+            <span th:if="${!#strings.isEmpty(status)}" class="filter-tag">
+                <i class="bi bi-funnel"></i> <span th:text="${status == 'COMPLETED' or status == 'DOCTOR_CONFIRMED' ? 'Hoàn thành' : status}">-</span>
+                <a th:href="@{/patient/records(keyword=${keyword},doctorName=${doctorName},fromDate=${fromDate},toDate=${toDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
             </span>
             <span th:if="${!#strings.isEmpty(fromDate)}" class="filter-tag">
                 <i class="bi bi-calendar"></i> Từ <span th:text="${fromDate}">-</span>
-                <a th:href="@{/patient/records(keyword=${keyword},bodyPart=${bodyPart},toDate=${toDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
+                <a th:href="@{/patient/records(keyword=${keyword},doctorName=${doctorName},status=${status},toDate=${toDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
             </span>
             <span th:if="${!#strings.isEmpty(toDate)}" class="filter-tag">
                 <i class="bi bi-calendar-check"></i> Đến <span th:text="${toDate}">-</span>
-                <a th:href="@{/patient/records(keyword=${keyword},bodyPart=${bodyPart},fromDate=${fromDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
+                <a th:href="@{/patient/records(keyword=${keyword},doctorName=${doctorName},status=${status},fromDate=${fromDate})}" class="remove text-decoration-none"><i class="bi bi-x"></i></a>
             </span>
         </div>
     </form>
@@ -158,10 +163,21 @@
                 </thead>
                 <tbody>
                 <tr th:each="record : ${records}">
-                    <td><span class="fw-bold text-primary" th:text="${record.recordCode}">XR-2026-0001</span></td>
                     <td>
-                        <span class="fw-semibold"
-                              th:text="${record.capturedAt != null ? #temporals.format(record.capturedAt, 'dd/MM/yyyy') : '-'}">-</span>
+                        <a th:if="${record.status == 'COMPLETED' or record.status == 'DOCTOR_CONFIRMED'}"
+                           th:href="@{/patient/records/{id}(id=${record.recordId})}"
+                           class="fw-bold text-primary text-decoration-none"
+                           th:text="${record.recordCode}">XR-2026-001</a>
+                        <span th:unless="${record.status == 'COMPLETED' or record.status == 'DOCTOR_CONFIRMED'}"
+                              class="fw-bold text-secondary"
+                              th:text="${record.recordCode}">XR-2026-001</span>
+                    </td>
+                    <td>
+                        <div th:if="${record.capturedAt != null}"
+                             th:text="${#temporals.format(record.capturedAt, 'dd/MM/yyyy')}">15/05/2026</div>
+                        <div th:if="${record.capturedAt == null and record.createdAt != null}"
+                             th:text="${#temporals.format(record.createdAt, 'dd/MM/yyyy')}">15/05/2026</div>
+                        <div th:if="${record.capturedAt == null and record.createdAt == null}" class="text-muted">-</div>
                     </td>
                     <td th:text="${record.bodyPart}">Cẳng tay</td>
                     <td th:text="${record.doctor != null ? 'BS. ' + record.doctor.fullName : 'Chưa phân công'}">-</td>
@@ -170,7 +186,8 @@
                             <span th:case="'PENDING_AI'"       class="pt-status pt-status-pending">Chờ AI phân tích</span>
                             <span th:case="'AI_ANALYZED'"      class="pt-status pt-status-confirmed">AI đã phân tích</span>
                             <span th:case="'PENDING_DOCTOR'"   class="pt-status pt-status-confirmed">Chờ bác sĩ duyệt</span>
-                            <span th:case="'DOCTOR_CONFIRMED'" class="pt-status pt-status-done">Đã có kết luận</span>
+                            <span th:case="'DOCTOR_CONFIRMED'" class="pt-status pt-status-done">Hoàn thành</span>
+                            <span th:case="'COMPLETED'"        class="pt-status pt-status-done">Hoàn thành</span>
                             <span th:case="'DOCTOR_REJECTED'"  class="pt-status pt-status-cancelled">Cần chụp lại</span>
                             <span th:case="'AI_FAILED'"        class="pt-status pt-status-cancelled">AI phân tích lỗi</span>
                             <span th:case="*"                  class="pt-status pt-status-pending" th:text="${record.status}">-</span>
@@ -183,12 +200,15 @@
                         <span class="small text-muted" th:if="${record.doctorConclusion == null}">Chưa có kết luận</span>
                     </td>
                     <td class="text-end">
-                        <!-- KAN-31: link to individual record detail -->
-                        <a th:href="@{/patient/records/{id}(id=${record.recordId})}"
-                           class="btn btn-sm ms-btn ms-btn-ghost border text-primary px-2">
-                            <i class="bi bi-eye me-1"></i> Xem kết quả
+                        <!-- Chỉ hiển thị nút khi hồ sơ đã hoàn thành -->
+                        <a th:if="${record.status == 'COMPLETED' or record.status == 'DOCTOR_CONFIRMED'}"
+                           th:href="@{/patient/records/{id}(id=${record.recordId})}"
+                           class="btn btn-sm ms-btn ms-btn-primary text-white px-2 py-1"
+                           style="border-radius: 6px; font-size: .8rem;">
+                            <i class="bi bi-eye me-1"></i> Xem chi tiết
                         </a>
                     </td>
+
                 </tr>
                 <tr th:if="${#lists.isEmpty(records)}">
                     <td colspan="7" class="text-center text-muted py-5">
@@ -209,18 +229,18 @@
         <div th:if="${recordPage != null and recordPage.totalPages > 1}"
              class="d-flex justify-content-center gap-2 mt-4">
             <a th:if="${currentPage > 0}"
-               th:href="@{/patient/records(page=${currentPage - 1},keyword=${keyword},bodyPart=${bodyPart},fromDate=${fromDate},toDate=${toDate})}"
+               th:href="@{/patient/records(page=${currentPage - 1},keyword=${keyword},doctorName=${doctorName},status=${status},fromDate=${fromDate},toDate=${toDate})}"
                class="btn btn-sm ms-btn ms-btn-ghost border px-3">
                 <i class="bi bi-chevron-left"></i>
             </a>
             <span th:each="i : ${#numbers.sequence(0, recordPage.totalPages - 1)}">
-                <a th:href="@{/patient/records(page=${i},keyword=${keyword},bodyPart=${bodyPart},fromDate=${fromDate},toDate=${toDate})}"
+                <a th:href="@{/patient/records(page=${i},keyword=${keyword},doctorName=${doctorName},status=${status},fromDate=${fromDate},toDate=${toDate})}"
                    class="btn btn-sm border px-3"
                    th:classappend="${i == currentPage} ? ' ms-btn ms-btn-primary text-white' : ' ms-btn ms-btn-ghost'"
                    th:text="${i + 1}">1</a>
             </span>
             <a th:if="${currentPage < recordPage.totalPages - 1}"
-               th:href="@{/patient/records(page=${currentPage + 1},keyword=${keyword},bodyPart=${bodyPart},fromDate=${fromDate},toDate=${toDate})}"
+               th:href="@{/patient/records(page=${currentPage + 1},keyword=${keyword},doctorName=${doctorName},status=${status},fromDate=${fromDate},toDate=${toDate})}"
                class="btn btn-sm ms-btn ms-btn-ghost border px-3">
                 <i class="bi bi-chevron-right"></i>
             </a>

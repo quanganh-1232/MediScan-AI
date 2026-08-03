@@ -26,9 +26,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 
 @Controller
 public class PatientDashboardController {
@@ -102,18 +105,38 @@ public class PatientDashboardController {
     public String records(Authentication authentication,
                           Model model,
                           @RequestParam(defaultValue = "") String keyword,
-                          @RequestParam(defaultValue = "") String bodyPart,
+                          @RequestParam(defaultValue = "") String doctorName,
+                          @RequestParam(defaultValue = "") String status,
                           @RequestParam(defaultValue = "") String fromDate,
                           @RequestParam(defaultValue = "") String toDate,
                           @RequestParam(defaultValue = "0") int page) {
 
         User patient = getUser(authentication);
-        boolean hasFilter = !keyword.isBlank() || !bodyPart.isBlank() || !fromDate.isBlank() || !toDate.isBlank();
+        boolean hasFilter = !keyword.isBlank() || !doctorName.isBlank() || !status.isBlank() || !fromDate.isBlank() || !toDate.isBlank();
+
+        LocalDate parsedFromDate = null;
+        if (!fromDate.isBlank()) {
+            try {
+                parsedFromDate = LocalDate.parse(fromDate);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+
+        LocalDate parsedToDate = null;
+        if (!toDate.isBlank()) {
+            try {
+                parsedToDate = LocalDate.parse(toDate);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
 
         Page<ImagingRecord> recordPage = imagingRecordService.searchForPatient(
                 patient,
                 keyword.isBlank() ? null : keyword,
-                bodyPart.isBlank() ? null : bodyPart,
+                doctorName.isBlank() ? null : doctorName,
+                status.isBlank() ? null : status,
+                parsedFromDate,
+                parsedToDate,
                 PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "capturedAt"))
         );
 
@@ -124,7 +147,8 @@ public class PatientDashboardController {
         model.addAttribute("latestRecord", imagingRecordService.findLatestForPatient(patient));
         model.addAttribute("recordCount", imagingRecordService.countForPatient(patient));
         model.addAttribute("keyword", keyword);
-        model.addAttribute("bodyPart", bodyPart);
+        model.addAttribute("doctorName", doctorName);
+        model.addAttribute("status", status);
         model.addAttribute("fromDate", fromDate);
         model.addAttribute("toDate", toDate);
         model.addAttribute("currentPage", page);
@@ -140,8 +164,11 @@ public class PatientDashboardController {
         User patient = getUser(authentication);
         ImagingRecord record = imagingRecordService.getRecordById(id);
 
-        // Ownership check — patient can only view their own records
+        // Ownership & status check — patient can only view completed records
         if (record == null || !record.getPatient().getUserId().equals(patient.getUserId())) {
+            return "redirect:/patient/records";
+        }
+        if (!"COMPLETED".equalsIgnoreCase(record.getStatus()) && !"DOCTOR_CONFIRMED".equalsIgnoreCase(record.getStatus())) {
             return "redirect:/patient/records";
         }
 

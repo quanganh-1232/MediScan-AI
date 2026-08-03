@@ -496,9 +496,10 @@ public class ImagingRecordServiceImpl implements ImagingRecordService {
     }
 
     @Override
-    public Page<ImagingRecord> searchForPatient(User patient, String keyword, String bodyPart, Pageable pageable) {
-        return imagingRecordRepository.searchForPatient(patient, keyword, bodyPart, pageable);
+    public Page<ImagingRecord> searchForPatient(User patient, String keyword, String doctorName, String status, LocalDate fromDate, LocalDate toDate, Pageable pageable) {
+        return imagingRecordRepository.searchForPatient(patient, trimToEmpty(keyword), trimToEmpty(doctorName), trimToEmpty(status), fromDate, toDate, pageable);
     }
+
 
     @Override
     @Transactional

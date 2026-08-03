@@ -87,26 +87,38 @@ public interface ImagingRecordRepository extends JpaRepository<ImagingRecord, Lo
     @Query(value = """
             select r from ImagingRecord r
             where r.patient = :patient
-              and (:bodyPart is null or :bodyPart = '' or r.bodyPart = :bodyPart)
               and (:keyword is null or :keyword = ''
                 or lower(r.recordCode) like lower(concat('%', :keyword, '%'))
                 or lower(r.aiPrediction) like lower(concat('%', :keyword, '%'))
                 or lower(r.doctorConclusion) like lower(concat('%', :keyword, '%')))
+              and (:doctorName is null or :doctorName = ''
+                or (r.doctor is not null and lower(r.doctor.fullName) like lower(concat('%', :doctorName, '%'))))
+              and (:status is null or :status = '' or r.status = :status or (:status = 'COMPLETED' and r.status = 'DOCTOR_CONFIRMED') or (:status = 'DOCTOR_CONFIRMED' and r.status = 'COMPLETED'))
+              and (:fromDate is null or r.capturedAt >= :fromDate)
+              and (:toDate is null or r.capturedAt <= :toDate)
             ORDER BY r.capturedAt DESC, r.createdAt DESC
             """,
             countQuery = """
             select count(r) from ImagingRecord r
             where r.patient = :patient
-              and (:bodyPart is null or :bodyPart = '' or r.bodyPart = :bodyPart)
               and (:keyword is null or :keyword = ''
                 or lower(r.recordCode) like lower(concat('%', :keyword, '%'))
                 or lower(r.aiPrediction) like lower(concat('%', :keyword, '%'))
                 or lower(r.doctorConclusion) like lower(concat('%', :keyword, '%')))
+              and (:doctorName is null or :doctorName = ''
+                or (r.doctor is not null and lower(r.doctor.fullName) like lower(concat('%', :doctorName, '%'))))
+              and (:status is null or :status = '' or r.status = :status or (:status = 'COMPLETED' and r.status = 'DOCTOR_CONFIRMED') or (:status = 'DOCTOR_CONFIRMED' and r.status = 'COMPLETED'))
+              and (:fromDate is null or r.capturedAt >= :fromDate)
+              and (:toDate is null or r.capturedAt <= :toDate)
             """)
     Page<ImagingRecord> searchForPatient(@Param("patient") User patient,
                                          @Param("keyword") String keyword,
-                                         @Param("bodyPart") String bodyPart,
+                                         @Param("doctorName") String doctorName,
+                                         @Param("status") String status,
+                                         @Param("fromDate") LocalDate fromDate,
+                                         @Param("toDate") LocalDate toDate,
                                          Pageable pageable);
+
 
     // ==================== AI Regions ====================
     @Query(value = "SELECT r.x_coordinate as xCoordinate, r.y_coordinate as yCoordinate, " +
