@@ -70,13 +70,16 @@
             <!-- Uploaded -->
             <div class="step-item">
                 <span class="step-circle done"><i class="bi bi-check-lg"></i></span>
-                <span class="step-label">Đã tải lên</span>
+                <span class="step-label">Đã tiếp nhận</span>
             </div>
             <!-- Doctor -->
             <div class="step-item">
                 <span th:switch="${record.status}">
                     <span th:case="'DOCTOR_CONFIRMED'" class="step-circle done"><i class="bi bi-check-lg"></i></span>
+                    <span th:case="'COMPLETED'"        class="step-circle done"><i class="bi bi-check-lg"></i></span>
+                    <span th:case="'CONFIRMED'"        class="step-circle done"><i class="bi bi-check-lg"></i></span>
                     <span th:case="'DOCTOR_REJECTED'"  class="step-circle error"><i class="bi bi-x"></i></span>
+                    <span th:case="'REJECTED'"         class="step-circle error"><i class="bi bi-x"></i></span>
                     <span th:case="'PENDING_DOCTOR'"   class="step-circle active"><i class="bi bi-person"></i></span>
                     <span th:case="*"                  class="step-circle"><i class="bi bi-person"></i></span>
                 </span>
@@ -84,8 +87,8 @@
             </div>
             <!-- Done -->
             <div class="step-item">
-                <span th:if="${record.status == 'DOCTOR_CONFIRMED'}" class="step-circle done"><i class="bi bi-check-lg"></i></span>
-                <span th:unless="${record.status == 'DOCTOR_CONFIRMED'}" class="step-circle"></span>
+                <span th:if="${record.status == 'DOCTOR_CONFIRMED' or record.status == 'COMPLETED' or record.status == 'CONFIRMED'}" class="step-circle done"><i class="bi bi-check-lg"></i></span>
+                <span th:unless="${record.status == 'DOCTOR_CONFIRMED' or record.status == 'COMPLETED' or record.status == 'CONFIRMED'}" class="step-circle"></span>
                 <span class="step-label">Hoàn thành</span>
             </div>
         </div>

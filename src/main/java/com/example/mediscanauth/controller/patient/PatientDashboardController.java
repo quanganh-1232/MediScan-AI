@@ -80,9 +80,9 @@ public class PatientDashboardController {
         List<ImagingRecord> records = imagingRecordService.findForPatient(patient);
 
         long total       = records.size();
-        long processing  = records.stream().filter(r -> r.getStatus().contains("PENDING") || r.getStatus().contains("PROCESSING")).count();
-        long completed   = records.stream().filter(r -> "DOCTOR_CONFIRMED".equals(r.getStatus())).count();
-        long needAttention = records.stream().filter(r -> "DOCTOR_REJECTED".equals(r.getStatus()) || "AI_FAILED".equals(r.getStatus())).count();
+        long processing  = records.stream().filter(r -> r.getStatus() != null && (r.getStatus().contains("PENDING") || r.getStatus().contains("PROCESSING"))).count();
+        long completed   = records.stream().filter(r -> r.getStatus() != null && ("DOCTOR_CONFIRMED".equalsIgnoreCase(r.getStatus()) || "COMPLETED".equalsIgnoreCase(r.getStatus()) || "CONFIRMED".equalsIgnoreCase(r.getStatus()))).count();
+        long needAttention = records.stream().filter(r -> r.getStatus() != null && ("DOCTOR_REJECTED".equalsIgnoreCase(r.getStatus()) || "REJECTED".equalsIgnoreCase(r.getStatus()) || "AI_FAILED".equalsIgnoreCase(r.getStatus()))).count();
 
         model.addAttribute("currentUser", patient);
         model.addAttribute("unreadCount", notificationService.countUnread(patient));
